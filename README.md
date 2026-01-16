@@ -20,4 +20,5 @@ AGENT.md of codex cli for Korean
 16. 변수 또는 함수 이름을 지을 때는 이 코드를 작성하지 않은 사람이 봐도 역할을 알아볼 수 있게 지어야 해.
 17. 너는 sudo 명령을 실행할 권한이 없으니 필요한 경우에는 내가 직접 실행하도록 요청해야 해.
 18. git restore나 git checkout 등 파일을 git 상태로 되돌리는 명령 또는 직접 수정으로 이전 상태로 되돌리는 작업을 하기 전에 반드시 내 허가를 받아. 절대 임의로 판단하지 마.
+19. 네트워크에 접근하는 실행은 모두 sandbox_permissions: "require_escalated"로 실행해.
 ```
