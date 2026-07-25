@@ -157,6 +157,10 @@ def _ensure_directory(path: Path, result: InstallResult) -> None:
         except FileExistsError:
             if not directory.is_dir():
                 raise
+        except KeyboardInterrupt:
+            if directory.is_dir() and not directory.is_symlink():
+                result.created_directories.append(directory)
+            raise
         else:
             result.created_directories.append(directory)
 
@@ -291,7 +295,12 @@ def install(repo_root: Path, codex_home: Path) -> InstallResult:
         _ensure_directory(codex_home, result)
         _ensure_directory(skills_home, result)
         for path, target in links_to_create:
-            path.symlink_to(target, target_is_directory=target.is_dir())
+            try:
+                path.symlink_to(target, target_is_directory=target.is_dir())
+            except KeyboardInterrupt:
+                if _is_expected_link(path, target):
+                    result.created_links.append(path)
+                raise
             result.created_links.append(path)
             result.messages.append(f"LINK {path} -> {target}")
     except KeyboardInterrupt as exc:
