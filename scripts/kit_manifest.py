@@ -250,6 +250,29 @@ def validate_manifest(manifest: KitManifest, repo_root: Path) -> list[str]:
             "active skills also listed as retired: " + ", ".join(retired_conflicts)
         )
 
+    install_paths = (
+        ("install.kit_link", Path(manifest.install.kit_link)),
+        ("install.agents_link", Path(manifest.install.agents_link)),
+        ("install.skills_dir", Path(manifest.install.skills_dir)),
+    )
+    for index, (left_name, left_path) in enumerate(install_paths):
+        if len(left_path.parts) != 1:
+            errors.append(
+                f"{left_name} must be a single path component: "
+                f"{left_path.as_posix()!r}"
+            )
+        for right_name, right_path in install_paths[index + 1 :]:
+            if (
+                left_path == right_path
+                or left_path in right_path.parents
+                or right_path in left_path.parents
+            ):
+                errors.append(
+                    "managed install paths overlap: "
+                    f"{left_name}={left_path.as_posix()!r}, "
+                    f"{right_name}={right_path.as_posix()!r}"
+                )
+
     manifest_skill_paths: set[str] = set()
     for skill in manifest.skills:
         manifest_skill_paths.add(Path(skill.path).as_posix())

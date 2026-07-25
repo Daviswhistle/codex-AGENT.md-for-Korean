@@ -101,35 +101,25 @@ git rebase origin/main
 
 ## 설치
 
-권장 설치 방식은 저장소 전체를 Codex 설정 디렉터리에 연결하는 것입니다. `AGENTS.md`는 자동 로드되는 전역 판단 기준을 제공하고, 저장소 연결은 프로젝트 override와 스킬, 세부 실행물을 필요할 때 참조할 수 있게 합니다.
+권장 설치 방식은 저장소 루트에서 Codex 전용 설치 스크립트를 한 번 실행하는 것입니다.
 
-기존 `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`나 같은 이름의 스킬 폴더를 보존해야 한다면 설치 전에 백업하세요.
-
-```bash
-KIT_DIR="$(pwd)"
-CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"
-
-mkdir -p "$CODEX_DIR/skills"
-
-if [ -e "$CODEX_DIR/davis-agent-kit" ] && [ ! -L "$CODEX_DIR/davis-agent-kit" ]; then
-  printf '%s\n' "$CODEX_DIR/davis-agent-kit exists and is not a symlink"
-  exit 1
-fi
-
-rm -f "$CODEX_DIR/davis-agent-kit"
-rm -f "$CODEX_DIR/AGENTS.md"
-rm -rf "$CODEX_DIR/skills/translation-quality"
-rm -rf "$CODEX_DIR/skills/handoff-agent-builder"
-rm -rf "$CODEX_DIR/skills/software-engineering"
-rm -rf "$CODEX_DIR/skills/writing-quality"
-
-ln -s "$KIT_DIR" "$CODEX_DIR/davis-agent-kit"
-ln -s "$CODEX_DIR/davis-agent-kit/AGENTS.md" "$CODEX_DIR/AGENTS.md"
-ln -s "$CODEX_DIR/davis-agent-kit/skills/translation-quality" "$CODEX_DIR/skills/translation-quality"
-ln -s "$CODEX_DIR/davis-agent-kit/skills/handoff-agent-builder" "$CODEX_DIR/skills/handoff-agent-builder"
-ln -s "$CODEX_DIR/davis-agent-kit/skills/software-engineering" "$CODEX_DIR/skills/software-engineering"
-ln -s "$CODEX_DIR/davis-agent-kit/skills/writing-quality" "$CODEX_DIR/skills/writing-quality"
+```sh
+./scripts/install_codex.sh
 ```
+
+`CODEX_HOME`을 별도로 사용하는 환경에서도 같은 명령을 사용할 수 있습니다.
+
+```sh
+CODEX_HOME=/path/to/codex-home ./scripts/install_codex.sh
+```
+
+설치 스크립트는 `kit.toml`에 등록된 모든 스킬과 전역 `AGENTS.md`를 심링크로 연결하고 doctor를 실행합니다. 저장소가 이미 `${CODEX_HOME:-$HOME/.codex}/davis-agent-kit`에 직접 checkout되어 있으면 그 디렉터리를 그대로 기준 원본으로 사용합니다. 이미 올바른 checkout과 링크는 유지하므로 반복 실행해도 안전합니다.
+
+installer는 기존 파일, 다른 링크, retired 스킬 또는 이 kit를 가리키는 unlisted 스킬을 자동으로 이동하거나 삭제하지 않습니다. 하나라도 발견하면 어떤 설치 경로도 바꾸기 전에 중단하므로, 사용자가 해당 경로를 직접 확인하고 정리한 뒤 다시 실행합니다. 새 링크를 만드는 도중 또는 최종 doctor에서 실패하면 이번 실행이 만든 경로만 제거합니다.
+
+`${CODEX_HOME:-$HOME/.codex}/skills` 자체가 whole-directory 심링크이거나 실제 경로가 checkout 내부이면 installer는 아무 설치 경로도 변경하지 않고 중단합니다. 이 경우 whole-directory 링크를 checkout 밖의 실제 `skills` 디렉터리로 교체한 뒤 다시 실행합니다.
+
+installer는 checkout이 `CODEX_HOME` 아래에 있으면서 managed `davis-agent-kit` 경로 자체를 차지하지 않거나, 반대로 `CODEX_HOME`이 checkout 내부인 배치도 변경 전에 거부합니다. 저장소를 `CODEX_HOME` 밖에 두거나 `${CODEX_HOME:-$HOME/.codex}/davis-agent-kit` 자체를 checkout으로 사용합니다.
 
 설치 후에는 Codex를 재시작하거나 새 세션을 시작해 전역 지침과 스킬 목록이 다시 로드되도록 합니다.
 

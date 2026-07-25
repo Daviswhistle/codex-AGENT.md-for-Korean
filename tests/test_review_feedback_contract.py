@@ -18,7 +18,11 @@ class ReviewFeedbackContractTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         install = readme.split("## 설치", 1)[1].split("## 현재 스킬", 1)[0]
 
-        self.assertIn('CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"', install)
+        self.assertIn("./scripts/install_codex.sh", install)
+        self.assertIn(
+            "CODEX_HOME=/path/to/codex-home ./scripts/install_codex.sh",
+            install,
+        )
         self.assertNotIn('mkdir -p "$HOME/.codex/skills"', install)
         self.assertNotIn('rm -rf "$HOME/.codex/skills/', install)
 
