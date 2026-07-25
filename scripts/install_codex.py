@@ -125,6 +125,42 @@ class InstallResult:
         return errors
 
 
+def _rollback_note(errors: list[str]) -> str:
+    return (
+        f" Rollback was incomplete: {'; '.join(errors)}."
+        if errors
+        else " Created installation paths were rolled back."
+    )
+
+
+def _ensure_directory(path: Path, result: InstallResult) -> None:
+    if _path_exists(path):
+        if not path.is_dir():
+            raise NotADirectoryError(f"not a directory: {path}")
+        return
+
+    missing: list[Path] = []
+    candidate = path
+    while not _path_exists(candidate):
+        missing.append(candidate)
+        parent = candidate.parent
+        if parent == candidate:
+            break
+        candidate = parent
+
+    if _path_exists(candidate) and not candidate.is_dir():
+        raise NotADirectoryError(f"not a directory: {candidate}")
+
+    for directory in reversed(missing):
+        try:
+            directory.mkdir()
+        except FileExistsError:
+            if not directory.is_dir():
+                raise
+        else:
+            result.created_directories.append(directory)
+
+
 def _reject_unsafe_topology(
     repo_root: Path,
     codex_home: Path,
@@ -252,23 +288,17 @@ def install(repo_root: Path, codex_home: Path) -> InstallResult:
                 )
 
     try:
-        if not codex_home.exists():
-            codex_home.mkdir(parents=True)
-            result.created_directories.append(codex_home)
-        if not skills_home.exists():
-            skills_home.mkdir(parents=True)
-            result.created_directories.append(skills_home)
+        _ensure_directory(codex_home, result)
+        _ensure_directory(skills_home, result)
         for path, target in links_to_create:
             path.symlink_to(target, target_is_directory=target.is_dir())
             result.created_links.append(path)
             result.messages.append(f"LINK {path} -> {target}")
+    except KeyboardInterrupt as exc:
+        rollback_note = _rollback_note(result.rollback())
+        raise KeyboardInterrupt(rollback_note.strip()) from exc
     except (OSError, RuntimeError) as exc:
-        rollback_errors = result.rollback()
-        rollback_note = (
-            f" Rollback was incomplete: {'; '.join(rollback_errors)}."
-            if rollback_errors
-            else " Created installation paths were rolled back."
-        )
+        rollback_note = _rollback_note(result.rollback())
         raise ManifestError(f"{exc}.{rollback_note}") from exc
 
     return result
@@ -293,12 +323,7 @@ def _report_post_install_failure(
     result: InstallResult,
     reason: object,
 ) -> None:
-    rollback_errors = result.rollback()
-    rollback_note = (
-        f" Rollback was incomplete: {'; '.join(rollback_errors)}."
-        if rollback_errors
-        else " Created installation paths were rolled back."
-    )
+    rollback_note = _rollback_note(result.rollback())
     try:
         print(f"Install failed: {reason}.{rollback_note}", file=sys.stderr)
     except OSError:
@@ -323,6 +348,10 @@ def main() -> int:
 
     try:
         result = install(repo_root, codex_home)
+    except KeyboardInterrupt as exc:
+        detail = f" {exc}" if str(exc) else ""
+        print(f"Install interrupted.{detail}", file=sys.stderr)
+        return 130
     except (ManifestError, OSError, RuntimeError) as exc:
         print(f"Install failed: {exc}", file=sys.stderr)
         return 1
