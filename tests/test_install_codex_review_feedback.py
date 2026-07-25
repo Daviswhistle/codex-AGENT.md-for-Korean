@@ -34,13 +34,13 @@ class InstallCodexReviewFeedbackTests(unittest.TestCase):
             ) -> None:
                 nonlocal call_count
                 call_count += 1
-                if call_count == 3:
-                    raise KeyboardInterrupt
                 original_symlink_to(
                     path,
                     target,
                     target_is_directory=target_is_directory,
                 )
+                if call_count == 3:
+                    raise KeyboardInterrupt
 
             stdout = io.StringIO()
             stderr = io.StringIO()
