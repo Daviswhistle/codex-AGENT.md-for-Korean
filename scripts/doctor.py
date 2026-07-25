@@ -96,7 +96,11 @@ def repository_checks(repo_root: Path, manifest: KitManifest) -> list[Result]:
         )
         return results
 
-    if Path(top).resolve() != repo_root.resolve():
+    try:
+        git_root_matches = Path(top).samefile(repo_root)
+    except OSError:
+        git_root_matches = False
+    if not git_root_matches:
         results.append(
             Result("FAIL", "git-root", f"git root is {top}, expected {repo_root}")
         )
@@ -139,10 +143,11 @@ def _check_symlink(path: Path, expected: Path, code: str) -> list[Result]:
     try:
         actual = path.resolve(strict=True)
         target = expected.resolve(strict=True)
-    except OSError as exc:
+        same_target = actual.samefile(target)
+    except (OSError, RuntimeError) as exc:
         return [Result("FAIL", code, f"cannot resolve {path}: {exc}")]
 
-    if actual != target:
+    if not same_target:
         return [
             Result(
                 "FAIL",
@@ -151,6 +156,17 @@ def _check_symlink(path: Path, expected: Path, code: str) -> list[Result]:
             )
         ]
     return [Result("PASS", code, f"{path} -> {target}")]
+
+
+def _check_kit_path(path: Path, expected: Path) -> list[Result]:
+    if path.is_dir() and not path.is_symlink():
+        try:
+            same_directory = path.samefile(expected)
+        except OSError:
+            same_directory = False
+        if same_directory:
+            return [Result("PASS", "kit-link", f"checkout directory: {path}")]
+    return _check_symlink(path, expected, "kit-link")
 
 
 def installation_checks(
@@ -164,7 +180,7 @@ def installation_checks(
     results.append(Result("PASS", "codex-home", str(codex_home)))
 
     kit_link = codex_home / manifest.install.kit_link
-    results.extend(_check_symlink(kit_link, repo_root, "kit-link"))
+    results.extend(_check_kit_path(kit_link, repo_root))
 
     agents_link = codex_home / manifest.install.agents_link
     normative_source = repo_root / manifest.normative_source
