@@ -149,7 +149,7 @@ class AgentKitContractTests(unittest.TestCase):
         )
         software_engineering_text = skill + "\n" + reference_text
 
-        self.assertIn('-c model="gpt-5.6-sol"', software_engineering_text)
+        self.assertIn('-c model="gpt-5.6-luna"', software_engineering_text)
         self.assertNotIn("review_model=", software_engineering_text)
         self.assertNotIn("codex review --commit", skill)
         self.assertIn("codex review --commit", reference_text)
@@ -158,8 +158,8 @@ class AgentKitContractTests(unittest.TestCase):
 
     def test_writing_quality_is_integrated_as_a_general_writing_skill(self) -> None:
         skill_root = ROOT / "skills" / "writing-quality"
-        self.assertTrue((skill_root / "SKILL.md").is_file())
-        self.assertTrue((skill_root / "agents" / "openai.yaml").is_file())
+        self.assertTrue((ROOT / "skills" / "writing-quality" / "SKILL.md").is_file())
+        self.assertTrue((ROOT / "skills" / "writing-quality" / "agents" / "openai.yaml").is_file())
 
         skill = read("skills/writing-quality/SKILL.md")
         metadata = read("skills/writing-quality/agents/openai.yaml")
