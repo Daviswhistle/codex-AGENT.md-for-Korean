@@ -88,3 +88,17 @@ Stop the CRA loop only when one of these is true:
 3. The review flow failed in a way that cannot be corrected inside the current task; report the failure, exact command, exit signal, and remaining risk.
 
 Do not finish CRA while the review process is still running.
+
+## Final Report
+
+Report:
+
+1. final commit hash
+2. changed files and behavioral effect
+3. validation commands run
+4. skipped validation with reasons
+5. last review state
+6. accepted findings and fixes
+7. rejected findings with reasons
+8. remaining risk
+9. naming, docs, generated-contract, or file-movement rationale when relevant
