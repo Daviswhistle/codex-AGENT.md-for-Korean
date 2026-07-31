@@ -149,7 +149,7 @@ class AgentKitContractTests(unittest.TestCase):
         )
         software_engineering_text = skill + "\n" + reference_text
 
-        self.assertIn('-c model="gpt-5.6-sol"', software_engineering_text)
+        self.assertIn('-c model="gpt-5.6-luna"', software_engineering_text)
         self.assertNotIn("review_model=", software_engineering_text)
         self.assertNotIn("codex review --commit", skill)
         self.assertIn("codex review --commit", reference_text)

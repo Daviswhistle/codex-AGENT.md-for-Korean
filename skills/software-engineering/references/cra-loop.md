@@ -32,7 +32,7 @@ COMMIT_SHA="$(git rev-parse HEAD)"
 rm -f review.done review.log
 
 codex review --commit "$COMMIT_SHA" \
-  -c model="gpt-5.6-sol" \
+  -c model="gpt-5.6-luna" \
   -c model_reasoning_effort="max" \
   > review.log 2>&1 && touch review.done
 ```
