@@ -106,7 +106,7 @@ If a reviewer finding conflicts with runtime evidence or an explicit user clarif
 
 ## CRA Decision
 
-After local validation, choose and record exactly one route for every non-trivial completed task unit:
+After local validation, choose and record exactly one route for every completed task unit, regardless of complexity. A trivial task with no explicit or TCA requirement will normally be `skip`; an `explicit-request` or `tca-required` entry still goes through this decision.
 
 1. `run`: enter CRA now.
 2. `skip`: independent commit-level review has low expected value for this task unit.
