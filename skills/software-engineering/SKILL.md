@@ -132,7 +132,7 @@ The low-value skip rule applies only to `autonomous-risk`. Typical autonomous sk
 
 ### Autonomous CRA Standing Approval
 
-The user's decision to enable autonomous CRA is a bounded standing approval under root `AGENTS.md`. For an `autonomous-risk` entry, it authorizes the configured `codex review` command to consume the current account's existing included quota or metered inference usage for at most three completed reviewer invocations per task unit.
+The user's decision to enable autonomous CRA is a bounded standing approval under root `AGENTS.md`. For an `autonomous-risk` entry, it authorizes the configured `codex review` command to consume the current account's existing included quota or metered inference usage for at most three reviewer command invocations per task unit.
 
 This standing approval does not authorize purchasing credits, changing a plan or billing setting, increasing a quota, enabling a new paid service, or starting a fourth reviewer invocation for the same task unit. Before any such action, choose `approval-required` and ask for explicit approval. Track the invocation count in the CRA record. An explicit CRA request or active TCA request supplies task-specific approval for its required CRA entry, but still does not authorize a purchase or billing-setting change.
 
