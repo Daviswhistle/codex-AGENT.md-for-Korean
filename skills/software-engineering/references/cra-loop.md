@@ -47,7 +47,7 @@ Track an invoked review in exactly one of these states:
 3. `completed-with-findings`: the final review has substantive findings.
 4. `failed`: the review command, transport, auth, quota, model selection, or process execution failed.
 
-`approval-required` and `blocked` are pre-invocation CRA decision routes, not review process states. Do not infer a terminal state from in-progress output.
+`approval-required` and `blocked` are pre-invocation CRA decision routes, not review process states. Do not infer a terminal state from in-progress output. When CRA is nested in TCA, `approval-required` does not satisfy the CRA terminal-state gate; neither does `blocked`.
 
 ## Blocking Review Command
 
