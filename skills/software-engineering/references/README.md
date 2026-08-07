@@ -6,6 +6,7 @@ Use a reference when the user explicitly requests that workflow or when the curr
 
 ## Current References
 
-- `cra-loop.md`: Codex Review Agent loop mechanics, status states, log discipline, finding handling, and reporting.
+- `cra-loop.md`: Codex Review Agent loop mechanics, status states, usage authorization, log discipline, finding handling, and reporting.
 - `tca-loop.md`: Task-Commit-Approve queue, task boundaries, restart gates, stop conditions, and final reporting.
 - `naming-docs-consistency.md`: consistency checks for names, docs, tests, settings, logs, metrics, generated contracts, and public surfaces.
+- `cra-routing-evaluation.md`: isolated baseline-versus-candidate behavior evaluation and merge gate for CRA entry, skip, precedence, and usage-boundary changes.
