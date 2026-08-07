@@ -18,13 +18,15 @@ Record the entry source and, for `autonomous-risk`, the concrete risk or uncerta
 
 ## Usage Authorization
 
-Check authorization before every reviewer command invocation and record the source and invocation count.
+Check authorization before every reviewer command invocation and record the source, current invocation count, and effective ceiling for the task unit.
 
 1. `explicit-request` and `tca-required` supply task-specific approval for the required CRA entry and its ordinary configured inference usage. They do not authorize purchasing credits, changing a plan or billing setting, increasing quota, or enabling another paid service.
 2. `autonomous-risk` uses the bounded standing approval in `software-engineering/SKILL.md`. It covers the configured reviewer command using the current account's existing included quota or metered inference usage for at most three reviewer command invocations per task unit.
 3. Count an invocation when the reviewer command is launched, regardless of whether it later completes, returns findings, or fails.
-4. If the next autonomous invocation would be the fourth, or any entry source would require a purchase or billing-setting change, do not run the command. Return to the CRA decision with route `approval-required` and request explicit approval.
-5. Do not infer authorization from the fact that the commit and logs are local. Local mutation authority and inference-usage authority are separate.
+4. A later narrow user approval may raise the ceiling for one recorded task unit. Record the exact provider and account, command or equivalent flow, model, reasoning effort, service tier, cost or usage boundary, and `approved_invocation_ceiling`. That recorded ceiling replaces the standing ceiling only for the same task unit and approved boundary.
+5. If the next invocation exceeds the effective ceiling, or requires a purchase, billing-setting change, provider change, account change, or other usage not covered by the recorded approval, do not run it. Return route `approval-required` and request the smallest additional approval.
+6. If the next invocation is within the same task's recorded approved invocation ceiling and every other recorded boundary still matches, run it without asking again solely because its ordinal number is greater than three. After launch, increment the invocation count before evaluating another retry.
+7. Do not infer authorization from the fact that the commit and logs are local. Local mutation authority and inference-usage authority are separate.
 
 ## Non-Negotiable Boundaries
 
@@ -79,7 +81,7 @@ If the installed CLI does not support `codex review --commit`, do not launch a s
 4. blocking completion, exit-state, log, and finding-preservation behavior
 5. no broader filesystem, network, remote-state, or interactive authority
 
-Use the alternative only when every item is verified and the current entry source authorizes the same usage boundary. Record the exact command or interactive path and the evidence for equivalence. If any item is different or unknown, do not launch it; return route `approval-required` and state what additional authority or cost boundary must be approved. If no supported flow exists within the approved boundary, report the review capability as `failed`. Never treat an unavailable or unauthorized review path as a passed review.
+Use the alternative only when every item is verified and the current entry source authorizes the same effective usage boundary. Record the exact command or interactive path and the evidence for equivalence. If any item is different or unknown, do not launch it; return route `approval-required` and state what additional authority or cost boundary must be approved. If no supported flow exists within the approved boundary, report the review capability as `failed`. Never treat an unavailable or unauthorized review path as a passed review.
 
 ## Log Discipline
 
@@ -118,9 +120,11 @@ Stop the CRA loop only when one of these is true:
 1. The last completed review reports no substantive findings or an equivalent terminal clean state.
 2. All remaining findings are explicitly rebuttable with current code, tests, docs, runtime evidence, or user instruction.
 3. The review flow failed in a way that cannot be corrected inside the current task; report the failure, exact command, exit signal, and remaining risk.
-4. The next reviewer invocation requires approval under the usage boundary; report route `approval-required`, the invocation count, and the additional authorization needed.
+4. The next reviewer invocation requires approval under the effective usage boundary; report route `approval-required`, the invocation count, effective ceiling, and additional authorization needed.
 
-When CRA is nested in TCA and returns `approval-required`, return the current task ID, commit SHA, entry source, invocation count, requested authority, validation state, remaining risk, and exact resume point to the TCA queue. This is a pause route, not a terminal review state.
+When CRA is nested in TCA and returns `approval-required`, return the current task ID, commit SHA, entry source, invocation count, effective and requested ceilings, requested authority, validation state, remaining risk, and exact resume point to the TCA queue. This is a pause route, not a terminal review state.
+
+When CRA is nested in TCA and returns `blocked`, return the current task ID, commit SHA when one exists, blocker, recovery condition, validation state, remaining risk, and exact same-task resume point. This is also a pause route, not a terminal review state.
 
 Do not finish CRA while the review process is still running.
 
@@ -129,7 +133,7 @@ Do not finish CRA while the review process is still running.
 Report:
 
 1. entry source and autonomous risk rationale when applicable
-2. usage-authorization source and reviewer invocation count
+2. usage-authorization source, effective ceiling, and reviewer invocation count
 3. final commit hash
 4. changed files and behavioral effect
 5. validation commands run
