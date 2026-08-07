@@ -120,6 +120,8 @@ Stop the CRA loop only when one of these is true:
 3. The review flow failed in a way that cannot be corrected inside the current task; report the failure, exact command, exit signal, and remaining risk.
 4. The next reviewer invocation requires approval under the usage boundary; report route `approval-required`, the invocation count, and the additional authorization needed.
 
+When CRA is nested in TCA and returns `approval-required`, return the current task ID, commit SHA, entry source, invocation count, requested authority, validation state, remaining risk, and exact resume point to the TCA queue. This is a pause route, not a terminal review state.
+
 Do not finish CRA while the review process is still running.
 
 ## Final Report
