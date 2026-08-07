@@ -20,7 +20,7 @@ TCA transition cases also record the queue state, whether the next task is allow
 For each prompt version:
 
 1. Start a fresh agent context. Standard routing cases receive only that commit's root `AGENTS.md`, `skills/software-engineering/SKILL.md`, and the natural-language case. TCA transition cases additionally receive `references/cra-loop.md` and `references/tca-loop.md`.
-2. Use the same model, reasoning effort, tool availability, evaluator prompt, and case text for the baseline and candidate.
+2. Use the same model, reasoning effort, tool availability, and evaluator prompt for the baseline and candidate. Use the same case text for both versions as well.
 3. Do not reveal the expected route or transition to the agent.
 4. Ask for a decision only. Do not implement, commit, invoke CRA, or mutate the queue during the evaluation.
 5. Preserve the complete raw response and normalize it into the required fields.
