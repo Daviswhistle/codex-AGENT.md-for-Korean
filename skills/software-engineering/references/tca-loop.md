@@ -43,10 +43,14 @@ Maintain the queue as an execution record, not as a fixed promise:
     - Expected validation:
     - Commit boundary:
     - CRA need:
+    - CRA route:
+    - CRA state:
+    - Approval needed:
+    - Resume point:
     - Status notes:
 ```
 
-Update it when new facts, failures, review findings, or design changes alter the next safest step.
+Use `approval-pending` as the task status when CRA returns `approval-required`. Update the queue when new facts, failures, review findings, approvals, or design changes alter the next safest step.
 
 ## Task Selection Order
 
@@ -70,12 +74,29 @@ For each task unit:
 6. update directly connected docs, tests, names, settings, generated contracts, or examples
 7. check `git status --short` and relevant diffs
 8. commit only the task unit
-9. run CRA on the commit
-10. process CRA findings
-11. update the task queue and status notes
-12. decide whether the next task is still valid
+9. run CRA on the commit when the current usage boundary authorizes it
+10. if CRA returns `approval-required`, follow the pause-and-resume contract below
+11. process completed CRA findings
+12. update the task queue and status notes
+13. decide whether the next task is still valid
 
-Do not start implementing the next task until the current task has a commit, local verification record, CRA terminal state, and updated queue entry.
+Do not start implementing the next task until the current task has a commit, local verification record, CRA terminal state, and updated queue entry. `approval-required` does not satisfy the CRA terminal-state gate.
+
+## Approval-Required Pause And Resume
+
+When CRA returns `approval-required` during an active TCA task:
+
+1. set the task status to `approval-pending`
+2. record the current task ID, commit SHA, CRA entry source, reviewer invocation count, exact additional authority or cost boundary requested, completed validation, remaining risk, and the resume point
+3. request the narrow approval required and stop the TCA loop
+4. Do not mark the task complete. Do not select or implement the next task while approval is pending.
+5. if approval is denied or not supplied, keep the task deferred at `approval-pending` and report the blocked continuation
+6. if approval is granted, confirm that it covers the recorded command and boundary, then re-check branch, commit, worktree, task scope, and whether prior validation is still current
+7. re-run validation when the checkout, commit, environment, or relevant assumption changed while paused
+8. resume the same task at the CRA usage-authorization check; do not create a new task or silently restart from implementation
+9. after the authorized reviewer invocation finishes, process findings and continue through the ordinary next-task gate
+
+An approval for one command, purchase, usage ceiling, or task unit does not widen later TCA tasks. Record any newly approved ceiling in the queue before resuming.
 
 ## CRA Fix Restart Rules
 
@@ -95,26 +116,28 @@ The current task is not complete until the amended commit passes CRA or only exp
 Proceed only when all are true:
 
 1. the current task has a commit
-2. the last CRA reached a terminal state
+2. the last CRA reached a terminal state; `approval-required`, `approval-pending`, and `blocked` do not satisfy this condition
 3. no valid critical or high-risk issue remains in scope
 4. no valid medium issue remains inside the current task boundary without an explicit reason
 5. executable validation has run
 6. skipped validation and reasons are recorded
 7. CRA-triggered changes were revalidated from the correct point
 8. the task queue reflects the current repository state
+9. no approval request or resume checkpoint remains open for the current task
 
 ## Stop Conditions
 
 Stop instead of continuing when:
 
 1. CRA failed and the cause is unclear
-2. the current task boundary became unclear
-3. unrelated user or coworker changes cannot be separated safely
-4. a migration, deployment, production data update, snapshot approval, or other state-changing action needs explicit user approval
-5. a failing test cannot be classified as implementation, expectation, environment, or stale fixture
-6. the next change would make the current commit meaning unclear
-7. CRA changed the task premise but the queue has not been updated
-8. required revalidation after CRA fixes has not run
+2. CRA returned `approval-required`; record `approval-pending`, request the narrow approval, and preserve the same-task resume point
+3. the current task boundary became unclear
+4. unrelated user or coworker changes cannot be separated safely
+5. a migration, deployment, production data update, snapshot approval, or other state-changing action needs explicit user approval
+6. a failing test cannot be classified as implementation, expectation, environment, or stale fixture
+7. the next change would make the current commit meaning unclear
+8. CRA changed the task premise but the queue has not been updated
+9. required revalidation after CRA fixes has not run
 
 ## Final Report
 
@@ -122,9 +145,10 @@ For multi-task TCA work, report:
 
 1. completed task list
 2. final commit hash for each task
-3. CRA terminal state for each task
+3. CRA route and terminal state for each task
 4. validation run for each task
 5. skipped validation and reasons
 6. CRA fixes that forced a restart point
-7. deferred findings or follow-up tasks
-8. naming, docs, generated-contract, or file-movement rationale when relevant
+7. pending or denied approvals, the exact requested boundary, and the recorded resume point
+8. deferred findings or follow-up tasks
+9. naming, docs, generated-contract, or file-movement rationale when relevant
