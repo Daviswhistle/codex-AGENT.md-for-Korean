@@ -12,9 +12,19 @@ Record one primary entry source:
 2. `tca-required`: the active TCA task gate requires CRA.
 3. `autonomous-risk`: the software-engineering skill determines that independent commit-level review is likely to materially reduce risk or uncertainty.
 
-Do not require the user to name CRA or ask for separate permission when `autonomous-risk` applies. A user instruction to avoid commits or reviews overrides autonomous selection. Autonomous CRA authorizes only the local commit-and-review cycle; it never authorizes push, deployment, migration, production data changes, snapshot approval, or any other remote-state mutation.
+The low-value autonomous skip rule never cancels `explicit-request` or `tca-required`. A later user instruction to avoid commits or reviews overrides every entry source.
 
 Record the entry source and, for `autonomous-risk`, the concrete risk or uncertainty that justified the review.
+
+## Usage Authorization
+
+Check authorization before every reviewer command invocation and record the source and invocation count.
+
+1. `explicit-request` and `tca-required` supply task-specific approval for the required CRA entry and its ordinary configured inference usage. They do not authorize purchasing credits, changing a plan or billing setting, increasing quota, or enabling another paid service.
+2. `autonomous-risk` uses the bounded standing approval in `software-engineering/SKILL.md`. It covers the configured reviewer command using the current account's existing included quota or metered inference usage for at most three reviewer command invocations per task unit.
+3. Count an invocation when the reviewer command is launched, regardless of whether it later completes, returns findings, or fails.
+4. If the next autonomous invocation would be the fourth, or any entry source would require a purchase or billing-setting change, do not run the command. Return to the CRA decision with route `approval-required` and request explicit approval.
+5. Do not infer authorization from the fact that the commit and logs are local. Local mutation authority and inference-usage authority are separate.
 
 ## Non-Negotiable Boundaries
 
@@ -28,14 +38,14 @@ Record the entry source and, for `autonomous-risk`, the concrete risk or uncerta
 
 ## State Model
 
-Track the review in exactly one of these states:
+Track an invoked review in exactly one of these states:
 
 1. `running`: the review process is still alive.
 2. `completed-clean`: the final review says `no substantive findings` or an equivalent terminal status.
 3. `completed-with-findings`: the final review has substantive findings.
 4. `failed`: the review command, transport, auth, quota, model selection, or process execution failed.
 
-Do not infer a terminal state from in-progress output.
+`approval-required` and `blocked` are pre-invocation CRA decision routes, not review process states. Do not infer a terminal state from in-progress output.
 
 ## Blocking Review Command
 
@@ -89,7 +99,7 @@ If a finding is valid:
 2. Re-run local verification from the changed point.
 3. Check `git status --short` and the relevant diff.
 4. Amend the existing commit with `git commit --amend --no-edit`.
-5. Run CRA again on the amended commit.
+5. Re-check the usage boundary, then run CRA again on the amended commit when authorized.
 
 If a finding is invalid or out of scope, preserve a concise reason in the final report or the closest durable artifact when that will prevent the same finding from recurring.
 
@@ -100,6 +110,7 @@ Stop the CRA loop only when one of these is true:
 1. The last completed review reports no substantive findings or an equivalent terminal clean state.
 2. All remaining findings are explicitly rebuttable with current code, tests, docs, runtime evidence, or user instruction.
 3. The review flow failed in a way that cannot be corrected inside the current task; report the failure, exact command, exit signal, and remaining risk.
+4. The next reviewer invocation requires approval under the usage boundary; report route `approval-required`, the invocation count, and the additional authorization needed.
 
 Do not finish CRA while the review process is still running.
 
@@ -108,12 +119,13 @@ Do not finish CRA while the review process is still running.
 Report:
 
 1. entry source and autonomous risk rationale when applicable
-2. final commit hash
-3. changed files and behavioral effect
-4. validation commands run
-5. skipped validation with reasons
-6. last review state
-7. accepted findings and fixes
-8. rejected findings with reasons
-9. remaining risk
-10. naming, docs, generated-contract, or file-movement rationale when relevant
+2. usage-authorization source and reviewer invocation count
+3. final commit hash
+4. changed files and behavioral effect
+5. validation commands run
+6. skipped validation with reasons
+7. last review state or pre-invocation route
+8. accepted findings and fixes
+9. rejected findings with reasons
+10. remaining risk
+11. naming, docs, generated-contract, or file-movement rationale when relevant
