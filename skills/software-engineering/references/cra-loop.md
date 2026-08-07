@@ -1,8 +1,20 @@
 # CRA Loop Reference
 
-Use this reference only when the user explicitly requests `CRA 루프`.
+Use this reference when the user explicitly requests `CRA 루프`, TCA requires CRA, or `software-engineering/SKILL.md` autonomously selects CRA because independent commit-level review is warranted.
 
 CRA means Commit-Review-Amend. It turns one completed task unit into a local commit, reviews that commit as a finished batch, and amends the same commit until the final review has no substantive findings or only findings that are explicitly rebuttable with current evidence.
+
+## Entry Sources
+
+Record one primary entry source:
+
+1. `explicit-request`: the user explicitly requests CRA.
+2. `tca-required`: the active TCA task gate requires CRA.
+3. `autonomous-risk`: the software-engineering skill determines that independent commit-level review is likely to materially reduce risk or uncertainty.
+
+Do not require the user to name CRA or ask for separate permission when `autonomous-risk` applies. A user instruction to avoid commits or reviews overrides autonomous selection. Autonomous CRA authorizes only the local commit-and-review cycle; it never authorizes push, deployment, migration, production data changes, snapshot approval, or any other remote-state mutation.
+
+Record the entry source and, for `autonomous-risk`, the concrete risk or uncertainty that justified the review.
 
 ## Non-Negotiable Boundaries
 
@@ -11,6 +23,8 @@ CRA means Commit-Review-Amend. It turns one completed task unit into a local com
 3. A local commit is not approval to push, deploy, migrate, approve snapshots, update production data, or mutate remote state.
 4. Exclude generated files, caches, logs, review logs, sentinel files, secrets, credentials, and unrelated user or coworker changes from the commit.
 5. Use CRA only for the requested task unit. Do not fold unrelated cleanup or follow-up work into the amend cycle.
+6. Do not use CRA as a substitute for missing local validation or an unclear source of truth.
+7. Do not start CRA when a clean task-unit commit cannot be isolated safely.
 
 ## State Model
 
@@ -93,12 +107,13 @@ Do not finish CRA while the review process is still running.
 
 Report:
 
-1. final commit hash
-2. changed files and behavioral effect
-3. validation commands run
-4. skipped validation with reasons
-5. last review state
-6. accepted findings and fixes
-7. rejected findings with reasons
-8. remaining risk
-9. naming, docs, generated-contract, or file-movement rationale when relevant
+1. entry source and autonomous risk rationale when applicable
+2. final commit hash
+3. changed files and behavioral effect
+4. validation commands run
+5. skipped validation with reasons
+6. last review state
+7. accepted findings and fixes
+8. rejected findings with reasons
+9. remaining risk
+10. naming, docs, generated-contract, or file-movement rationale when relevant
