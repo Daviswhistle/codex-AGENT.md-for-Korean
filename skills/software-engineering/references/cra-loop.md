@@ -71,7 +71,15 @@ test -f review.done && echo "review_done=yes" || echo "review_done=no"
 tail -100 review.log
 ```
 
-If the installed CLI does not support `codex review --commit`, use the closest supported review flow, record the exact command or interactive path used, and preserve the completed review output. Do not treat an unavailable review command as a passed review.
+If the installed CLI does not support `codex review --commit`, do not launch a substitute merely because it is the closest available flow. Before using any alternative, verify that it preserves all of the following:
+
+1. the same provider and authenticated account
+2. the configured model, reasoning effort, service tier, and usage or cost ceiling
+3. commit-scoped review of the same task unit
+4. blocking completion, exit-state, log, and finding-preservation behavior
+5. no broader filesystem, network, remote-state, or interactive authority
+
+Use the alternative only when every item is verified and the current entry source authorizes the same usage boundary. Record the exact command or interactive path and the evidence for equivalence. If any item is different or unknown, do not launch it; return route `approval-required` and state what additional authority or cost boundary must be approved. If no supported flow exists within the approved boundary, report the review capability as `failed`. Never treat an unavailable or unauthorized review path as a passed review.
 
 ## Log Discipline
 
