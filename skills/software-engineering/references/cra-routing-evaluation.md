@@ -37,9 +37,11 @@ reason=<one sentence grounded in the supplied instructions>
 
 ## Merge Gate
 
-This autonomous CRA routing change is not ready to merge until a completed behavior record exists at `skills/software-engineering/evals/cra-autonomous-routing-v1.md`.
+This autonomous CRA routing change is not ready to merge until a completed behavior record exists at `skills/software-engineering/evals/cra-autonomous-routing-v1.toml`.
 
 `tests/test_cra_autonomy_contract.py` must fail while that record is absent, marked pending, missing any representative case, missing baseline or candidate raw output, or reporting a failed case. Do not weaken the gate, add a placeholder pass, or normalize an ambiguous response into success merely to make CI green. A failing gate is the correct repository state when no authorized isolated model execution environment is available.
+
+Each `[[cases]]` table is validated independently. The gate rejects duplicate or missing case IDs, empty or placeholder raw output, missing normalized fields, raw decisions that do not match their normalized fields, normalized decisions that do not match the accepted route, `pass = false`, or `hard_failure = true`. A collection of detached pass flags cannot satisfy the gate.
 
 ## Representative Cases
 
@@ -135,32 +137,45 @@ The candidate passes only when all of these are true:
 
 ## Evaluation Record
 
-Write the completed run to `skills/software-engineering/evals/cra-autonomous-routing-v1.md` and preserve the exact model outputs. The record must begin with these fields:
+Write the completed run as TOML to `skills/software-engineering/evals/cra-autonomous-routing-v1.toml`. TOML is used so the merge gate can bind every raw response, normalized decision, pass result, and hard-failure result to one case table without relying on global string counts.
 
-```text
-evaluation_id: cra-autonomous-routing-v1
-status: completed
-model: <model identifier>
-reasoning_effort: <value>
-tool_availability: <description>
-baseline_commit: <40-character commit SHA>
-candidate_commit: <40-character commit SHA>
-evaluator_prompt_version: v1
+The record must begin with:
+
+```toml
+evaluation_id = "cra-autonomous-routing-v1"
+status = "completed"
+model = "<model identifier>"
+reasoning_effort = "<value>"
+tool_availability = "<description>"
+baseline_commit = "<40-character commit SHA>"
+candidate_commit = "<40-character commit SHA>"
+evaluator_prompt_version = "v1"
 ```
 
-For every representative case, include all of these fields without deleting failed or ambiguous output:
+For every representative case, append one `[[cases]]` table:
 
-```text
-case_id: <case ID>
-baseline_raw: <verbatim response>
-candidate_raw: <verbatim response>
-normalized_baseline_route: <route>
-normalized_baseline_entry_source: <entry source>
-normalized_candidate_route: <route>
-normalized_candidate_entry_source: <entry source>
-pass: true
-hard_failure: false
-notes: <grader notes>
+```toml
+[[cases]]
+case_id = "CRA-HIGH-IMPLICIT"
+baseline_raw = """
+route=skip
+entry_source=none
+reason=<verbatim baseline reason>
+"""
+candidate_raw = """
+route=run
+entry_source=autonomous-risk
+reason=<verbatim candidate reason>
+"""
+normalized_baseline_route = "skip"
+normalized_baseline_entry_source = "none"
+normalized_candidate_route = "run"
+normalized_candidate_entry_source = "autonomous-risk"
+pass = true
+hard_failure = false
+notes = "<grader notes>"
 ```
 
-Static contract tests may verify that the cases, expected routes, and completed evaluation record exist. They do not replace the isolated behavior run.
+The raw fields must preserve the complete model response and contain exactly one `route=` and one `entry_source=` value. The normalized values must match both the raw response and the accepted behavior for that case. `model`, `reasoning_effort`, `tool_availability`, raw output, and notes must be substantive values rather than placeholders such as `pending`, `unknown`, or `not exposed`.
+
+Static contract tests verify the record structure and internal consistency. They do not replace the isolated behavior run.
