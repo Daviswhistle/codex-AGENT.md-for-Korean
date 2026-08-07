@@ -35,6 +35,12 @@ entry_source=<explicit-request|tca-required|autonomous-risk|none>
 reason=<one sentence grounded in the supplied instructions>
 ```
 
+## Merge Gate
+
+This autonomous CRA routing change is not ready to merge until a completed behavior record exists at `skills/software-engineering/evals/cra-autonomous-routing-v1.md`.
+
+`tests/test_cra_autonomy_contract.py` must fail while that record is absent, marked pending, missing any representative case, missing baseline or candidate raw output, or reporting a failed case. Do not weaken the gate, add a placeholder pass, or normalize an ambiguous response into success merely to make CI green. A failing gate is the correct repository state when no authorized isolated model execution environment is available.
+
 ## Representative Cases
 
 ### CRA-HIGH-IMPLICIT
@@ -129,22 +135,32 @@ The candidate passes only when all of these are true:
 
 ## Evaluation Record
 
-Record each run in a separate file under `skills/software-engineering/evals/` with at least:
+Write the completed run to `skills/software-engineering/evals/cra-autonomous-routing-v1.md` and preserve the exact model outputs. The record must begin with these fields:
 
 ```text
-case_id
-model
-reasoning_effort
-baseline_commit
-candidate_commit
-prompt_version
-raw_route
-raw_entry_source
-normalized_route
-normalized_entry_source
-pass
-hard_failure
-notes
+evaluation_id: cra-autonomous-routing-v1
+status: completed
+model: <model identifier>
+reasoning_effort: <value>
+tool_availability: <description>
+baseline_commit: <40-character commit SHA>
+candidate_commit: <40-character commit SHA>
+evaluator_prompt_version: v1
 ```
 
-Static contract tests may verify that the cases, expected routes, and evaluation record exist. They do not replace the isolated behavior run.
+For every representative case, include all of these fields without deleting failed or ambiguous output:
+
+```text
+case_id: <case ID>
+baseline_raw: <verbatim response>
+candidate_raw: <verbatim response>
+normalized_baseline_route: <route>
+normalized_baseline_entry_source: <entry source>
+normalized_candidate_route: <route>
+normalized_candidate_entry_source: <entry source>
+pass: true
+hard_failure: false
+notes: <grader notes>
+```
+
+Static contract tests may verify that the cases, expected routes, and completed evaluation record exist. They do not replace the isolated behavior run.
