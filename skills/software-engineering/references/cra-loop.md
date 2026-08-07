@@ -20,13 +20,14 @@ Record the entry source and, for `autonomous-risk`, the concrete risk or uncerta
 
 Check authorization before every reviewer command invocation and record the source, current invocation count, and effective ceiling for the task unit.
 
-1. `explicit-request` and `tca-required` supply task-specific approval for the required CRA entry and its ordinary configured inference usage. They do not authorize purchasing credits, changing a plan or billing setting, increasing quota, or enabling another paid service.
-2. `autonomous-risk` uses the bounded standing approval in `software-engineering/SKILL.md`. It covers the configured reviewer command using the current account's existing included quota or metered inference usage for at most three reviewer command invocations per task unit.
-3. Count an invocation when the reviewer command is launched, regardless of whether it later completes, returns findings, or fails.
-4. A later narrow user approval may raise the ceiling for one recorded task unit. Record the exact provider and account, command or equivalent flow, model, reasoning effort, service tier, cost or usage boundary, and `approved_invocation_ceiling`. That recorded ceiling replaces the standing ceiling only for the same task unit and approved boundary.
-5. If the next invocation exceeds the effective ceiling, or requires a purchase, billing-setting change, provider change, account change, or other usage not covered by the recorded approval, do not run it. Return route `approval-required` and request the smallest additional approval.
-6. If the next invocation is within the same task's recorded approved invocation ceiling and every other recorded boundary still matches, run it without asking again solely because its ordinal number is greater than three. After launch, increment the invocation count before evaluating another retry.
-7. Do not infer authorization from the fact that the commit and logs are local. Local mutation authority and inference-usage authority are separate.
+1. Unless a later narrower or broader task-specific approval is recorded, every entry source begins with an initial effective ceiling of three reviewer command invocations per task unit.
+2. `explicit-request` and `tca-required` supply task-specific approval for the required CRA entry and its ordinary configured inference usage within that initial ceiling. They do not authorize purchasing credits, changing a plan or billing setting, increasing quota, or enabling another paid service.
+3. `autonomous-risk` uses the bounded standing approval in `software-engineering/SKILL.md` for the same initial ceiling. It covers the configured reviewer command using the current account's existing included quota or metered inference usage.
+4. Count an invocation when the reviewer command is launched, regardless of whether it later completes, returns findings, or fails.
+5. A later narrow user approval may raise the ceiling for one recorded task unit. Record the exact provider and account, command or equivalent flow, model, reasoning effort, service tier, cost or usage boundary, and `approved_invocation_ceiling`. That recorded ceiling replaces the initial ceiling only for the same task unit and approved boundary.
+6. If the next invocation exceeds the effective ceiling, or requires a purchase, billing-setting change, provider change, account change, or other usage not covered by the recorded approval, do not run it. Return route `approval-required` and request the smallest additional approval.
+7. If the next invocation is within the same task's recorded approved invocation ceiling and every other recorded boundary still matches, run it without asking again solely because its ordinal number is greater than three. After launch, increment the invocation count before evaluating another retry.
+8. Do not infer authorization from the fact that the commit and logs are local. Local mutation authority and inference-usage authority are separate.
 
 ## Non-Negotiable Boundaries
 
