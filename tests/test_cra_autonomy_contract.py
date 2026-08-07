@@ -19,10 +19,13 @@ class CraAutonomyContractTests(unittest.TestCase):
 
         for statement in (
             "autonomous CRA selection and CRA/TCA loops",
-            "The user does not need to name CRA",
-            "Presume CRA is warranted when one or more of these apply:",
-            "Do not use CRA as a substitute for missing local validation.",
-            "Do not require the user to name CRA or ask for separate permission",
+            "choose and record exactly one route",
+            "`run`: enter CRA now.",
+            "`skip`: independent commit-level review has low expected value",
+            "`approval-required`: CRA is warranted",
+            "`blocked`: CRA cannot start safely",
+            "Presume `autonomous-risk` is warranted",
+            "Do not ask again solely because the user did not name CRA",
             "autonomous-risk",
         ):
             self.assertIn(statement, contract)
@@ -35,6 +38,35 @@ class CraAutonomyContractTests(unittest.TestCase):
             "Use this reference only when the user explicitly requests `CRA 루프`.",
             cra_reference,
         )
+
+    def test_explicit_and_tca_entries_override_low_value_skip(self) -> None:
+        skill = read("skills/software-engineering/SKILL.md")
+        cra_reference = read("skills/software-engineering/references/cra-loop.md")
+        contract = "\n".join((skill, cra_reference))
+
+        for statement in (
+            "An `explicit-request` or `tca-required` entry produces `run` even for a typo",
+            "The low-value skip rule applies only to `autonomous-risk`.",
+            "The low-value autonomous skip rule never cancels `explicit-request` or `tca-required`.",
+        ):
+            self.assertIn(statement, contract)
+
+    def test_autonomous_usage_has_a_bounded_standing_approval(self) -> None:
+        agents = read("AGENTS.md")
+        skill = read("skills/software-engineering/SKILL.md")
+        cra_reference = read("skills/software-engineering/references/cra-loop.md")
+        contract = "\n".join((agents, skill, cra_reference))
+
+        for statement in (
+            "상시 승인은 그 범위 안에서 명시적 승인으로 본다.",
+            "The user's decision to enable autonomous CRA is a bounded standing approval",
+            "at most three completed reviewer invocations per task unit",
+            "purchasing credits",
+            "starting a fourth reviewer invocation",
+            "Count an invocation when the reviewer command is launched",
+            "Local mutation authority and inference-usage authority are separate.",
+        ):
+            self.assertIn(statement, contract)
 
     def test_autonomous_cra_does_not_expand_tca_or_remote_authority(self) -> None:
         skill = read("skills/software-engineering/SKILL.md")
@@ -54,9 +86,38 @@ class CraAutonomyContractTests(unittest.TestCase):
             tca_reference,
         )
         self.assertIn(
-            "Autonomous CRA authorizes only the local commit-and-review cycle",
+            "A local commit is not approval to push, deploy, migrate",
             cra_reference,
         )
+
+    def test_routing_evaluation_covers_representative_behavior(self) -> None:
+        evaluation = read(
+            "skills/software-engineering/references/cra-routing-evaluation.md"
+        )
+
+        for case_id in (
+            "CRA-HIGH-IMPLICIT",
+            "CRA-LOW-IMPLICIT",
+            "CRA-LOW-EXPLICIT",
+            "CRA-LOW-TCA",
+            "CRA-HIGH-USER-BLOCK",
+            "CRA-HIGH-PURCHASE",
+            "CRA-HIGH-FOURTH-RUN",
+        ):
+            self.assertIn(case_id, evaluation)
+
+        for statement in (
+            "Start a fresh agent context",
+            "Use the same model, reasoning effort, tool availability, and evaluator prompt",
+            "Candidate prompt: `route=run`, `entry_source=autonomous-risk`.",
+            "Candidate prompt: `route=skip`, `entry_source=none`.",
+            "Candidate prompt: `route=run`, `entry_source=explicit-request`.",
+            "Candidate prompt: `route=run`, `entry_source=tca-required`.",
+            "Candidate prompt: `route=blocked`, `entry_source=none`.",
+            "Candidate prompt: `route=approval-required`, `entry_source=autonomous-risk`.",
+            "They do not replace the isolated behavior run.",
+        ):
+            self.assertIn(statement, evaluation)
 
 
 if __name__ == "__main__":
