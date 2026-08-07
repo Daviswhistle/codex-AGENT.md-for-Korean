@@ -113,6 +113,8 @@ After local validation, choose and record exactly one route for every completed 
 3. `approval-required`: CRA is warranted, but the next review execution is outside the approved cost or usage boundary.
 4. `blocked`: CRA cannot start safely because there is no isolatable commit boundary, local validation is missing, the task is review-only, or a later user instruction forbids commits or reviews.
 
+Keep the route decision user-visible. The final response must report the CRA route, entry source, and concise rationale for each task unit, including an explicit `skip` decision and any `approval-required` or `blocked` pre-invocation route. Do not leave a skip only in hidden session state.
+
 Apply this precedence:
 
 1. A later user instruction to avoid commits or reviews wins and produces `blocked`.
@@ -169,4 +171,4 @@ Before final response or commit, check:
 4. names, docs, tests, settings, and generated artifacts are not materially inconsistent with current behavior
 5. `git status --short` shows only intended changes, or a commit has cleanly recorded them
 
-Final response should name the changed files, summarize the behavioral effect, list validation, mention skipped checks and risk, and include commit hash when committed.
+Final response should name the changed files, summarize the behavioral effect, list validation, mention skipped checks and risk, report the CRA route, entry source, and concise rationale for each task unit addressed, and include the commit hash when committed.
