@@ -60,7 +60,7 @@ class CraAutonomyContractTests(unittest.TestCase):
         for statement in (
             "상시 승인은 그 범위 안에서 명시적 승인으로 본다.",
             "The user's decision to enable autonomous CRA is a bounded standing approval",
-            "at most three completed reviewer invocations per task unit",
+            "at most three reviewer command invocations per task unit",
             "purchasing credits",
             "starting a fourth reviewer invocation",
             "Count an invocation when the reviewer command is launched",
