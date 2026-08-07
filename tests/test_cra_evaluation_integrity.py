@@ -78,6 +78,142 @@ TCA = {
         "local-validation",
     ),
 }
+CASE_GROUNDING_TERMS = {
+    "CRA-HIGH-IMPLICIT": (
+        "authentication",
+        "auth token",
+        "token refresh",
+        "concurr",
+        "caller",
+        "failure path",
+        "인증",
+        "토큰",
+        "동시",
+        "호출자",
+        "실패 경로",
+    ),
+    "CRA-LOW-IMPLICIT": (
+        "readme",
+        "typo",
+        "format",
+        "link",
+        "mechanical",
+        "focused validation",
+        "오탈자",
+        "포맷",
+        "링크",
+        "기계적",
+        "집중 검증",
+    ),
+    "CRA-LOW-EXPLICIT": (
+        "readme",
+        "typo",
+        "explicit request",
+        "user request",
+        "오탈자",
+        "명시 요청",
+        "사용자 요청",
+    ),
+    "CRA-LOW-TCA": (
+        "tca",
+        "task gate",
+        "review gate",
+        "required review",
+        "게이트",
+        "필수 리뷰",
+        "종결 상태",
+    ),
+    "CRA-HIGH-USER-BLOCK": (
+        "user prohibition",
+        "user forbids",
+        "forbids review",
+        "user instruction",
+        "no commit",
+        "no review",
+        "사용자 금지",
+        "커밋 금지",
+        "리뷰 금지",
+        "하지 말",
+    ),
+    "CRA-HIGH-PURCHASE": (
+        "migration",
+        "persisted data",
+        "credit purchase",
+        "billing",
+        "purchase",
+        "마이그레이션",
+        "영속 데이터",
+        "크레딧",
+        "과금",
+        "구매",
+    ),
+    "CRA-HIGH-FOURTH-RUN": (
+        "fourth invocation",
+        "fourth reviewer",
+        "three invocation",
+        "invocation ceiling",
+        "usage ceiling",
+        "네 번째",
+        "세 번",
+        "호출 상한",
+        "사용량 상한",
+    ),
+    "TCA-APPROVAL-PENDING": (
+        "fourth invocation",
+        "fourth-invocation",
+        "approval-pending",
+        "usage ceiling",
+        "next task",
+        "네 번째",
+        "승인 대기",
+        "사용량 상한",
+        "다음 task",
+    ),
+    "TCA-APPROVAL-RESUME": (
+        "approved ceiling",
+        "approved-ceiling",
+        "fourth invocation",
+        "same task",
+        "usage-authorization",
+        "승인 상한",
+        "네 번째",
+        "같은 task",
+        "사용 승인",
+    ),
+    "TCA-BLOCKED-USER": (
+        "user prohibition",
+        "user forbids",
+        "user reversal",
+        "await-user-reversal",
+        "사용자 금지",
+        "명시적 철회",
+        "사용자 철회",
+    ),
+    "TCA-BLOCKED-RECOVERABLE": (
+        "missing validation",
+        "local validation",
+        "recoverable blocker",
+        "local-validation",
+        "검증 누락",
+        "로컬 검증",
+        "회복 가능한",
+    ),
+}
+GRADER_NOTE_TERMS = (
+    "raw",
+    "normalized",
+    "accepted",
+    "expected",
+    "route",
+    "entry source",
+    "transition",
+    "원문",
+    "정규화",
+    "기대값",
+    "경로",
+    "진입 원인",
+    "전이",
+)
 PLACEHOLDER = re.compile(
     r"(?is)(?:"
     r"<[^>\n]{1,240}>"
@@ -105,6 +241,7 @@ EXACT_PLACEHOLDERS = {
     "none provided",
     "x",
 }
+TERMINAL_PUNCTUATION = (".", "!", "?", "。", "！", "？")
 SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -131,15 +268,40 @@ def substantive(
     letter_count = sum(char.isalpha() for char in text)
     distinct_words = {word.casefold() for word in words}
     return (
-        letter_count >= max(8, minimum // 2)
-        and len(words) >= 2
-        and len(distinct_words) >= 2
+        text.endswith(TERMINAL_PUNCTUATION)
+        and letter_count >= max(16, minimum)
+        and len(words) >= 4
+        and len(distinct_words) >= 4
+    )
+
+
+def explanation_key(value: str) -> str:
+    words = LETTER_WORD.findall(value.casefold())
+    return " ".join(words)
+
+
+def reason_is_grounded(case_id: str, reason: str) -> bool:
+    if not substantive(reason, 16, natural_language=True):
+        return False
+    lowered = reason.casefold()
+    return any(term.casefold() in lowered for term in CASE_GROUNDING_TERMS[case_id])
+
+
+def notes_are_case_specific(case_id: str, notes: object) -> bool:
+    if not substantive(notes, 20, natural_language=True):
+        return False
+    assert isinstance(notes, str)
+    lowered = notes.casefold()
+    return case_id.casefold() in lowered and any(
+        term.casefold() in lowered for term in GRADER_NOTE_TERMS
     )
 
 
 def parse_fields(
     raw: object,
     keys: tuple[str, ...],
+    *,
+    case_id: str,
 ) -> tuple[dict[str, str] | None, str | None]:
     if not isinstance(raw, str):
         return None, "raw output must be a string"
@@ -156,8 +318,8 @@ def parse_fields(
         fields[key] = value
     if set(fields) != set(keys):
         return None, f"raw fields must be exactly {', '.join(keys)}"
-    if not substantive(fields["reason"], 12, natural_language=True):
-        return None, "reason must be substantive and contain no placeholder text"
+    if not reason_is_grounded(case_id, fields["reason"]):
+        return None, "reason must be a complete case-grounded sentence"
     return fields, None
 
 
@@ -283,7 +445,44 @@ def validate_header(
         errors.append("candidate_prompt_sha256 does not match current prompt files")
 
 
-def validate_standard(data: dict[str, object], errors: list[str]) -> None:
+def register_unique_reason(
+    reasons: dict[str, tuple[str, str]],
+    case_id: str,
+    version: str,
+    reason: str,
+    errors: list[str],
+) -> None:
+    key = explanation_key(reason)
+    previous = reasons.get(key)
+    if previous is not None and previous[0] != case_id:
+        errors.append(
+            f"{case_id}: {version} reason is reused from "
+            f"{previous[0]} {previous[1]}"
+        )
+    else:
+        reasons[key] = (case_id, version)
+
+
+def register_unique_notes(
+    notes_seen: dict[str, str],
+    case_id: str,
+    notes: str,
+    errors: list[str],
+) -> None:
+    key = explanation_key(notes)
+    previous = notes_seen.get(key)
+    if previous is not None and previous != case_id:
+        errors.append(f"{case_id}: notes are reused from {previous}")
+    else:
+        notes_seen[key] = case_id
+
+
+def validate_standard(
+    data: dict[str, object],
+    errors: list[str],
+    reasons: dict[str, tuple[str, str]],
+    notes_seen: dict[str, str],
+) -> None:
     rows = index_rows(data, "cases", set(STANDARD), errors)
     for case_id, expected in STANDARD.items():
         row = rows.get(case_id)
@@ -298,22 +497,43 @@ def validate_standard(data: dict[str, object], errors: list[str]) -> None:
             fields, error = parse_fields(
                 row.get(f"{version}_raw"),
                 ("route", "entry_source", "reason"),
+                case_id=case_id,
             )
             if error:
                 errors.append(f"{case_id}: {version} {error}")
-            elif (fields["route"], fields["entry_source"]) != normalized[version]:
-                errors.append(f"{case_id}: {version} raw/normalized mismatch")
+            else:
+                assert fields is not None
+                register_unique_reason(
+                    reasons,
+                    case_id,
+                    version,
+                    fields["reason"],
+                    errors,
+                )
+                if (fields["route"], fields["entry_source"]) != normalized[version]:
+                    errors.append(f"{case_id}: {version} raw/normalized mismatch")
             if normalized[version] != accepted:
                 errors.append(f"{case_id}: {version} decision is not accepted")
         if row.get("pass") is not True:
             errors.append(f"{case_id}: pass must be true")
         if row.get("hard_failure") is not False:
             errors.append(f"{case_id}: hard_failure must be false")
-        if not substantive(row.get("notes"), 12, natural_language=True):
-            errors.append(f"{case_id}: notes must be substantive and non-placeholder")
+        notes = row.get("notes")
+        if not notes_are_case_specific(case_id, notes):
+            errors.append(
+                f"{case_id}: notes must be a complete case-specific grader sentence"
+            )
+        else:
+            assert isinstance(notes, str)
+            register_unique_notes(notes_seen, case_id, notes, errors)
 
 
-def validate_tca(data: dict[str, object], errors: list[str]) -> None:
+def validate_tca(
+    data: dict[str, object],
+    errors: list[str],
+    reasons: dict[str, tuple[str, str]],
+    notes_seen: dict[str, str],
+) -> None:
     rows = index_rows(data, "tca_cases", set(TCA), errors)
     names = ("route", "entry_source", "task_status", "next_task", "resume_point")
     for case_id, accepted in TCA.items():
@@ -328,11 +548,21 @@ def validate_tca(data: dict[str, object], errors: list[str]) -> None:
             fields, error = parse_fields(
                 row.get(f"{version}_raw"),
                 (*names, "reason"),
+                case_id=case_id,
             )
             if error:
                 errors.append(f"{case_id}: {version} {error}")
-            elif tuple(fields[name] for name in names) != normalized[version]:
-                errors.append(f"{case_id}: {version} raw/normalized mismatch")
+            else:
+                assert fields is not None
+                register_unique_reason(
+                    reasons,
+                    case_id,
+                    version,
+                    fields["reason"],
+                    errors,
+                )
+                if tuple(fields[name] for name in names) != normalized[version]:
+                    errors.append(f"{case_id}: {version} raw/normalized mismatch")
 
             route, source, status, next_task, resume = normalized[version]
             if route not in ROUTES:
@@ -352,16 +582,84 @@ def validate_tca(data: dict[str, object], errors: list[str]) -> None:
             errors.append(f"{case_id}: pass must be true")
         if row.get("hard_failure") is not False:
             errors.append(f"{case_id}: hard_failure must be false")
-        if not substantive(row.get("notes"), 12, natural_language=True):
-            errors.append(f"{case_id}: notes must be substantive and non-placeholder")
+        notes = row.get("notes")
+        if not notes_are_case_specific(case_id, notes):
+            errors.append(
+                f"{case_id}: notes must be a complete case-specific grader sentence"
+            )
+        else:
+            assert isinstance(notes, str)
+            register_unique_notes(notes_seen, case_id, notes, errors)
 
 
 def validate(data: dict[str, object], *, verify_git: bool) -> list[str]:
     errors: list[str] = []
+    reasons: dict[str, tuple[str, str]] = {}
+    notes_seen: dict[str, str] = {}
     validate_header(data, errors, verify_git)
-    validate_standard(data, errors)
-    validate_tca(data, errors)
+    validate_standard(data, errors, reasons, notes_seen)
+    validate_tca(data, errors, reasons, notes_seen)
     return errors
+
+
+STANDARD_REASONS = {
+    "CRA-HIGH-IMPLICIT": (
+        "The baseline skips because no explicit request covers the authentication and concurrency change.",
+        "Authentication and concurrent failure paths make independent commit review materially valuable.",
+    ),
+    "CRA-LOW-IMPLICIT": (
+        "The baseline skips because the README typo has no explicit review request.",
+        "The README typo is mechanical and focused validation fully establishes the changed contract.",
+    ),
+    "CRA-LOW-EXPLICIT": (
+        "The explicit user request requires review even though the README typo is mechanically small.",
+        "The candidate honors the explicit request and runs review for the README typo.",
+    ),
+    "CRA-LOW-TCA": (
+        "The TCA task gate requires a completed review before queue progression can continue.",
+        "The candidate runs review because the TCA review gate is mandatory for this task.",
+    ),
+    "CRA-HIGH-USER-BLOCK": (
+        "The user prohibition on commits and review blocks the baseline from entering CRA.",
+        "The latest user instruction forbids review, so the candidate must return a blocked route.",
+    ),
+    "CRA-HIGH-PURCHASE": (
+        "The baseline skips because no explicit request authorizes review of the data migration.",
+        "The migration review requires a credit purchase or billing change, so approval is required.",
+    ),
+    "CRA-HIGH-FOURTH-RUN": (
+        "The baseline skips because no explicit request covers the fourth reviewer invocation.",
+        "The fourth invocation exceeds the standing usage ceiling and therefore needs additional approval.",
+    ),
+}
+TCA_BASELINE_REASONS = {
+    "TCA-APPROVAL-PENDING": (
+        "The baseline keeps the TCA task active because it lacks a fourth-invocation ceiling transition.",
+    ),
+    "TCA-APPROVAL-RESUME": (
+        "The baseline keeps the TCA task active because it has no approved-ceiling resume contract.",
+    ),
+    "TCA-BLOCKED-USER": (
+        "The baseline keeps the TCA task active despite the user prohibition because no blocker state exists.",
+    ),
+    "TCA-BLOCKED-RECOVERABLE": (
+        "The baseline keeps the TCA task active despite missing local validation and no recovery state.",
+    ),
+}
+TCA_CANDIDATE_REASONS = {
+    "TCA-APPROVAL-PENDING": (
+        "The fourth invocation exceeds the TCA usage ceiling, so the task enters approval-pending.",
+    ),
+    "TCA-APPROVAL-RESUME": (
+        "The approved ceiling covers the fourth invocation and resumes the same task at usage authorization.",
+    ),
+    "TCA-BLOCKED-USER": (
+        "The user prohibition blocks the TCA task until an explicit user reversal is received.",
+    ),
+    "TCA-BLOCKED-RECOVERABLE": (
+        "Missing local validation creates a recoverable blocker that resumes at the validation prerequisite.",
+    ),
+}
 
 
 def fixture() -> dict[str, object]:
@@ -381,16 +679,17 @@ def fixture() -> dict[str, object]:
         "tca_cases": [],
     }
     for case_id, (baseline, candidate) in STANDARD.items():
+        baseline_reason, candidate_reason = STANDARD_REASONS[case_id]
         data["cases"].append(
             {
                 "case_id": case_id,
                 "baseline_raw": (
                     f"route={baseline[0]}\nentry_source={baseline[1]}\n"
-                    "reason=The baseline follows the explicit-only routing contract."
+                    f"reason={baseline_reason}"
                 ),
                 "candidate_raw": (
                     f"route={candidate[0]}\nentry_source={candidate[1]}\n"
-                    "reason=The candidate follows the documented risk and precedence rules."
+                    f"reason={candidate_reason}"
                 ),
                 "normalized_baseline_route": baseline[0],
                 "normalized_baseline_entry_source": baseline[1],
@@ -398,24 +697,28 @@ def fixture() -> dict[str, object]:
                 "normalized_candidate_entry_source": candidate[1],
                 "pass": True,
                 "hard_failure": False,
-                "notes": "Parser fixture contains complete substantive evaluation fields.",
+                "notes": (
+                    f"{case_id} raw and normalized decisions match the accepted route expectation."
+                ),
             }
         )
     for case_id, candidate in TCA.items():
         baseline = ("run", "tca-required", "active", "prohibited", "none")
+        baseline_reason = TCA_BASELINE_REASONS[case_id][0]
+        candidate_reason = TCA_CANDIDATE_REASONS[case_id][0]
         data["tca_cases"].append(
             {
                 "case_id": case_id,
                 "baseline_raw": (
                     "route=run\nentry_source=tca-required\ntask_status=active\n"
                     "next_task=prohibited\nresume_point=none\n"
-                    "reason=The baseline keeps the task active until its review ends."
+                    f"reason={baseline_reason}"
                 ),
                 "candidate_raw": (
                     f"route={candidate[0]}\nentry_source={candidate[1]}\n"
                     f"task_status={candidate[2]}\nnext_task={candidate[3]}\n"
                     f"resume_point={candidate[4]}\n"
-                    "reason=The candidate preserves the current task and recovery point."
+                    f"reason={candidate_reason}"
                 ),
                 "normalized_baseline_route": baseline[0],
                 "normalized_baseline_entry_source": baseline[1],
@@ -429,7 +732,9 @@ def fixture() -> dict[str, object]:
                 "normalized_candidate_resume_point": candidate[4],
                 "pass": True,
                 "hard_failure": False,
-                "notes": "Transition fixture contains complete substantive evaluation fields.",
+                "notes": (
+                    f"{case_id} raw and normalized transition fields match the accepted expectation."
+                ),
             }
         )
     return data
@@ -446,8 +751,8 @@ class CraEvaluationIntegrityTests(unittest.TestCase):
         )
         data["cases"][0]["notes"] = "x"
         errors = validate(data, verify_git=False)
-        self.assertTrue(any("reason must be substantive" in error for error in errors))
-        self.assertTrue(any("notes must be substantive" in error for error in errors))
+        self.assertTrue(any("complete case-grounded" in error for error in errors))
+        self.assertTrue(any("case-specific grader" in error for error in errors))
 
     def test_template_delimiters_and_numeric_explanations_are_rejected(self) -> None:
         invalid_reasons = (
@@ -463,7 +768,7 @@ class CraEvaluationIntegrityTests(unittest.TestCase):
                 )
                 errors = validate(data, verify_git=False)
                 self.assertTrue(
-                    any("reason must be substantive" in error for error in errors)
+                    any("complete case-grounded" in error for error in errors)
                 )
 
         invalid_notes = (
@@ -477,8 +782,52 @@ class CraEvaluationIntegrityTests(unittest.TestCase):
                 data["cases"][0]["notes"] = notes
                 errors = validate(data, verify_git=False)
                 self.assertTrue(
-                    any("notes must be substantive" in error for error in errors)
+                    any("case-specific grader" in error for error in errors)
                 )
+
+    def test_two_word_fragments_and_generic_reasons_are_rejected(self) -> None:
+        invalid_reasons = (
+            "Review warranted.",
+            "Review is clearly warranted.",
+            "Authentication review warranted.",
+        )
+        for reason in invalid_reasons:
+            with self.subTest(reason=reason):
+                data = fixture()
+                data["cases"][0]["candidate_raw"] = (
+                    "route=run\nentry_source=autonomous-risk\n" f"reason={reason}"
+                )
+                errors = validate(data, verify_git=False)
+                self.assertTrue(
+                    any("complete case-grounded" in error for error in errors)
+                )
+
+    def test_reused_canned_reasons_and_notes_are_rejected(self) -> None:
+        data = fixture()
+        first = data["cases"][0]
+        second = data["cases"][1]
+        canned = (
+            "Authentication and README typo facts appear, but this identical "
+            "case explanation is improperly reused."
+        )
+        first["baseline_raw"] = (
+            "route=skip\nentry_source=none\n" f"reason={canned}"
+        )
+        second["baseline_raw"] = (
+            "route=skip\nentry_source=none\n" f"reason={canned}"
+        )
+        second["notes"] = first["notes"]
+        errors = validate(data, verify_git=False)
+        self.assertTrue(any("reason is reused" in error for error in errors))
+        self.assertTrue(any("case-specific grader" in error for error in errors))
+
+    def test_case_grounded_korean_and_english_reasons_are_accepted(self) -> None:
+        english = (
+            "Authentication and concurrent failure paths make independent review necessary."
+        )
+        korean = "인증 토큰의 동시성 실패 경로 때문에 독립 리뷰가 필요합니다."
+        self.assertTrue(reason_is_grounded("CRA-HIGH-IMPLICIT", english))
+        self.assertTrue(reason_is_grounded("CRA-HIGH-IMPLICIT", korean))
 
     def test_candidate_prompt_fingerprint_is_bound_to_checkout(self) -> None:
         data = fixture()
