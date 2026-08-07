@@ -45,12 +45,16 @@ Maintain the queue as an execution record, not as a fixed promise:
     - CRA need:
     - CRA route:
     - CRA state:
+    - Reviewer invocation count:
+    - Approved invocation ceiling:
     - Approval needed:
+    - Blocker:
+    - Recovery condition:
     - Resume point:
     - Status notes:
 ```
 
-Use `approval-pending` as the task status when CRA returns `approval-required`. Update the queue when new facts, failures, review findings, approvals, or design changes alter the next safest step.
+Use `approval-pending` as the task status when CRA returns `approval-required`, and `blocked` when CRA cannot start safely. Update the queue when new facts, failures, review findings, approvals, blocker resolution, or design changes alter the next safest step.
 
 ## Task Selection Order
 
@@ -75,28 +79,47 @@ For each task unit:
 7. check `git status --short` and relevant diffs
 8. commit only the task unit
 9. run CRA on the commit when the current usage boundary authorizes it
-10. if CRA returns `approval-required`, follow the pause-and-resume contract below
-11. process completed CRA findings
-12. update the task queue and status notes
-13. decide whether the next task is still valid
+10. if CRA returns `approval-required`, follow the approval pause-and-resume contract below
+11. if CRA returns `blocked`, follow the blocked pause-and-resume contract below
+12. process completed CRA findings
+13. update the task queue and status notes
+14. decide whether the next task is still valid
 
-Do not start implementing the next task until the current task has a commit, local verification record, CRA terminal state, and updated queue entry. `approval-required` does not satisfy the CRA terminal-state gate.
+Do not start implementing the next task until the current task has a commit, local verification record, CRA terminal state, and updated queue entry. `approval-required`, `approval-pending`, and `blocked` do not satisfy the CRA terminal-state gate.
 
 ## Approval-Required Pause And Resume
 
 When CRA returns `approval-required` during an active TCA task:
 
 1. set the task status to `approval-pending`
-2. record the current task ID, commit SHA, CRA entry source, reviewer invocation count, exact additional authority or cost boundary requested, completed validation, remaining risk, and the resume point
+2. record the current task ID, commit SHA, CRA entry source, reviewer invocation count, current and requested ceilings, exact additional authority or cost boundary requested, completed validation, remaining risk, and the resume point
 3. request the narrow approval required and stop the TCA loop
 4. Do not mark the task complete. Do not select or implement the next task while approval is pending.
 5. if approval is denied or not supplied, keep the task deferred at `approval-pending` and report the blocked continuation
-6. if approval is granted, confirm that it covers the recorded command and boundary, then re-check branch, commit, worktree, task scope, and whether prior validation is still current
-7. re-run validation when the checkout, commit, environment, or relevant assumption changed while paused
-8. resume the same task at the CRA usage-authorization check; do not create a new task or silently restart from implementation
-9. after the authorized reviewer invocation finishes, process findings and continue through the ordinary next-task gate
+6. if approval is granted, confirm that it covers the recorded command, provider, account, model, reasoning effort, service tier, cost or usage boundary, and invocation ceiling
+7. write the newly approved invocation ceiling and boundary into the same task queue entry before resuming
+8. re-check branch, commit, worktree, task scope, and whether prior validation is still current
+9. re-run validation when the checkout, commit, environment, or relevant assumption changed while paused
+10. resume the same task at the CRA usage-authorization check; do not create a new task or silently restart from implementation
+11. the authorization check must allow an invocation within the same task's recorded approved ceiling; it must not return `approval-required` again solely because that invocation is the fourth or later
+12. after the authorized reviewer invocation finishes, process findings and continue through the ordinary next-task gate
 
 An approval for one command, purchase, usage ceiling, or task unit does not widen later TCA tasks. Record any newly approved ceiling in the queue before resuming.
+
+## Blocked Pause And Resume
+
+When CRA returns `blocked` during an active TCA task:
+
+1. set the task status to `blocked` and record the CRA route as `blocked`
+2. record the current task ID, commit SHA when one exists, blocker source, concrete blocker, completed validation, remaining risk, whether the blocker is recoverable, the recovery condition, and the exact same-task resume point
+3. stop outer TCA progression and report the blocker; do not mark the task complete and do not select or implement the next task
+4. if the user prohibited commits or reviews, only a later explicit user instruction that reverses or narrows that prohibition clears the blocker; do not infer consent from unrelated follow-up text
+5. if the blocker is recoverable under existing authority, such as missing validation or a separable commit boundary, resolve only that prerequisite inside the same task and preserve the recorded resume point
+6. after the recovery condition is satisfied, re-check branch, commit, worktree, task scope, user instructions, and validation currency
+7. resume the same task at the recorded prerequisite or CRA decision point; do not create a replacement task and do not advance the queue
+8. if the blocker is not recoverable within the requested scope or approval is denied, keep the task blocked or defer it with the reason and remaining risk
+
+A `blocked` route is not a terminal CRA state. It is a task-level pause that must either be recovered and re-evaluated on the same task or reported as deferred.
 
 ## CRA Fix Restart Rules
 
@@ -123,7 +146,7 @@ Proceed only when all are true:
 6. skipped validation and reasons are recorded
 7. CRA-triggered changes were revalidated from the correct point
 8. the task queue reflects the current repository state
-9. no approval request or resume checkpoint remains open for the current task
+9. no approval request, blocker, recovery condition, or resume checkpoint remains open for the current task
 
 ## Stop Conditions
 
@@ -131,13 +154,14 @@ Stop instead of continuing when:
 
 1. CRA failed and the cause is unclear
 2. CRA returned `approval-required`; record `approval-pending`, request the narrow approval, and preserve the same-task resume point
-3. the current task boundary became unclear
-4. unrelated user or coworker changes cannot be separated safely
-5. a migration, deployment, production data update, snapshot approval, or other state-changing action needs explicit user approval
-6. a failing test cannot be classified as implementation, expectation, environment, or stale fixture
-7. the next change would make the current commit meaning unclear
-8. CRA changed the task premise but the queue has not been updated
-9. required revalidation after CRA fixes has not run
+3. CRA returned `blocked`; record the blocker and recovery condition, stop queue progression, and preserve the same-task resume point
+4. the current task boundary became unclear
+5. unrelated user or coworker changes cannot be separated safely
+6. a migration, deployment, production data update, snapshot approval, or other state-changing action needs explicit user approval
+7. a failing test cannot be classified as implementation, expectation, environment, or stale fixture
+8. the next change would make the current commit meaning unclear
+9. CRA changed the task premise but the queue has not been updated
+10. required revalidation after CRA fixes has not run
 
 ## Final Report
 
@@ -149,6 +173,7 @@ For multi-task TCA work, report:
 4. validation run for each task
 5. skipped validation and reasons
 6. CRA fixes that forced a restart point
-7. pending or denied approvals, the exact requested boundary, and the recorded resume point
-8. deferred findings or follow-up tasks
-9. naming, docs, generated-contract, or file-movement rationale when relevant
+7. pending or denied approvals, the exact requested boundary, approved ceiling, and recorded resume point
+8. blocked tasks, blocker source, recovery condition, and same-task resume point
+9. deferred findings or follow-up tasks
+10. naming, docs, generated-contract, or file-movement rationale when relevant
