@@ -178,4 +178,4 @@ notes = "<grader notes>"
 
 The raw fields must preserve the complete model response and contain exactly one `route=` and one `entry_source=` value. The normalized values must match both the raw response and the accepted behavior for that case. `model`, `reasoning_effort`, `tool_availability`, raw output, and notes must be substantive values rather than placeholders such as `pending`, `unknown`, or `not exposed`.
 
-Static contract tests verify the record structure and internal consistency. They do not replace the isolated behavior run.
+Static contract tests may verify the record structure and internal consistency. They do not replace the isolated behavior run.
