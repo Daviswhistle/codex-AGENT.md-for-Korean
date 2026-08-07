@@ -79,9 +79,19 @@ TCA = {
     ),
 }
 PLACEHOLDER = re.compile(
-    r"(?i)(?:<[^>\n]{1,160}>|\bverbatim\b|\bsynthetic\b|"
-    r"\bplaceholder\b|grader notes?)"
+    r"(?is)(?:"
+    r"<[^>\n]{1,240}>"
+    r"|\{\{[^}\n]{1,240}\}\}"
+    r"|\$\{[^}\n]{1,240}\}"
+    r"|\[\[[^\]\n]{1,240}\]\]"
+    r"|^\s*\[[^\]\n]{1,240}\]\s*$"
+    r"|^\s*\{[^{}\n]{1,240}\}\s*$"
+    r"|\bverbatim\b|\bsynthetic\b|\bplaceholder\b|grader notes?"
+    r"|\bone substantive sentence\b"
+    r"|\bexplain(?: the)?(?: grader)? disposition(?: here)?\b"
+    r")"
 )
+LETTER_WORD = re.compile(r"[^\W\d_]+(?:['’\-][^\W\d_]+)*", re.UNICODE)
 EXACT_PLACEHOLDERS = {
     "",
     "pending",
@@ -99,14 +109,31 @@ SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
-def substantive(value: object, minimum: int) -> bool:
+def substantive(
+    value: object,
+    minimum: int,
+    *,
+    natural_language: bool = False,
+) -> bool:
     if not isinstance(value, str):
         return False
     text = value.strip()
+    if (
+        text.lower() in EXACT_PLACEHOLDERS
+        or PLACEHOLDER.search(text) is not None
+        or sum(char.isalnum() for char in text) < minimum
+    ):
+        return False
+    if not natural_language:
+        return True
+
+    words = LETTER_WORD.findall(text)
+    letter_count = sum(char.isalpha() for char in text)
+    distinct_words = {word.casefold() for word in words}
     return (
-        text.lower() not in EXACT_PLACEHOLDERS
-        and PLACEHOLDER.search(text) is None
-        and sum(char.isalnum() for char in text) >= minimum
+        letter_count >= max(8, minimum // 2)
+        and len(words) >= 2
+        and len(distinct_words) >= 2
     )
 
 
@@ -129,7 +156,7 @@ def parse_fields(
         fields[key] = value
     if set(fields) != set(keys):
         return None, f"raw fields must be exactly {', '.join(keys)}"
-    if not substantive(fields["reason"], 12):
+    if not substantive(fields["reason"], 12, natural_language=True):
         return None, "reason must be substantive and contain no placeholder text"
     return fields, None
 
@@ -154,6 +181,19 @@ def git(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def git_bytes(*args: str) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    )
+
+
+def prompt_bytes_equal(historical: bytes, current: bytes) -> bool:
+    return historical == current
+
+
 def verify_candidate_commit(candidate: str, errors: list[str]) -> None:
     if git("cat-file", "-e", f"{candidate}^{{commit}}").returncode:
         errors.append(
@@ -165,10 +205,13 @@ def verify_candidate_commit(candidate: str, errors: list[str]) -> None:
         errors.append("candidate_commit must be an ancestor of the checkout")
         return
     for relative in PROMPT_PATHS:
-        historical = git("show", f"{candidate}:{relative}")
+        historical = git_bytes("show", f"{candidate}:{relative}")
         if historical.returncode:
             errors.append(f"candidate_commit is missing prompt path: {relative}")
-        elif historical.stdout != (ROOT / relative).read_text(encoding="utf-8"):
+        elif not prompt_bytes_equal(
+            historical.stdout,
+            (ROOT / relative).read_bytes(),
+        ):
             errors.append(f"prompt changed after candidate_commit: {relative}")
 
 
@@ -266,7 +309,7 @@ def validate_standard(data: dict[str, object], errors: list[str]) -> None:
             errors.append(f"{case_id}: pass must be true")
         if row.get("hard_failure") is not False:
             errors.append(f"{case_id}: hard_failure must be false")
-        if not substantive(row.get("notes"), 12):
+        if not substantive(row.get("notes"), 12, natural_language=True):
             errors.append(f"{case_id}: notes must be substantive and non-placeholder")
 
 
@@ -309,7 +352,7 @@ def validate_tca(data: dict[str, object], errors: list[str]) -> None:
             errors.append(f"{case_id}: pass must be true")
         if row.get("hard_failure") is not False:
             errors.append(f"{case_id}: hard_failure must be false")
-        if not substantive(row.get("notes"), 12):
+        if not substantive(row.get("notes"), 12, natural_language=True):
             errors.append(f"{case_id}: notes must be substantive and non-placeholder")
 
 
@@ -406,12 +449,51 @@ class CraEvaluationIntegrityTests(unittest.TestCase):
         self.assertTrue(any("reason must be substantive" in error for error in errors))
         self.assertTrue(any("notes must be substantive" in error for error in errors))
 
+    def test_template_delimiters_and_numeric_explanations_are_rejected(self) -> None:
+        invalid_reasons = (
+            "{{one substantive sentence grounded in supplied instructions}}",
+            "[explain the grader disposition here]",
+            "123456789012",
+        )
+        for reason in invalid_reasons:
+            with self.subTest(reason=reason):
+                data = fixture()
+                data["cases"][0]["baseline_raw"] = (
+                    "route=skip\nentry_source=none\n" f"reason={reason}"
+                )
+                errors = validate(data, verify_git=False)
+                self.assertTrue(
+                    any("reason must be substantive" in error for error in errors)
+                )
+
+        invalid_notes = (
+            "{{explain the grader disposition here}}",
+            "[explain the grader disposition here]",
+            "123456789012",
+        )
+        for notes in invalid_notes:
+            with self.subTest(notes=notes):
+                data = fixture()
+                data["cases"][0]["notes"] = notes
+                errors = validate(data, verify_git=False)
+                self.assertTrue(
+                    any("notes must be substantive" in error for error in errors)
+                )
+
     def test_candidate_prompt_fingerprint_is_bound_to_checkout(self) -> None:
         data = fixture()
         data["candidate_prompt_sha256"] = "0" * 64
         self.assertIn(
             "candidate_prompt_sha256 does not match current prompt files",
             validate(data, verify_git=False),
+        )
+
+    def test_prompt_byte_comparison_does_not_normalize_line_endings(self) -> None:
+        self.assertFalse(
+            prompt_bytes_equal(
+                b"first line\r\nsecond line\r\n",
+                b"first line\nsecond line\n",
+            )
         )
 
     def test_tca_transition_regression_is_rejected(self) -> None:
@@ -432,6 +514,17 @@ class CraEvaluationIntegrityTests(unittest.TestCase):
     def test_workflow_fetches_full_history(self) -> None:
         workflow = (ROOT / ".github/workflows/validate.yml").read_text(encoding="utf-8")
         self.assertIn("fetch-depth: 0", workflow)
+
+    def test_all_entry_sources_share_initial_invocation_ceiling(self) -> None:
+        contract = (
+            ROOT / "skills/software-engineering/references/cra-loop.md"
+        ).read_text(encoding="utf-8")
+        for text in (
+            "every entry source begins with an initial effective ceiling of three",
+            "ordinary configured inference usage within that initial ceiling",
+            "for the same initial ceiling",
+        ):
+            self.assertIn(text, contract)
 
     def test_contract_includes_provenance_and_tca_cases(self) -> None:
         contract = (
