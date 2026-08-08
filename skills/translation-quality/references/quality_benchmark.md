@@ -30,6 +30,7 @@ A deliverable is ready only when all applicable statements are true:
 22. Lexical checks are not a blacklist. Common words such as `말씀`, `측면에서`, and `비교됩니다` may be right or wrong depending on role, register, and sentence purpose. Mechanical checks should catch objective defects and exact recurring failure templates; conceptual review decides whether ordinary wording is appropriate.
 23. Visual emphasis has meaning. Translator notes, source titles or names, and ordinary finance acronyms should not all be italicized by default. Common acronyms such as `GAAP`, `SG&A`, `EPS`, `SKU`, `APAC`, and `EMEA` usually remain plain body text unless the source formatting or reader purpose justifies emphasis.
 24. Reader-visible source corrections are transparent. If a transcript period, number, speaker, or label appears wrong and the translation corrects it based on internal source consistency or an external primary source, the corrected sentence carries a concise translator note and the QA records the source-correction basis.
+25. When terminology review applies, comparable names follow an evidence-backed naming-class convention, aliases and former names map to the correct entity, and later identity evidence is propagated to the earliest relevant occurrence. The QA records the terminology ledger and any justified exceptions.
 
 ## Reference Quality Suite
 
@@ -78,6 +79,28 @@ Executive B
 ```
 
 Use the original executive or analyst when source flow identifies whose words are being interpreted. Keep the extraction label in QA or an internal attribute, not as visible prose.
+
+### Terminology And Alias Identity
+
+Bad:
+
+```text
+CagriSema는 ...
+경구용 제나감타이드는 ...
+[Later]
+아미크레틴은 ...
+```
+
+Target when established Korean forms are the chosen convention:
+
+```text
+카그리세마(CagriSema)는 ...
+경구용 제나감타이드(zenagamtide·구 아미크레틴)는 ...
+[Later]
+제나감타이드 ...
+```
+
+Do not treat this as a universal instruction to transliterate every medicine. The target demonstrates naming-class consistency, source spelling at first occurrence, and back-propagation of a later alias discovery. When no established Korean form or reliable pronunciation exists, preserve the source form.
 
 ### Currency And Program Scale
 
