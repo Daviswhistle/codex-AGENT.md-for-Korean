@@ -15,7 +15,7 @@ Ask for or use the available form of:
 3. table inventory, especially financial statements, five-year summaries, director/governance tables, share option tables, and notes
 4. source translation units or relevant source excerpts
 5. assembled Korean output
-6. terminology ledger and alias map when the terminology reference applied
+6. terminology ledger when the terminology reference applied, and the alias map when one was created
 7. QA notes, if already available
 8. known user preferences or prior corrections
 
