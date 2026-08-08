@@ -41,7 +41,6 @@ Use these deeper references only when the task crosses that surface:
 1. `references/cra-loop.md` - detailed Codex Review Agent loop mechanics, state model, log discipline, findings, and reporting.
 2. `references/tca-loop.md` - detailed Task-Commit-Approve queue, task boundary, restart, and stop rules.
 3. `references/naming-docs-consistency.md` - deeper checks for names, docs, tests, settings, logs, metrics, and public contracts.
-4. `references/cra-routing-evaluation.md` - representative high-risk, low-risk, user-override, explicit-request, TCA, and cost-boundary routing evaluation.
 
 Reference files refine this skill. They do not override the Core Contract, root `AGENTS.md`, or a more specific domain skill.
 
@@ -106,43 +105,24 @@ If a reviewer finding conflicts with runtime evidence or an explicit user clarif
 
 ## CRA Decision
 
-After local validation, choose and record exactly one route for every completed task unit, regardless of complexity. A trivial task with no explicit or TCA requirement will normally be `skip`; an `explicit-request` or `tca-required` entry still goes through this decision.
+After local validation, decide whether independent commit-level review would materially improve confidence. The user does not need to name CRA.
 
-1. `run`: enter CRA now.
-2. `skip`: independent commit-level review has low expected value for this task unit.
-3. `approval-required`: CRA is warranted, but the next review execution is outside the approved cost or usage boundary.
-4. `blocked`: CRA cannot start safely because there is no isolatable commit boundary, local validation is missing, the task is review-only, or a later user instruction forbids commits or reviews.
+Run CRA when:
 
-Keep the route decision user-visible. The final response must report the CRA route, entry source, and concise rationale for each task unit, including an explicit `skip` decision and any `approval-required` or `blocked` pre-invocation route. Do not leave a skip only in hidden session state.
+1. the user explicitly requests it or an active TCA task requires it
+2. the change affects authentication, authorization, secrets, billing, money, persisted data, migrations, concurrency, recovery, deployment, runtime configuration, agent authority, or an external or public contract
+3. the change spans multiple callers, states, or failure paths; performs a broad refactor; addresses a repeated regression; cannot be exercised adequately through local validation; or retains material uncertainty
+4. the user asks for production readiness, unusually high confidence, or independent review
 
-Apply this precedence:
+Usually skip autonomous CRA for typo, formatting-only, comments-only, or narrowly mechanical changes whose contract is fully established by focused validation.
 
-1. A later user instruction to avoid commits or reviews wins and produces `blocked`.
-2. An `explicit-request` or `tca-required` entry produces `run` even for a typo, formatting-only edit, or other low-risk task, unless a hard blocker or an unapproved purchase or billing change applies.
-3. Otherwise, choose `run` with entry source `autonomous-risk` when independent commit-level review is likely to materially reduce risk enough to justify its usage.
-4. Choose `skip` only when no explicit or TCA requirement exists and autonomous review has low expected value.
+Do not run CRA when the user asks to avoid commits or reviews, the task is review-only, a clean task-unit commit cannot be isolated, or local validation is missing. CRA is not a substitute for local validation.
 
-Presume `autonomous-risk` is warranted when one or more of these apply:
-
-1. The change affects authentication, authorization, secrets, billing, money, persisted data, migrations, concurrency, recovery, deployment, runtime configuration, agent authority or approval boundaries, or an external or public contract.
-2. The bug or behavior spans multiple producers, callers, states, or failure paths, or the fix relies on non-obvious control-flow reasoning.
-3. The task moves responsibilities across files or modules, performs a broad refactor, or changes names, generated contracts, compatibility paths, or operational behavior across several surfaces.
-4. Important behavior cannot be fully exercised locally, the regression has repeated, or remaining uncertainty is material despite local validation.
-5. The user asks for production readiness, unusually high confidence, or an independent review without requiring the named CRA procedure.
-
-The low-value skip rule applies only to `autonomous-risk`. Typical autonomous skips include a typo, formatting-only edit, comments-only change, deterministic generated refresh with a proving validator, or another narrowly mechanical change whose contract is fully established by focused validation.
-
-### Autonomous CRA Standing Approval
-
-The user's decision to enable autonomous CRA is a bounded standing approval under root `AGENTS.md`. For an `autonomous-risk` entry, it authorizes the configured `codex review` command to consume the current account's existing included quota or metered inference usage for at most three reviewer command invocations per task unit.
-
-This standing approval does not authorize purchasing credits, changing a plan or billing setting, increasing a quota, enabling a new paid service, or starting a fourth reviewer invocation for the same task unit. Before any such action, choose `approval-required` and ask for explicit approval. Track the invocation count in the CRA record. An explicit CRA request or active TCA request supplies task-specific approval for its required CRA entry, but still does not authorize a purchase or billing-setting change.
-
-Do not use CRA as a substitute for missing local validation.
+The user's decision to enable autonomous CRA authorizes the already-configured reviewer and the current account's existing usage. It does not authorize purchasing credits, changing billing, plan, or quota settings, switching provider or account, pushing, deploying, migrating, or changing production state. Ask for explicit approval before any of those actions.
 
 ## CRA Loop
 
-When the CRA decision says `run`, read `references/cra-loop.md` before starting and follow its entry-source record, usage-boundary check, state model, blocking review command, failure classification, finding handling, amendment loop, and final reporting contract. Do not ask again solely because the user did not name CRA, and do not duplicate or partially reconstruct the procedure from this front page.
+When the CRA decision says to run, read `references/cra-loop.md` before starting and follow its state model, blocking review command, failure classification, finding handling, amendment loop, and final reporting contract. Do not ask again solely because the user did not name CRA, and do not duplicate or partially reconstruct that procedure from this front page.
 
 ## TCA Loop
 
@@ -171,4 +151,4 @@ Before final response or commit, check:
 4. names, docs, tests, settings, and generated artifacts are not materially inconsistent with current behavior
 5. `git status --short` shows only intended changes, or a commit has cleanly recorded them
 
-Final response should name the changed files, summarize the behavioral effect, list validation, mention skipped checks and risk, report the CRA route, entry source, and concise rationale for each task unit addressed, and include the commit hash when committed.
+Final response should name the changed files, summarize the behavioral effect, list validation, mention skipped checks and risk, and include commit hash when committed.
