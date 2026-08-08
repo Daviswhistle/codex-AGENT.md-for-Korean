@@ -1,6 +1,6 @@
 # Terminology and Entity Naming Reference
 
-Read this reference when a source contains reader-visible proper nouns, brands, medicines, drug candidates, programmes, trial names, aliases, former names, codes, or acronyms. The purpose is to prevent identity confusion and arbitrary script switching across a long translation.
+Read this reference when a source contains reader-visible names that require a Korean rendering or identity map: brands, medicines, drug candidates, programmes, trial names, aliases, former names, acquired names, or development codes. Routine stable acronyms and ordinary technical terms alone do not trigger this reference. The purpose is to prevent identity confusion and arbitrary script switching across a translation.
 
 ## Reader Contract
 
@@ -11,11 +11,13 @@ Read this reference when a source contains reader-visible proper nouns, brands, 
 
 ## Build the Terminology Ledger Before Translation
 
-Scan the entire source before translating substantive chunks. Record at least:
+Scan the entire source before translating substantive chunks and record the names whose rendering or identity needs a deliberate decision. Do not force routine acronyms or unambiguous generic terms into the ledger merely because they appear in the source.
+
+Record at least:
 
 - source form and exact case
-- entity class: brand, nonproprietary name, drug candidate, trial, programme, company, person, code, acronym, or generic domain term
-- canonical reader-facing Korean form
+- entity class: brand, nonproprietary medicine name, drug candidate, trial, programme, company, person, or development code
+- canonical reader-facing form
 - source spelling to retain at first occurrence, if useful
 - aliases, former names, acquired names, and development codes
 - current-versus-former status
@@ -23,7 +25,7 @@ Scan the entire source before translating substantive chunks. Record at least:
 - evidence basis: source-derived, official Korean source, regulator or society usage, established specialist usage, or externally verified
 - disposition for later occurrences
 
-For long documents, save the ledger under `work/terminology.tsv` or an equivalent inspectable file. An alias map may be a separate file when relationships are complex.
+For long documents, save the ledger under `work/terminology.tsv` or an equivalent inspectable file. A short source may use an in-memory ledger recorded in QA. Create a separate alias map only when the relationships are complex enough that the main ledger would become unclear.
 
 ## Selection Hierarchy
 
@@ -32,10 +34,10 @@ Choose the reader-facing form in this order, while considering the document's au
 1. Official Korean-language material from the entity or rights holder.
 2. Korean regulator, clinical-trial registry, medical society, exchange filing, or other authoritative domain usage.
 3. Consistent established usage across reputable Korean specialist and business publications.
-4. A defensible Korean transliteration based on the source pronunciation or international nonproprietary-name convention.
-5. The exact source spelling when no established Korean form exists or when the item is a code, acronym, trial name, or proprietary styling whose script carries identity.
+4. The exact source spelling when no established Korean form exists, or when the item is a code, acronym, trial name, or proprietary styling whose script carries identity.
+5. A verified Korean transliteration only when Korean pronunciation materially helps the intended reader and the pronunciation or international naming convention is reliable.
 
-Do not invent a new transliteration from spelling alone when an established Korean rendering can be verified. Record external verification in QA when it determines the output form.
+Do not invent a new transliteration from spelling alone. If neither an established Korean rendering nor a reliable pronunciation is available, preserve the source form. Record external verification in QA when it determines the output form.
 
 ## Naming-Class Consistency
 
@@ -86,7 +88,7 @@ This example is not a universal rule that all medicine names must be written in 
 
 Inspect:
 
-1. whether every reader-visible proper noun has a deliberate class and output convention
+1. whether every ledgered name has a deliberate class and output convention
 2. whether comparable entities drift between Korean and source spelling
 3. whether current names, former names, aliases, and codes are mapped correctly
 4. whether a later source passage should change an earlier first occurrence
@@ -98,10 +100,10 @@ Treat identity confusion or a false alias as P1. Treat arbitrary naming-class dr
 
 ## QA Gate
 
-Before delivery:
+Before delivery, when this reference applies:
 
 1. compare the final output against the terminology ledger occurrence by occurrence
-2. search for every source spelling, Korean rendering, alias, former name, and code
+2. search for every source spelling, Korean rendering, alias, former name, and code recorded in the ledger
 3. verify only intentional first-occurrence source spellings remain when the chosen convention uses Korean thereafter
 4. verify the earliest relevant occurrence contains any necessary alias or former-name explanation
 5. record changed conventions, evidence, accepted exceptions, and residual ambiguity in `work/qa_report.md`
