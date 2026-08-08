@@ -1,6 +1,6 @@
 ---
 name: software-engineering
-description: Davis software-engineering discipline for software changes, debugging, review handling, validation boundaries, commit boundaries, CRA/TCA loops, runtime/cache/generated-artifact checks, vendor contract review, and interrupted workstream recovery. Use when a task needs Davis-style engineering judgment across code, tests, docs, config, deployment-adjacent validation, or source-of-truth analysis. Complements specialized GitHub, Vercel, frontend, framework, API, or docs skills; use those for domain details.
+description: Davis software-engineering discipline for software changes, debugging, review handling, validation boundaries, commit boundaries, autonomous CRA selection and CRA/TCA loops, runtime/cache/generated-artifact checks, vendor contract review, and interrupted workstream recovery. Use when a task needs Davis-style engineering judgment across code, tests, docs, config, deployment-adjacent validation, or source-of-truth analysis. Complements specialized GitHub, Vercel, frontend, framework, API, or docs skills; use those for domain details.
 ---
 
 # Software Engineering
@@ -103,13 +103,30 @@ For each finding, check:
 
 If a reviewer finding conflicts with runtime evidence or an explicit user clarification, re-check the control flow or run evidence, then follow the stronger current contract. Leave a concise comment, doc note, test, or final explanation when that prevents the same invalid finding from recurring.
 
+## CRA Decision
+
+After local validation, decide whether independent commit-level review would materially improve confidence. The user does not need to name CRA.
+
+Run CRA when:
+
+1. the user explicitly requests it or an active TCA task requires it
+2. the change affects authentication, authorization, secrets, billing, money, persisted data, migrations, concurrency, recovery, deployment, runtime configuration, agent authority, or an external or public contract
+3. the change spans multiple callers, states, or failure paths; performs a broad refactor; addresses a repeated regression; cannot be exercised adequately through local validation; or retains material uncertainty
+4. the user asks for production readiness, unusually high confidence, or independent review
+
+Usually skip autonomous CRA for typo, formatting-only, comments-only, or narrowly mechanical changes whose contract is fully established by focused validation.
+
+Do not run CRA when the user asks to avoid commits or reviews, the task is review-only, a clean task-unit commit cannot be isolated, or local validation is missing. CRA is not a substitute for local validation.
+
+The user's decision to enable autonomous CRA authorizes the already-configured reviewer and the current account's existing usage. It does not authorize purchasing credits, changing billing, plan, or quota settings, switching provider or account, pushing, deploying, migrating, or changing production state. Ask for explicit approval before any of those actions.
+
 ## CRA Loop
 
-Use only when the user explicitly requests `CRA 루프`. Read `references/cra-loop.md` before starting and follow its state model, blocking review command, failure classification, finding handling, amendment loop, and final reporting contract. Do not duplicate or partially reconstruct that procedure from this front page.
+When the CRA decision says to run, read `references/cra-loop.md` before starting and follow its state model, blocking review command, failure classification, finding handling, amendment loop, and final reporting contract. Do not ask again solely because the user did not name CRA, and do not duplicate or partially reconstruct that procedure from this front page.
 
 ## TCA Loop
 
-Use only when the user explicitly requests `TCA 루프`. Read `references/tca-loop.md` before creating the task queue and follow its task boundaries, restart gates, CRA dependency, stop conditions, and final reporting contract.
+Use only when the user explicitly requests `TCA 루프`. Autonomous CRA selection does not authorize starting TCA. Read `references/tca-loop.md` before creating the task queue and follow its task boundaries, restart gates, CRA dependency, stop conditions, and final reporting contract.
 
 ## Interrupted Workstream Recovery
 

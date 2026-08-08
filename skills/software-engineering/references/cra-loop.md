@@ -1,8 +1,18 @@
 # CRA Loop Reference
 
-Use this reference only when the user explicitly requests `CRA 루프`.
+Use this reference when the user explicitly requests `CRA 루프`, TCA requires CRA, or the software-engineering skill selects CRA autonomously.
 
 CRA means Commit-Review-Amend. It turns one completed task unit into a local commit, reviews that commit as a finished batch, and amends the same commit until the final review has no substantive findings or only findings that are explicitly rebuttable with current evidence.
+
+## Entry Source
+
+Before starting, record one reason for entering CRA:
+
+1. `explicit-request`: the user requested CRA.
+2. `tca-required`: the active TCA task requires CRA.
+3. `autonomous-risk`: independent review is warranted under the software-engineering skill's risk criteria.
+
+For `autonomous-risk`, record the concrete risk or uncertainty. A later user instruction to avoid commits or reviews overrides every entry source.
 
 ## Non-Negotiable Boundaries
 
@@ -11,6 +21,8 @@ CRA means Commit-Review-Amend. It turns one completed task unit into a local com
 3. A local commit is not approval to push, deploy, migrate, approve snapshots, update production data, or mutate remote state.
 4. Exclude generated files, caches, logs, review logs, sentinel files, secrets, credentials, and unrelated user or coworker changes from the commit.
 5. Use CRA only for the requested task unit. Do not fold unrelated cleanup or follow-up work into the amend cycle.
+6. Autonomous CRA may use the already-configured reviewer and the current account's existing usage. It may not purchase credits, change billing, plan, or quota settings, or switch provider or account without explicit user approval.
+7. Do not use CRA as a substitute for missing local validation, and do not start when a clean task-unit commit cannot be isolated safely.
 
 ## State Model
 
@@ -47,7 +59,7 @@ test -f review.done && echo "review_done=yes" || echo "review_done=no"
 tail -100 review.log
 ```
 
-If the installed CLI does not support `codex review --commit`, use the closest supported review flow, record the exact command or interactive path used, and preserve the completed review output. Do not treat an unavailable review command as a passed review.
+If the installed CLI does not support `codex review --commit`, use an alternative only when it is known to preserve the same provider and account, configured model and usage boundary, commit scope, blocking completion, and review output. Otherwise report that CRA is unavailable rather than treating a different or unauthorized path as equivalent.
 
 ## Log Discipline
 
@@ -93,12 +105,13 @@ Do not finish CRA while the review process is still running.
 
 Report:
 
-1. final commit hash
-2. changed files and behavioral effect
-3. validation commands run
-4. skipped validation with reasons
-5. last review state
-6. accepted findings and fixes
-7. rejected findings with reasons
-8. remaining risk
-9. naming, docs, generated-contract, or file-movement rationale when relevant
+1. entry source and autonomous risk rationale when applicable
+2. final commit hash
+3. changed files and behavioral effect
+4. validation commands run
+5. skipped validation with reasons
+6. last review state
+7. accepted findings and fixes
+8. rejected findings with reasons
+9. remaining risk
+10. naming, docs, generated-contract, or file-movement rationale when relevant
