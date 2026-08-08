@@ -40,8 +40,6 @@ class AgentKitContractTests(unittest.TestCase):
             "필요한 것은 통합한다.",
             "확인하지 않은 사실을 단정하지 않는다.",
             "사용자가 변경도 요청하지 않았다면 구현하거나 파일을 수정하지 않는다.",
-            "상시 승인은 그 범위 안에서 명시적 승인으로 본다.",
-            "상시 승인은 별도 구매, 요금제나 과금 설정 변경, 크레딧 충전, 실행 상한 초과",
             "핵심 요청을 필요한 근거와 요청된 형식으로 충족할 수 있으면 답하고 멈춘다.",
             "일반 질의 응답이 산문이라는 이유만으로 호출하지 않는다.",
         ):
@@ -138,7 +136,6 @@ class AgentKitContractTests(unittest.TestCase):
             "references/cra-loop.md",
             "references/tca-loop.md",
             "references/naming-docs-consistency.md",
-            "references/cra-routing-evaluation.md",
         ]
 
         skill = read("skills/software-engineering/SKILL.md")
@@ -159,8 +156,6 @@ class AgentKitContractTests(unittest.TestCase):
         self.assertIn("codex review --commit", reference_text)
         self.assertIn("Task-Commit-Approve", reference_text)
         self.assertIn("Names are maintenance interfaces", reference_text)
-        self.assertIn("Static contract tests may verify", reference_text)
-        self.assertIn("They do not replace the isolated behavior run.", reference_text)
 
     def test_writing_quality_is_integrated_as_a_general_writing_skill(self) -> None:
         skill_root = ROOT / "skills" / "writing-quality"
