@@ -14,8 +14,8 @@ This skill defines the user's expected translation workflow and output standard.
 2. Preserve the original document's information, order, structure, emphasis, links, and explanatory context.
 3. Do not treat the first draft as final. Conceptual review and full-document QA are mandatory for non-trivial work.
 4. Do not rely on the user to catch translationese, source omissions, numeric drift, terminology drift, or publication defects.
-5. For sources with reader-visible proper nouns, brands, drug candidates, programmes, aliases, former names, or codes, build a source-wide terminology ledger before translating. Apply one evidence-backed convention within each naming class.
-6. Use an established Korean rendering when one exists; otherwise preserve the source form. Do not mix source spelling and Korean transliteration arbitrarily among comparable entities.
+5. When reader-visible names require a Korean rendering or identity decision, build a source-wide terminology ledger before translating. Apply one evidence-backed convention within each naming class.
+6. Use an established Korean rendering when one exists. Otherwise preserve the source form by default; transliterate only when it materially helps the reader and the pronunciation or naming convention can be verified. Do not mix source spelling and Korean transliteration arbitrarily among comparable entities.
 7. Resolve aliases and renames across the whole source. When a later passage proves that two names identify the same entity, revise the first occurrence to show the current canonical name and the former or alternate name when that relationship matters to the reader.
 8. If a term needs explanation, place the note at the first occurrence and record its basis in QA.
 9. Prefer deterministic, copy-paste-safe HTML when rich formatting or long-document navigation matters.
@@ -26,7 +26,7 @@ This skill defines the user's expected translation workflow and output standard.
 Use progressive disclosure. Do not load every rule for every document.
 
 1. Read `references/core.md` for every non-trivial translation or revision. It contains the portable reader contract, common workflow, style, notes, HTML, conceptual review, and shared QA gates.
-2. Read `references/terminology.md` whenever the source contains reader-visible proper nouns, brands, product or drug-candidate names, programmes, aliases, former names, or codes. This reference is orthogonal to the document profile and often applies to business and medical documents.
+2. Read `references/terminology.md` when the source contains reader-visible names that require a rendering or identity map, such as brands, medicines, drug candidates, programmes, trial names, aliases, former names, or development codes. Routine stable acronyms or ordinary technical terms alone do not trigger this reference.
 3. Choose the applicable loading path during intake:
    - Use `core-only` for general business prose, press releases, articles, blog posts, web documents, and other inputs that are neither speaker-driven nor formal report artifacts.
    - Use `references/profiles/transcript.md` for earnings calls, interviews, Q&A, interpreted calls, or any speaker-driven document.
@@ -41,11 +41,11 @@ Use progressive disclosure. Do not load every rule for every document.
 1. State the task objective and completion conditions in one sentence.
 2. Identify the source, document type, loading path, optional profile, output format, and reader-visible metadata.
 3. Trace the source-to-output flow and discover task-local evaluators before editing.
-4. Scan the entire source for terminology and entity relationships; save the terminology ledger and alias map before translating chunks.
+4. If the terminology reference applies, scan the entire source before translating chunks and prepare the terminology ledger. Save it under `work/` for long documents; create a separate alias map only when the relationships are complex.
 5. For sources longer than roughly 3,000 words, create source units, chunk files, a progress ledger, and a QA report under `work/`.
 6. Translate and save reviewable chunks; do not simulate chunking by generating one monolithic translation and splitting it afterward.
 7. Assemble the final deliverable deterministically under `outputs/`.
-8. Run conceptual review with the applicable profile reviewer; for `core-only`, use `agents/korean_translation_reviewer.md`. Include terminology-ledger consistency and alias placement in the conceptual pass. Then run mechanical and source-fidelity QA.
+8. Run conceptual review with the applicable profile reviewer; for `core-only`, use `agents/korean_translation_reviewer.md`. When terminology review applies, include naming-class consistency, alias identity, and first-occurrence placement in that pass. Then run mechanical and source-fidelity QA.
 9. Fix accepted findings, rerun the closest affected checks, and verify the final file itself before delivery.
 
 ## Completion Gates
@@ -55,7 +55,7 @@ Do not claim completion until all applicable gates pass or a concrete limitation
 1. source coverage and order
 2. selected loading-path contract
 3. natural Korean and communicative role
-4. terminology ledger, naming-class consistency, and alias or former-name handling at first occurrence
+4. when applicable, terminology-ledger consistency and alias or former-name handling at the earliest relevant occurrence
 5. financial number, unit, fiscal-period, and repeated-guidance fidelity
 6. note basis and first-occurrence placement
 7. structure, links, emphasis semantics, and HTML invariants
@@ -67,7 +67,7 @@ Do not claim completion until all applicable gates pass or a concrete limitation
 ## Resource Map
 
 - `references/core.md`: shared workflow and quality contract loaded for every non-trivial task
-- `references/terminology.md`: source-wide terminology ledger, established Korean rendering, naming-class consistency, aliases, former names, and entity-code mapping
+- `references/terminology.md`: conditional source-wide terminology ledger, established Korean rendering, naming-class consistency, aliases, former names, and entity-code mapping
 - `references/profiles/transcript.md`: speaker flow, interpreted speech, earnings-call language, and transcript QA
 - `references/profiles/report.md`: page/section hierarchy, tables, legal/reporting labels, and equivalence evidence
 - `references/quality_benchmark.md`: portable acceptance benchmark and bad-to-target examples
