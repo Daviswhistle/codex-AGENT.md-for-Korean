@@ -16,21 +16,24 @@
 - 같은 숫자 가이던스가 여러 번 나올 때 한 곳만 맞고 다른 곳이 틀리는 문제
 - 통역이 포함된 컨퍼런스콜에서 원 발언자와 통역자 라벨이 뒤섞이는 문제
 - RMB/CNY, billion, 억 단위가 한국어 독자에게 잘못된 규모로 읽히는 문제
+- 후보물질·제품명처럼 같은 부류의 이름이 영문과 한글 사이를 이유 없이 오가는 문제
+- 뒤에서 밝혀진 별칭·이전 명칭 관계가 첫 등장에 반영되지 않는 문제
 - 개별 표현만 고치고 그 지적의 상위 실패 원칙을 반영하지 못하는 문제
 
 
 ## 단계별 reference
 
-`SKILL.md`는 자동 선택과 완료 gate만 담는 짧은 진입점입니다. 실제 작업에서는 문서 유형에 맞춰 reference를 단계적으로 읽습니다.
+`SKILL.md`는 자동 선택과 완료 gate만 담는 짧은 진입점입니다. 실제 작업에서는 문서 유형과 용어 위험에 맞춰 reference를 단계적으로 읽습니다.
 
 1. 모든 비단순 번역에서 `references/core.md`를 읽습니다.
-2. 일반 비즈니스 문서, 보도자료, 기사, 블로그 글, 웹 문서는 `core-only` 경로를 사용하며 primary profile을 선택하지 않습니다.
-3. 화자 중심 문서는 `references/profiles/transcript.md`를 primary profile로 선택합니다.
-4. 페이지·표 중심 공식 문서는 `references/profiles/report.md`를 primary profile로 선택합니다.
-5. 두 계약이 실제로 함께 필요한 문서에서만 두 profile을 모두 읽고, loading path와 primary/secondary 선택을 QA 리포트에 남깁니다.
-6. 긴 문서, 품질 민감 작업, 레퍼런스 동등성 작업에서는 `references/quality_benchmark.md`도 읽습니다.
+2. 브랜드, 의약품, 후보물질, 프로그램, 임상시험명, 별칭, 이전 명칭, 개발코드처럼 한국어 표기나 개체 관계를 판단해야 하는 이름이 있으면 `references/terminology.md`를 읽습니다. 이미 의미와 표기가 안정된 일반 약어만 있다는 이유로 이 reference를 불러오지는 않습니다.
+3. 일반 비즈니스 문서, 보도자료, 기사, 블로그 글, 웹 문서는 `core-only` 경로를 사용하며 primary profile을 선택하지 않습니다.
+4. 화자 중심 문서는 `references/profiles/transcript.md`를 primary profile로 선택합니다.
+5. 페이지·표 중심 공식 문서는 `references/profiles/report.md`를 primary profile로 선택합니다.
+6. 두 계약이 실제로 함께 필요한 문서에서만 두 profile을 모두 읽고, loading path와 primary/secondary 선택, terminology reference 적용 여부를 QA 리포트에 남깁니다.
+7. 긴 문서, 품질 민감 작업, 레퍼런스 동등성 작업에서는 `references/quality_benchmark.md`도 읽습니다.
 
-이 구조는 공통 독자 계약을 유지하면서 transcript 전용 화자 규칙과 report 전용 표·법정 문구 규칙을 불필요하게 동시에 로드하지 않도록 합니다.
+이 구조는 공통 독자 계약을 유지하면서 transcript 전용 화자 규칙, report 전용 표·법정 문구 규칙, 필요할 때만 적용하는 용어·개체 규칙을 불필요하게 동시에 로드하지 않도록 합니다.
 
 ## 이 스킬이 강제하는 기준
 
@@ -42,12 +45,15 @@
 - 서식이 필요한 경우 복사-붙여넣기에 안전한 HTML 사용
 - 화자명 굵게, 링크 유지, 이태릭체와 주석의 의미 구분
 - 설명 주석은 용어의 첫 등장 위치에만 삽입
+- 용어 검수가 필요한 문서는 번역 전에 전체 원문을 훑어 naming class, 표기 근거, 별칭·이전 명칭을 정리
+- 정착된 한국어 표기가 없으면 원문 표기를 기본으로 하고, 발음이나 명명 규칙을 확인할 수 있을 때만 독자 편의를 위해 음역
+- 뒤에서 발견된 별칭·개명 관계를 가장 이른 관련 등장 위치까지 역반영
 - 긴 문서는 청크 단위로 번역
 - 중간 번역 파일, 진행표, QA 리포트 생성
 - 긴 보고서는 페이지/섹션 단위 구조와 표 inventory를 유지
 - 레포에 포함된 품질 벤치마크를 기준으로 사전 맥락 없이도 결과물을 검수
 - 작업 목표와 완료 조건을 QA 리포트에 명시
-- 별도 개념 검수 패스로 화자, 문체, 재무 단위, 주석, 보고서 표/구조의 목적을 점검
+- 별도 개념 검수 패스로 화자, 문체, 재무 단위, 주석, 용어·개체 관계, 보고서 표/구조의 목적을 점검
 - sub-agent나 별도 Codex 프로세스가 가능하면 prose/source fidelity, report/table 구조, HTML publication 검수를 분리
 - 구조 오류, source artifact, 숫자/단위 drift, 명백한 직역 템플릿은 기계 검색으로 확인
 - `말씀`, `측면에서`, `비교됩니다` 같은 일반 표현의 적절성은 금칙어가 아니라 개념 검수에서 문맥별 판단
@@ -100,19 +106,20 @@ translation-quality 스킬을 사용해. 이 PDF 컨퍼런스콜을 한국어 HT
 긴 transcript를 처리할 때 이 스킬은 Codex가 다음 절차를 따르도록 요구합니다.
 
 1. 원문 유형을 확인하고 `core-only`, transcript, report 중 loading path를 선택합니다.
-2. `references/core.md`를 읽고, transcript/report일 때만 선택한 profile을 추가로 읽어 원문을 번역 단위로 정리합니다.
-3. `core-only`는 primary profile 없이 공통 독자 계약을 적용하고, transcript는 화자 map과 Q&A 흐름을, report는 페이지/섹션 map과 표 inventory를 만듭니다.
-4. 전체 문서를 한 번에 생성하지 않고 청크 단위로 번역하며 중간 파일과 진행표를 저장합니다.
-5. 서식이 필요한 경우 복사-붙여넣기에 안전한 HTML로 결정적으로 조립합니다.
-6. transcript/report는 선택한 profile reviewer를 사용하고, `core-only`는 `agents/korean_translation_reviewer.md`로 독자 관점의 실패 유형을 찾습니다.
-7. 어색한 직역 표현, 반복 숫자 가이던스, HTML 구조, 표 alignment, 최종 파일 상태를 검수합니다.
-8. 검증 명령, 생략한 검사와 사유, 남은 리스크를 QA 리포트에 분리해 남깁니다.
+2. `references/core.md`를 읽고, 표기나 개체 관계를 판단해야 하는 이름이 있으면 `references/terminology.md`를 추가로 읽으며, transcript/report일 때만 선택한 profile도 읽습니다.
+3. 용어 검수가 적용되면 전체 원문을 먼저 훑어 용어 원장을 만들고, 긴 문서에서는 파일로 저장합니다. 별칭 관계가 복잡할 때만 별도 alias map을 만듭니다.
+4. `core-only`는 primary profile 없이 공통 독자 계약을 적용하고, transcript는 화자 map과 Q&A 흐름을, report는 페이지/섹션 map과 표 inventory를 만듭니다.
+5. 전체 문서를 한 번에 생성하지 않고 청크 단위로 번역하며 중간 파일과 진행표를 저장합니다.
+6. 서식이 필요한 경우 복사-붙여넣기에 안전한 HTML로 결정적으로 조립합니다.
+7. transcript/report는 선택한 profile reviewer를 사용하고, `core-only`는 `agents/korean_translation_reviewer.md`로 독자 관점의 실패 유형을 찾습니다. 용어 검수가 적용되면 reviewer가 naming class, 별칭·이전 명칭, 최초 등장 역반영도 함께 확인합니다.
+8. 어색한 직역 표현, 반복 숫자 가이던스, 용어 원장 일관성, HTML 구조, 표 alignment, 최종 파일 상태를 검수합니다.
+9. 검증 명령, 생략한 검사와 사유, 남은 리스크를 QA 리포트에 분리해 남깁니다.
 
-이 스킬이 엄격한 이유는 긴 transcript 번역에서 누락, 직역투, 숫자 오역, 서식 깨짐이 쉽게 발생하기 때문입니다.
+이 스킬이 엄격한 이유는 긴 transcript 번역에서 누락, 직역투, 숫자 오역, 용어 표기 drift, 서식 깨짐이 쉽게 발생하기 때문입니다.
 
 ## 검증 기준
 
-HTML 결과물은 helper로 구조, source artifact, 숫자/단위, 명백한 반복 실패 템플릿을 검사합니다. 일반 표현의 적절성은 helper가 아니라 개념 검수에서 판단합니다. 긴 실적발표 transcript에서는 `--source-units`를 함께 넘겨 source unit과 최종 HTML의 `data-unit` 문단을 직접 대조해야 합니다.
+HTML 결과물은 helper로 구조, source artifact, 숫자/단위, 명백한 반복 실패 템플릿을 검사합니다. 일반 표현과 이름 표기의 적절성은 helper가 아니라 개념 검수에서 판단합니다. 긴 실적발표 transcript에서는 `--source-units`를 함께 넘겨 source unit과 최종 HTML의 `data-unit` 문단을 직접 대조해야 합니다.
 
 ```bash
 python3 scripts/qa_html_translation.py \
@@ -167,12 +174,13 @@ python3 scripts/evaluate_report_equivalence.py \
 
 - `SKILL.md`: 스킬 자동 선택, staged loading, 실행·완료 gate를 담은 진입점
 - `references/core.md`: 모든 비단순 번역에 적용하는 독자 계약, 공통 workflow, style, note, HTML, QA 기준
+- `references/terminology.md`: 필요한 문서에만 적용하는 용어 원장, 통용 표기, naming class, 별칭·이전 명칭·개발코드 기준
 - `references/profiles/transcript.md`: 화자 흐름, 통역 귀속, 실적발표 문체, transcript 숫자 QA profile
 - `references/profiles/report.md`: 페이지/섹션, 표, 법정 문구, 보고서 publication/equivalence QA profile
 - `agents/korean_translation_reviewer.md`: 독자 관점의 한국어 번역 개념 검수 프롬프트
-- `agents/korean_report_reviewer.md`: 연차보고서/재무보고서 구조, 표, 법정 문구 검수 프롬프트
+- `agents/korean_report_reviewer.md`: 연차보고서/재무보고서 구조, 표, 법정 문구, 개체 표기 검수 프롬프트
 - `references/quality_benchmark.md`: 새 설치 환경에서도 같은 기준을 적용하기 위한 품질 벤치마크
 - `scripts/qa_html_translation.py`: 최종 HTML 구조, source artifact, 숫자/단위, 명백한 반복 실패 템플릿을 검사하는 helper
 - `scripts/evaluate_report_equivalence.py`: 레퍼런스 HTML과 candidate HTML의 보고서 구조/표/링크/artifact 동등성을 비교하는 helper
 - `scripts/merge_chunks.py`, `scripts/md_to_html.py`: 청크 번역을 긴 보고서 HTML로 조립하는 helper
-- `tests/`: 스킬 계약과 HTML QA helper 회귀 테스트
+- `tests/`: 실행 helper와 핵심 스킬 계약의 회귀 테스트
