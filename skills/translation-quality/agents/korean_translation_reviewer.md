@@ -14,7 +14,7 @@ Ask for or use the available form of:
 2. source speaker map: original labels, visible speaker names, roles, interpreter flow
 3. source translation units or relevant source excerpts
 4. assembled Korean output
-5. terminology ledger and alias map when the terminology reference applied
+5. terminology ledger when the terminology reference applied, and the alias map when one was created
 6. known user preferences or prior corrections
 7. QA notes, if already available
 
