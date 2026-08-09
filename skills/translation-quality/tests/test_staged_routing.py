@@ -17,6 +17,26 @@ def markdown_section(text: str, heading: str) -> str:
     return text[start:end]
 
 
+def numbered_item_child_bullets(text: str) -> list[list[str]]:
+    groups: list[list[str]] = []
+    current: list[str] | None = None
+
+    for line in text.splitlines():
+        if re.match(r"^\d+\.\s+", line):
+            current = []
+            groups.append(current)
+            continue
+
+        if current is None:
+            continue
+
+        child = re.match(r"^\s+-\s+(.+)$", line)
+        if child:
+            current.append(child.group(1))
+
+    return groups
+
+
 class StagedRoutingContractTests(unittest.TestCase):
     def test_required_loading_routes_are_declared_in_staged_section(self) -> None:
         staged = markdown_section(
@@ -24,20 +44,36 @@ class StagedRoutingContractTests(unittest.TestCase):
             "Staged Reference Loading",
         )
 
-        route_tokens = {
-            token
-            for line in staged.splitlines()
-            if line.lstrip().startswith("- ")
-            for token in re.findall(r"`([^`]+)`", line)
-        }
         required_routes = {
             "core-only",
             "references/profiles/transcript.md",
             "references/profiles/report.md",
         }
+        route_group_found = False
+
+        for bullets in numbered_item_child_bullets(staged):
+            declared: dict[str, str] = {}
+            valid_group = True
+
+            for bullet in bullets:
+                tokens = set(re.findall(r"`([^`]+)`", bullet)) & required_routes
+                if len(tokens) > 1:
+                    valid_group = False
+                    break
+                if len(tokens) == 1:
+                    route = next(iter(tokens))
+                    if route in declared:
+                        valid_group = False
+                        break
+                    declared[route] = bullet
+
+            if valid_group and set(declared) == required_routes:
+                route_group_found = True
+                break
+
         self.assertTrue(
-            required_routes.issubset(route_tokens),
-            required_routes - route_tokens,
+            route_group_found,
+            "core-only, transcript, and report must each have a distinct child route entry",
         )
 
         required_resources = {
