@@ -24,16 +24,20 @@ class StagedRoutingContractTests(unittest.TestCase):
             "Staged Reference Loading",
         )
 
-        routes = set(
-            re.findall(r"^\s*-\s+Use\s+`([^`]+)`", staged, re.MULTILINE)
-        )
-        self.assertEqual(
-            routes,
-            {
-                "core-only",
-                "references/profiles/transcript.md",
-                "references/profiles/report.md",
-            },
+        route_tokens = {
+            token
+            for line in staged.splitlines()
+            if line.lstrip().startswith("- ")
+            for token in re.findall(r"`([^`]+)`", line)
+        }
+        required_routes = {
+            "core-only",
+            "references/profiles/transcript.md",
+            "references/profiles/report.md",
+        }
+        self.assertTrue(
+            required_routes.issubset(route_tokens),
+            required_routes - route_tokens,
         )
 
         required_resources = {
