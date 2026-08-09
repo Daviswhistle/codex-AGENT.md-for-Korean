@@ -30,8 +30,9 @@
 3. 일반 비즈니스 문서, 보도자료, 기사, 블로그 글, 웹 문서는 `core-only` 경로를 사용하며 primary profile을 선택하지 않습니다.
 4. 화자 중심 문서는 `references/profiles/transcript.md`를 primary profile로 선택합니다.
 5. 페이지·표 중심 공식 문서는 `references/profiles/report.md`를 primary profile로 선택합니다.
-6. 두 계약이 실제로 함께 필요한 문서에서만 두 profile을 모두 읽고, loading path와 primary/secondary 선택, terminology reference 적용 여부를 QA 리포트에 남깁니다.
-7. 긴 문서, 품질 민감 작업, 레퍼런스 동등성 작업에서는 `references/quality_benchmark.md`도 읽습니다.
+6. 두 profile은 실제로 함께 필요한 문서에서만 모두 읽습니다.
+7. 모든 loading path에서 loading path와 terminology reference 적용 여부를 QA 리포트에 남기고, profile을 사용했다면 primary/secondary 선택도 기록합니다.
+8. 긴 문서, 품질 민감 작업, 레퍼런스 동등성 작업에서는 `references/quality_benchmark.md`도 읽습니다.
 
 이 구조는 공통 독자 계약을 유지하면서 transcript 전용 화자 규칙, report 전용 표·법정 문구 규칙, 필요할 때만 적용하는 용어·개체 규칙을 불필요하게 동시에 로드하지 않도록 합니다.
 
