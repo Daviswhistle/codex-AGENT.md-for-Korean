@@ -8,7 +8,16 @@ import unittest
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PROFILE = SKILL_ROOT / "references" / "profiles" / "report.md"
+REPORT_REVIEWER = "agents/korean_report_reviewer.md"
 SHELL_FENCE = re.compile(r"```(?:bash|sh|shell)\n(.*?)```", re.DOTALL)
+
+
+def markdown_section(text: str, heading: str) -> str:
+    marker = f"## {heading}\n"
+    start = text.index(marker) + len(marker)
+    next_heading = re.search(r"^## ", text[start:], re.MULTILINE)
+    end = start + next_heading.start() if next_heading else len(text)
+    return text[start:end]
 
 
 def logical_shell_commands(block: str) -> list[str]:
@@ -42,7 +51,19 @@ def has_option(tokens: list[str], option: str, value: str) -> bool:
     )
 
 
-class ReportProfileCommandTests(unittest.TestCase):
+class ReportProfileContractTests(unittest.TestCase):
+    def test_report_profile_declares_conceptual_reviewer_route(self) -> None:
+        profile_contract = markdown_section(
+            REPORT_PROFILE.read_text(encoding="utf-8"),
+            "Profile Contract",
+        )
+        routed_agents = set(
+            re.findall(r"`(agents/[^`]+\.md)`", profile_contract)
+        )
+
+        self.assertIn(REPORT_REVIEWER, routed_agents)
+        self.assertTrue((SKILL_ROOT / REPORT_REVIEWER).is_file())
+
     def test_report_qa_command_selects_report_profile(self) -> None:
         text = REPORT_PROFILE.read_text(encoding="utf-8")
         qa_commands: list[list[str]] = []
