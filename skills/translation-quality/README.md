@@ -184,5 +184,6 @@ python3 scripts/evaluate_report_equivalence.py \
 - `scripts/qa_html_translation.py`: 최종 HTML 구조, source artifact, 숫자/단위, 명백한 반복 실패 템플릿을 검사하는 helper
 - `scripts/evaluate_report_equivalence.py`: 레퍼런스 HTML과 candidate HTML의 보고서 구조/표/링크/artifact 동등성을 비교하는 helper
 - `scripts/merge_chunks.py`, `scripts/md_to_html.py`: 청크 번역을 긴 보고서 HTML로 조립하는 helper
-- `tests/`: staged loading·conceptual reviewer·HTML 변환·QA helper·보고서 equivalence 회귀 테스트
-- 저장소 루트 `tests/test_reference_quality_suite_route.py`: reference-quality suite 존재와 README·benchmark·report profile 연결 회귀 테스트
+- `tests/`: HTML 변환·QA helper·보고서 equivalence처럼 실제 helper 동작의 회귀 테스트
+
+loading path, reviewer 선택, 번역 품질은 Markdown 문구 검사로 고정하지 않고 실제 대표 번역 결과와 개념 검수로 평가합니다.
