@@ -19,7 +19,7 @@ davis-agent-kit/
   AGENTS.md           # 모든 프로젝트에 적용할 전역 지침의 규범 원본
   AGENTS.override.md  # 이 저장소에만 적용할 프로젝트 지침
   kit.toml            # 키트 버전·스키마·Python·설치 대상 manifest
-  scripts/            # 전체 검증과 실제 설치 상태 진단 도구
+  scripts/            # 전체 검증, 설치 진단, CRA continuation 제어 도구
   .github/            # 같은 검증 진입점을 실행하는 CI
   guidelines/         # 원칙에서 내려온 적용 지침
   checklists/         # 완료 전 검수 기준
@@ -125,6 +125,35 @@ installer는 checkout이 `CODEX_HOME` 아래에 있으면서 managed `davis-agen
 
 `AGENTS.md`만 복사해도 전역 철학, 원칙, 행동 계약은 적용됩니다. 이 저장소의 프로젝트 override와 스킬, 세부 실행물까지 사용하려면 위 연결 설치를 사용합니다.
 
+### CRA Stop hook 명시적 활성화
+
+전역 lifecycle hook은 사용자 명령을 자동 실행할 수 있으므로 기본 installer가 만들거나 기존 `${CODEX_HOME:-$HOME/.codex}/hooks.json`에 병합하지 않습니다. CRA continuation을 사용하려면 먼저 일반 설치를 마친 뒤, 관리 경로의 controller가 출력하는 정의를 별도 파일에서 검토합니다.
+
+```bash
+CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"
+HOOK_DRAFT="$(mktemp)"
+python3 "$CODEX_DIR/davis-agent-kit/scripts/cra_control.py" hook-config > "$HOOK_DRAFT"
+cat "$HOOK_DRAFT"
+```
+
+기존 `hooks.json`이 없으면 검토한 파일을 직접 설치하고, 기존 hook이 있으면 `SessionStart`, `UserPromptSubmit`, `Stop` 항목을 사용자가 충돌 없이 병합합니다. 자동 덮어쓰기는 하지 않습니다.
+
+```bash
+test ! -e "$CODEX_DIR/hooks.json" && cp "$HOOK_DRAFT" "$CODEX_DIR/hooks.json"
+```
+
+그 뒤 Codex를 재시작하거나 새 세션을 시작하고 `/hooks`에서 Davis hook 정의를 다시 검토해 신뢰합니다. 이미 열린 세션에서 hook을 방금 신뢰했다면 다음 사용자 프롬프트의 `UserPromptSubmit`이 현재 세션을 활성화합니다. Hook이 신뢰·활성화되지 않았다면 `prepare`는 `fallback-required`를 반환하고 동기 CRA로 돌아갑니다.
+
+### Hook-managed CRA
+
+CRA가 필요한 변경을 검증하고 하나의 로컬 커밋으로 만든 뒤 `scripts/cra_control.py prepare`가 현재 Codex 세션, 저장소, HEAD 커밋, index·worktree 상태, Codex 실행 파일을 결속합니다. 준비가 성공하면 주 세션은 `codex review`를 직접 실행하거나 로그를 반복 확인하지 않고 현재 turn을 끝냅니다.
+
+Stop hook은 같은 계정의 현재 Codex 실행 파일로 고정된 `gpt-5.6-sol`, reasoning effort `max` 리뷰를 blocking 방식으로 실행합니다. 프로세스가 끝난 뒤 exit code와 최종 출력, 전체 로그 경로를 `decision: "block"`의 reason으로 반환하므로 같은 세션이 findings 검증, 수정, amend, 재리뷰 또는 최종 보고를 이어갑니다.
+
+상태와 로그는 `${CODEX_HOME:-$HOME/.codex}/davis-cra/` 아래에 두며 worktree와 커밋에 섞이지 않습니다. 준비 뒤 HEAD나 worktree가 바뀌거나 Codex 실행 파일이 달라지면 reviewer를 시작하지 않고 실패 continuation을 반환합니다. `running` 상태에서 terminal result가 사라진 attempt는 비용 중복을 막기 위해 자동 재실행하지 않습니다.
+
+Hook이 설치·신뢰·활성화되지 않았거나 현재 세션을 안전하게 결속할 수 없으면 `prepare`는 `fallback-required`를 반환합니다. 이때는 [`cra-loop.md`](skills/software-engineering/references/cra-loop.md)의 기존 blocking CRA 절차를 사용합니다.
+
 ### 연결 상태 확인
 
 설치 후에는 저장소 루트에서 doctor를 실행합니다.
@@ -141,6 +170,8 @@ Doctor는 다음을 함께 확인합니다.
 - 전역 `AGENTS.md` 링크가 이 저장소의 규범 원본을 가리키는지
 - manifest에 등록된 모든 스킬 링크와 `SKILL.md` load entrypoint가 존재하는지
 - 제거 대상으로 선언된 legacy 스킬이나 manifest에 없는 이 키트 내부 스킬 링크가 남아 있지 않은지
+
+Doctor는 명시적으로 활성화한 사용자 hook의 신뢰 상태를 확인하지 않습니다. `/hooks`에서 사용자가 직접 검토해야 합니다.
 
 경고까지 실패로 처리하려면 `python3 scripts/doctor.py --strict`를 사용합니다. 파일 시스템 연결이 맞아도 이미 열린 Codex 세션의 목록은 자동 갱신되지 않으므로 설치나 스킬 변경 뒤에는 새 세션을 시작합니다.
 
