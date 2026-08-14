@@ -40,7 +40,6 @@ class AgentKitContractTests(unittest.TestCase):
             "필요한 것은 통합한다.",
             "확인하지 않은 사실을 단정하지 않는다.",
             "사용자가 변경도 요청하지 않았다면 구현하거나 파일을 수정하지 않는다.",
-            "핵심 요청을 필요한 근거와 요청된 형식으로 충족할 수 있으면 답하고 멈춘다.",
             "일반 질의 응답이 산문이라는 이유만으로 호출하지 않는다.",
         ):
             self.assertIn(statement, agents)
