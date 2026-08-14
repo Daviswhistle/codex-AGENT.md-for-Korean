@@ -93,6 +93,38 @@ class InstallCodexReviewFeedbackTests(unittest.TestCase):
             )
             self.assertFalse(parent.exists())
 
+    @unittest.skipIf(os.name == "nt", "symlink contract is POSIX-oriented")
+    def test_doctor_interrupt_rolls_back_and_returns_130(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_root = Path(tmp)
+            parent = temp_root / "created-parent"
+            codex_home = parent / "nested" / ".codex"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                mock.patch.object(
+                    sys,
+                    "argv",
+                    ["install_codex.py", "--codex-home", str(codex_home)],
+                ),
+                mock.patch.object(
+                    install_codex,
+                    "run_doctor",
+                    side_effect=KeyboardInterrupt,
+                ),
+                mock.patch.object(sys, "stdout", stdout),
+                mock.patch.object(sys, "stderr", stderr),
+            ):
+                returncode = install_codex.main()
+
+            self.assertEqual(returncode, 130)
+            self.assertIn(
+                "Created installation paths were rolled back",
+                stderr.getvalue(),
+            )
+            self.assertFalse(parent.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
