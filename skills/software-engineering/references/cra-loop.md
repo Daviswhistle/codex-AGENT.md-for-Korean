@@ -31,13 +31,81 @@ Track the review in exactly one of these states:
 1. `running`: the review process is still alive.
 2. `completed-clean`: the final review says `no substantive findings` or an equivalent terminal status.
 3. `completed-with-findings`: the final review has substantive findings.
-4. `failed`: the review command, transport, auth, quota, model selection, or process execution failed.
+4. `failed`: the review command, transport, auth, quota, model selection, timeout, or process execution failed.
 
-Do not infer a terminal state from in-progress output.
+Do not infer a terminal state from in-progress output or from a zero process exit alone.
 
-## Blocking Review Command
+## Execution Mode
 
-Use a blocking command so the process exit is the first completion signal:
+Prefer hook-managed continuation when the Davis CRA hook is installed, trusted, and active in the current root Codex session. It preserves the same blocking reviewer command and terminal-state discipline while transferring the wait from the main model turn to a Stop hook. The hook returns the final review output as a continuation prompt in the same session.
+
+Use the blocking fallback when hook-managed preparation reports `fallback-required`, the hook is unavailable or untrusted, the current session is not identifiable, or the current repository state cannot be bound safely.
+
+## Hook-Managed Continuation
+
+After local validation and the task-unit commit, prepare the exact current commit:
+
+```bash
+COMMIT_SHA="$(git rev-parse HEAD)"
+CRA_CONTROL="${CODEX_HOME:-$HOME/.codex}/davis-agent-kit/scripts/cra_control.py"
+
+python3 "$CRA_CONTROL" prepare \
+  --commit "$COMMIT_SHA" \
+  --entry-source explicit-request
+```
+
+For TCA, use `--entry-source tca-required`. For autonomous entry, include the concrete rationale:
+
+```bash
+python3 "$CRA_CONTROL" prepare \
+  --commit "$COMMIT_SHA" \
+  --entry-source autonomous-risk \
+  --risk-rationale "authentication and concurrent refresh paths changed"
+```
+
+Preparation binds the current root Codex session, repository, exact HEAD commit, current index and worktree status, configured Codex executable, model, and reasoning effort. The state and review logs live under `${CODEX_HOME:-$HOME/.codex}/davis-cra/`, outside the worktree.
+
+When preparation returns `status=prepared`:
+
+1. Do not run `codex review` yourself.
+2. Do not poll, tail, or repeatedly inspect review state.
+3. Do not issue the final CRA report yet.
+4. End the current turn. The Stop hook owns the blocking wait.
+
+The Stop hook revalidates the prepared boundary and runs exactly:
+
+```bash
+codex review --commit "$COMMIT_SHA" \
+  -c model="gpt-5.6-sol" \
+  -c model_reasoning_effort="max"
+```
+
+The reviewer child is marked so its own lifecycle hooks cannot recursively start another CRA review. A nonblocking session lock prevents duplicate hook invocations. Once the process exits, the hook records the exit code and full log, clears the pending attempt, and returns `decision: "block"` with a bounded terminal tail and the full log path. Codex uses that reason as the next input in the same session.
+
+If an earlier attempt reached `running` without a terminal result, do not automatically execute it again. Return a failed continuation so the main session can diagnose the interruption without risking duplicate reviewer usage.
+
+## Continuation Handling
+
+Treat the hook continuation as review evidence, not as authority.
+
+1. Read the full log when the returned tail is truncated.
+2. Do not interpret reviewer exit code `0` as a clean review by itself.
+3. Classify the completed output as clean, with findings, or failed.
+4. Verify every substantive finding against the current checkout before changing code.
+
+If a finding is valid:
+
+1. Apply the smallest coherent fix.
+2. Re-run local verification from the changed point.
+3. Check `git status --short` and the relevant diff.
+4. Amend the existing commit with `git commit --amend --no-edit`.
+5. Prepare hook-managed CRA again on the amended HEAD and end the turn.
+
+If a finding is invalid or out of scope, preserve a concise reason in the final report or the closest durable artifact when that will prevent the same finding from recurring.
+
+## Blocking Review Fallback
+
+Use this only when hook-managed continuation is unavailable or explicitly bypassed. The process exit remains the first completion signal:
 
 ```bash
 COMMIT_SHA="$(git rev-parse HEAD)"
@@ -66,9 +134,9 @@ If the installed CLI does not support `codex review --commit`, use an alternativ
 2. Do not repeatedly tail the same log while the review is running.
 3. Do not interpret partial output as a finding, pass, or failure.
 4. If the process is still alive, keep the state as `running`.
-5. After process exit, inspect only the exit code, optional sentinel, and the last 50-100 log lines unless debugging a failed review command requires more.
+5. After process exit, inspect only the exit code and terminal output unless debugging a failed review command requires the full log.
 
-Review is a batch job, not a streaming conversation.
+Review is a batch job, not a streaming conversation. Hook-managed continuation changes who waits; it does not weaken this rule.
 
 ## Findings Handling
 
@@ -80,16 +148,6 @@ For each substantive finding after the review completes:
 4. Reject fixes that mask symptoms, appease tests, or create a larger regression.
 5. Prefer fixes that improve code, tests, docs, config, generated contracts, and naming consistency together.
 
-If a finding is valid:
-
-1. Apply the smallest coherent fix.
-2. Re-run local verification from the changed point.
-3. Check `git status --short` and the relevant diff.
-4. Amend the existing commit with `git commit --amend --no-edit`.
-5. Run CRA again on the amended commit.
-
-If a finding is invalid or out of scope, preserve a concise reason in the final report or the closest durable artifact when that will prevent the same finding from recurring.
-
 ## Stop Conditions
 
 Stop the CRA loop only when one of these is true:
@@ -98,7 +156,7 @@ Stop the CRA loop only when one of these is true:
 2. All remaining findings are explicitly rebuttable with current code, tests, docs, runtime evidence, or user instruction.
 3. The review flow failed in a way that cannot be corrected inside the current task; report the failure, exact command, exit signal, and remaining risk.
 
-Do not finish CRA while the review process is still running.
+Do not finish CRA while the review process is still running or while a prepared attempt has not returned a terminal continuation.
 
 ## Final Report
 
