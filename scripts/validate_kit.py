@@ -86,7 +86,7 @@ def run_check(check: CommandCheck, repo_root: Path, quiet: bool) -> bool:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run every Davis Agent Kit contract, test suite, and helper smoke check."
+        description="Run manifest validation, executable tests, and helper smoke checks."
     )
     parser.add_argument(
         "--root",
@@ -115,14 +115,14 @@ def main() -> int:
 
     manifest_errors = validate_manifest(manifest, repo_root)
     if manifest_errors:
-        print("[FAIL] manifest contract")
+        print("[FAIL] manifest validation")
         for error in manifest_errors:
             print(f"  - {error}")
         return 1
 
     if not args.quiet:
         print(
-            f"[PASS] manifest contract "
+            f"[PASS] manifest validation "
             f"(kit {manifest.kit_version}, schema {manifest.schema_version})",
             flush=True,
         )

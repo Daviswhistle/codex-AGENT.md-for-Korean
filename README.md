@@ -19,7 +19,7 @@ davis-agent-kit/
   AGENTS.md           # 모든 프로젝트에 적용할 전역 지침의 규범 원본
   AGENTS.override.md  # 이 저장소에만 적용할 프로젝트 지침
   kit.toml            # 키트 버전·스키마·Python·설치 대상 manifest
-  scripts/            # 전체 검증과 실제 설치 상태 진단 도구
+  scripts/            # 설치·진단·기계 검증 도구
   .github/            # 같은 검증 진입점을 실행하는 CI
   guidelines/         # 원칙에서 내려온 적용 지침
   checklists/         # 완료 전 검수 기준
@@ -49,13 +49,20 @@ davis-agent-kit/
 
 ## 검증
 
-저장소 전체의 manifest 계약, 루트 테스트, 모든 `skills/*/tests`, bundled helper의 `--help` smoke test는 한 명령으로 실행합니다.
+자동 검증은 지침이나 스킬의 정답을 판정하지 않습니다. 다음처럼 기계적으로 확인할 수 있는 표면만 다룹니다.
+
+- `kit.toml`, skill frontmatter, bundled resource 경로의 파싱과 존재 여부
+- installer와 doctor의 링크 생성, 충돌 거부, 롤백, credential sanitization
+- 번역 HTML 변환·QA·equivalence helper처럼 실제로 실행되는 코드의 동작
+- bundled helper의 `--help` smoke check
 
 ```bash
 python3 scripts/validate_kit.py
 ```
 
-이 명령은 새 스킬 테스트 디렉터리와 helper를 자동 발견합니다. `.github/workflows/validate.yml`도 pull request와 `main` push에서 같은 명령을 실행하므로 로컬 완료 기준과 CI 완료 기준이 갈라지지 않습니다.
+이 명령은 실행 가능한 테스트 디렉터리와 helper를 자동 발견합니다. `.github/workflows/validate.yml`도 pull request와 `main` push에서 같은 명령을 실행하므로 로컬 코드 검증과 CI 검증이 갈라지지 않습니다.
+
+Markdown의 특정 문구, 제목, 섹션 배치, 라우팅 선언, 예시는 자동 테스트로 고정하지 않습니다. 지침과 스킬의 판단 품질은 같은 대표 과제를 실제로 다시 실행하고 결과를 비교하며 검토합니다. 정적 검증 통과는 행동 품질의 증거가 아닙니다.
 
 설치 링크를 요구하지 않고 저장소와 manifest 상태만 진단하려면 다음을 실행합니다.
 
