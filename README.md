@@ -155,7 +155,7 @@ Doctor는 다음을 함께 확인합니다.
 
 - [`translation-quality`](skills/translation-quality/) - 실적발표 컨퍼런스콜과 긴 비즈니스 문서를 자연스러운 한국어로 번역하고 개념 검수와 HTML QA까지 수행하기 위한 스킬
 - [`handoff-agent-builder`](skills/handoff-agent-builder/) - 프로젝트별 인수인계 에이전트를 설계하고 멀티턴 검증까지 수행하기 위한 스킬
-- [`software-engineering`](skills/software-engineering/) - 소프트웨어 변경, 리뷰, 검증, 런타임 경계, CRA/TCA 루프를 다루는 엔지니어링 판단 스킬
+- [`software-engineering`](skills/software-engineering/) - 소프트웨어 작업에서 CRA 또는 TCA의 필요성을 자율적으로 판단하고 선택한 commit-review workflow를 실행하기 위한 스킬
 - [`writing-quality`](skills/writing-quality/) - 독자가 그대로 읽거나 보내거나 게시할 원고를 과제에 맞는 구조와 확인된 글쓰기 원칙으로 작성·편집하기 위한 범용 스킬
 
 ## 첫 번째 기준점

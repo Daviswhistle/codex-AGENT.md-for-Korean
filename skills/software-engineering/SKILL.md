@@ -1,154 +1,77 @@
 ---
 name: software-engineering
-description: Davis software-engineering discipline for software changes, debugging, review handling, validation boundaries, commit boundaries, autonomous CRA selection and CRA/TCA loops, runtime/cache/generated-artifact checks, vendor contract review, and interrupted workstream recovery. Use when a task needs Davis-style engineering judgment across code, tests, docs, config, deployment-adjacent validation, or source-of-truth analysis. Complements specialized GitHub, Vercel, frontend, framework, API, or docs skills; use those for domain details.
+description: Use for software implementation, modification, debugging, refactoring, or review tasks to decide autonomously whether Commit-Review-Amend (CRA) or Task-Commit-Approve (TCA) would materially improve correctness, reviewability, recovery, or completion confidence, and to run the selected workflow. Explicit CRA or TCA requests also trigger this skill.
 ---
 
-# Software Engineering
+# Software Engineering Workflows
 
-Use this skill to finish software work as a coherent engineering change, not as a loose patch.
+Use this skill only to select and run CRA or TCA. It does not replace root or project instructions, ordinary engineering judgment, implementation, or local validation.
 
-This is an engineering judgment skill, not a framework skill. If another skill covers the domain, such as GitHub PR handling, frontend implementation, Next.js, Vercel, OpenAI docs, or skill creation, use that domain skill for the technical details and use this skill for scope, validation, review, commit, and finish criteria.
+## Selection Contract
 
-Keep this front page compact. When a task needs detailed loop mechanics, restart gates, or consistency passes, use the bundled reference playbooks.
+For every software modification:
 
-## Core Contract
+1. Before implementation, decide whether TCA is warranted.
+2. If TCA is selected, read `references/tca-loop.md` before creating the task queue or editing.
+3. If TCA is not selected, complete one coherent task unit under the applicable project instructions.
+4. After local validation of that task unit, decide whether CRA is warranted.
+5. If neither workflow is warranted, finish normally without creating a task queue, extra commits, or review ceremony.
 
-1. Work from the current checkout, not memory or intention.
-2. Keep the scope tight, but include directly connected code, tests, docs, config, generated contract, and deployment-surface consistency.
-3. Protect user and coworker changes. Do not revert, overwrite, or hide unfamiliar changes.
-4. Prefer root-cause fixes over fallback, masking, or test-only appeasement.
-5. Make names match current responsibility. Function, file, module, test, setting, log, metric, and doc names are maintenance interfaces.
-6. Distinguish verification from approval or external state change.
+Re-evaluate TCA before the first commit if the discovered scope materially changes. A user request for CRA or TCA selects that workflow when its safety preconditions can be met. A later instruction to avoid commits or reviews overrides every entry path. Do not ask for permission solely because the user did not name the workflow.
 
-## Commit Boundary
+## TCA Decision
 
-Record a commit only when all of these are true:
+Select TCA when the user explicitly requests it or when task-by-task commit and CRA gates would materially improve correctness, recovery, or reviewability.
 
-1. The change is one clear task unit.
-2. The included files were checked with `git status --short` and, when needed, `git diff`.
-3. Generated files, logs, review logs, sentinel files, caches, secrets, and unrelated user changes are excluded.
-4. Reasonable local verification has run, or skipped verification is recorded with a concrete reason.
-5. The user did not ask to avoid commits.
+Autonomous TCA is warranted when several of these are true:
 
-Do not record a commit when the scope is unclear, unrelated changes cannot be separated, the task is review-only, or the change needs user approval before being recorded.
+1. The request contains two or more independently explainable and verifiable task units.
+2. Later work depends on an earlier unit being committed and independently reviewed first.
+3. Combining the work would obscure why a commit exists, which validation belongs to it, or how to roll it back.
+4. The work is likely to be interrupted or compacted, so stable reviewed checkpoints materially reduce recovery risk.
+5. A migration, broad refactor, or behavior change has safe intermediate boundaries that should not be crossed while unreviewed.
+6. Each task unit is important enough that its own CRA result would change whether the next unit should proceed.
 
-Treat a local commit as a reviewable checkpoint, not approval to publish or change external state. Never push, deploy, migrate, approve snapshots, update production data, or otherwise change external state unless the user explicitly asks.
+Usually skip autonomous TCA when:
 
-## Reference Material
+1. The work has one coherent outcome even if it has many steps or touches many files.
+2. Splitting would leave an intermediate commit broken, misleading, or materially incomplete.
+3. The change is a mechanical batch edit, generated update, or rename with one validation contract.
+4. The candidate task units are too small for separate commit and review overhead to improve the result.
+5. A clean series of task commits cannot be isolated from unrelated work.
 
-Use these deeper references only when the task crosses that surface:
-
-1. `references/cra-loop.md` - detailed Codex Review Agent loop mechanics, state model, log discipline, findings, and reporting.
-2. `references/tca-loop.md` - detailed Task-Commit-Approve queue, task boundary, restart, and stop rules.
-3. `references/naming-docs-consistency.md` - deeper checks for names, docs, tests, settings, logs, metrics, and public contracts.
-
-Reference files refine this skill. They do not override the Core Contract, root `AGENTS.md`, or a more specific domain skill.
-
-## Start The Work
-
-1. State the goal and completion condition in one sentence for non-trivial work.
-2. Check branch and worktree state before editing.
-3. Read the relevant entry points, call flow, data flow, failure paths, docs, config, and tests before choosing the fix.
-4. For a bug, find all callers or producers with `rg` before patching one visible path.
-5. Identify deployment, database, permissions, environment variables, caches, generated artifacts, and runtime state that may affect the answer.
-6. If external behavior or a library contract is uncertain, verify it from official or primary sources first.
-
-## Find The Source Of Truth
-
-Do not answer current-state questions from docs alone. For questions like "is this active?", "can I deploy now?", "is this the default?", "what does this log mean?", or "does this script refresh it?", identify the current source of truth:
-
-1. loader or runtime branch actually used
-2. generated artifact contents and coverage
-3. deploy script behavior and current environment boundary
-4. persisted state, cache, database, or object-store role
-5. log line origin and the condition that emits it
-6. tests or validators that prove the contract
-
-Separate axes before answering. Runtime dependency, layer rebuild, env rewrite, code deploy, data backfill, cache refresh, and report generation may be different operations even when they share files.
-
-For vendor or official API comparison, read vendor-provided navigation first when present: `llms.txt`, agent guidance, docs index, examples index, or API reference table. Use broad grep after narrowing the reference subtree.
-
-## Implement
-
-1. Follow local style, framework conventions, package boundaries, and existing helper APIs.
-2. Add an abstraction only when it reduces real duplication or clarifies a real responsibility boundary.
-3. Add fallback only when the failure mode, selection condition, observable signal, and maintenance owner are clear.
-4. Preserve defensive or risk-reduction operations when later optional data loading can fail.
-5. Keep compatibility paths when existing persisted records or old payloads still need to be read.
-6. When public behavior changes, update the closest docs, examples, generated-contract descriptions, or reproduction commands.
-7. Do not expose secrets through source, logs, command lines, exceptions, or final output.
-8. When responsibility or public behavior shifts, use `references/naming-docs-consistency.md` to decide which names, docs, tests, settings, logs, metrics, or generated contracts must move with it.
-
-## Validate
-
-1. Start with the smallest verification that proves the changed contract.
-2. Expand to lint, typecheck, build, integration, or end-to-end checks only when risk or public surface requires it.
-3. For non-trivial logic, leave the smallest durable regression test that would fail if the bug returns.
-4. Test public behavior and operational contracts, not incidental object shape.
-5. If a test fails, classify it before changing code or expectations: implementation issue, test expectation issue, environment issue, or stale fixture.
-6. Wait for long-running silent validators to finish before interpreting success or failure.
-7. Record commands run, checks skipped, skip reasons, and remaining risk.
-
-## Review Findings
-
-Treat review output as evidence to evaluate, not as authority.
-
-For each finding, check:
-
-1. Is the fact true in the current checkout?
-2. Is it in scope for this task?
-3. Is there real runtime, data, security, user-facing, or maintenance risk?
-4. Would the proposed fix create a larger regression?
-5. Does it improve code, docs, tests, config, and naming consistency?
-
-If a reviewer finding conflicts with runtime evidence or an explicit user clarification, re-check the control flow or run evidence, then follow the stronger current contract. Leave a concise comment, doc note, test, or final explanation when that prevents the same invalid finding from recurring.
+When TCA is selected, every task unit uses CRA after local validation. Do not make a second CRA decision inside TCA. If an explicit TCA request has only one defensible task unit, do not invent boundaries; run it as one TCA task with CRA and report that the queue collapsed to one unit.
 
 ## CRA Decision
 
-After local validation, decide whether independent commit-level review would materially improve confidence. The user does not need to name CRA.
+After local validation, select CRA when independent commit-level review would materially improve confidence. The user does not need to name CRA.
 
 Run CRA when:
 
-1. the user explicitly requests it or an active TCA task requires it
-2. the change affects authentication, authorization, secrets, billing, money, persisted data, migrations, concurrency, recovery, deployment, runtime configuration, agent authority, or an external or public contract
-3. the change spans multiple callers, states, or failure paths; performs a broad refactor; addresses a repeated regression; cannot be exercised adequately through local validation; or retains material uncertainty
-4. the user asks for production readiness, unusually high confidence, or independent review
+1. The user explicitly requests it or an active TCA task requires it.
+2. The change affects authentication, authorization, secrets, billing, money, persisted data, migrations, concurrency, recovery, deployment, runtime configuration, agent authority, or an external or public contract.
+3. The change spans multiple callers, states, or failure paths; performs a broad refactor; addresses a repeated regression; cannot be exercised adequately through local validation; or retains material uncertainty.
+4. The user asks for production readiness, unusually high confidence, or independent review.
 
 Usually skip autonomous CRA for typo, formatting-only, comments-only, or narrowly mechanical changes whose contract is fully established by focused validation.
 
 Do not run CRA when the user asks to avoid commits or reviews, the task is review-only, a clean task-unit commit cannot be isolated, or local validation is missing. CRA is not a substitute for local validation.
 
-The user's decision to enable autonomous CRA authorizes the already-configured reviewer and the current account's existing usage. It does not authorize purchasing credits, changing billing, plan, or quota settings, switching provider or account, pushing, deploying, migrating, or changing production state. Ask for explicit approval before any of those actions.
+When CRA is selected, read `references/cra-loop.md` and follow it without duplicating or partially reconstructing the loop from this front page.
 
-## CRA Loop
+## Shared Boundaries
 
-When the CRA decision says to run, read `references/cra-loop.md` before starting and follow its state model, blocking review command, failure classification, finding handling, amendment loop, and final reporting contract. Do not ask again solely because the user did not name CRA, and do not duplicate or partially reconstruct that procedure from this front page.
+1. Keep each commit limited to one coherent task unit and exclude unrelated user or coworker changes, secrets, logs, caches, review output, and temporary artifacts.
+2. Treat local commits as reviewable checkpoints, not permission to push, deploy, migrate, approve snapshots, update production data, or otherwise mutate remote state.
+3. Autonomous CRA or TCA may use the already-configured reviewer and the current account's existing usage. It may not purchase credits, change billing, plan, quota, provider, or account settings without explicit approval.
+4. A workflow failure does not authorize masking the problem, weakening validation, or silently finishing as though the workflow passed.
+5. If the workflow cannot proceed safely, report the blocked state, missing prerequisite, and remaining risk.
 
-## TCA Loop
+## Reporting
 
-Use only when the user explicitly requests `TCA 루프`. Autonomous CRA selection does not authorize starting TCA. Read `references/tca-loop.md` before creating the task queue and follow its task boundaries, restart gates, CRA dependency, stop conditions, and final reporting contract.
+When CRA or TCA is used, report the entry source and rationale, task or commit boundaries, validation, review terminal state, accepted and rejected findings, skipped checks, and remaining risk. When neither is used, do not add process narration solely to announce that the workflows were skipped.
 
-## Interrupted Workstream Recovery
+## References
 
-After context compaction, interruption, parallel reviews, or user correction that the thread drifted, stop and restate:
-
-1. active branch and commit
-2. intended task
-3. already completed validation
-4. still-open work
-5. running or stale processes
-6. files with unrelated user changes
-
-Do not continue editing until the active workstream is clear.
-
-## Finish
-
-Before final response or commit, check:
-
-1. no critical or high-risk issue remains in scope
-2. validation appropriate to the change has run
-3. skipped validation and remaining risk are known
-4. names, docs, tests, settings, and generated artifacts are not materially inconsistent with current behavior
-5. `git status --short` shows only intended changes, or a commit has cleanly recorded them
-
-Final response should name the changed files, summarize the behavioral effect, list validation, mention skipped checks and risk, and include commit hash when committed.
+1. `references/cra-loop.md` - Commit-Review-Amend mechanics, state model, blocking reviewer command, findings, amendments, stop conditions, and reporting.
+2. `references/tca-loop.md` - Task-Commit-Approve selection record, task queue, per-task CRA gate, restart rules, stop conditions, and reporting.

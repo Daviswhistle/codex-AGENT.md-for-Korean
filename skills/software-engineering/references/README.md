@@ -1,11 +1,10 @@
 # Software Engineering References
 
-These references keep `software-engineering/SKILL.md` compact while preserving detailed procedures that are useful only for specific engineering surfaces.
+These references keep `software-engineering/SKILL.md` focused on autonomous workflow selection while preserving the detailed mechanics of the two supported workflows.
 
-Use a reference when the user explicitly requests that workflow or when the current task crosses the surface the reference describes. The references refine this skill; they do not override the Core Contract, root `AGENTS.md`, or a more specific domain skill.
+Use a reference when the user explicitly requests that workflow or when the software-engineering skill selects it autonomously. The references refine the selection contract; they do not override root or project instructions.
 
 ## Current References
 
-- `cra-loop.md`: Codex Review Agent loop mechanics, status states, log discipline, finding handling, and reporting.
-- `tca-loop.md`: Task-Commit-Approve queue, task boundaries, restart gates, stop conditions, and final reporting.
-- `naming-docs-consistency.md`: consistency checks for names, docs, tests, settings, logs, metrics, generated contracts, and public surfaces.
+- `cra-loop.md`: Commit-Review-Amend state, blocking review, finding handling, amendment, stop, and reporting mechanics.
+- `tca-loop.md`: Task-Commit-Approve entry records, task boundaries, per-task CRA gates, restart rules, stop conditions, and reporting.

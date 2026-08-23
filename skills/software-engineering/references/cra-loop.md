@@ -35,6 +35,16 @@ Track the review in exactly one of these states:
 
 Do not infer a terminal state from in-progress output.
 
+## Long-Context Compatibility
+
+The review command below requests GPT-5.6 Sol's long-context profile. Codex resolves these values against the active model catalog rather than treating them as unconditional limits.
+
+1. Before relying on the expanded budget, run `codex debug models` and inspect `gpt-5.6-sol`.
+2. A long-context-capable catalog accepts `model_context_window=1000000` but clamps it to the advertised `max_context_window`; current upstream GPT-5.6 metadata caps this override at `872000`.
+3. Older clients or catalogs may advertise `272000` or `372000`. They clamp the context request to that smaller ceiling, so CRA remains bounded but does not receive the intended long-context budget.
+4. Codex also clamps the effective automatic-compaction threshold to at most 90% of the resolved context window, even when raw config output still shows `900000`.
+5. If `max_context_window` is below `872000`, update and restart Codex and start a new CRA session. Report the effective runtime window instead of claiming that the long-context profile is active.
+
 ## Blocking Review Command
 
 Use a blocking command so the process exit is the first completion signal:
@@ -46,6 +56,8 @@ rm -f review.done review.log
 codex review --commit "$COMMIT_SHA" \
   -c model="gpt-5.6-sol" \
   -c model_reasoning_effort="max" \
+  -c model_context_window=1000000 \
+  -c model_auto_compact_token_limit=900000 \
   > review.log 2>&1 && touch review.done
 ```
 
