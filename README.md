@@ -155,8 +155,10 @@ Doctor는 다음을 함께 확인합니다.
 
 - [`translation-quality`](skills/translation-quality/) - 실적발표 컨퍼런스콜과 긴 비즈니스 문서를 자연스러운 한국어로 번역하고 개념 검수와 HTML QA까지 수행하기 위한 스킬
 - [`handoff-agent-builder`](skills/handoff-agent-builder/) - 프로젝트별 인수인계 에이전트를 설계하고 멀티턴 검증까지 수행하기 위한 스킬
-- [`software-engineering`](skills/software-engineering/) - 소프트웨어 작업에서 CRA 또는 TCA의 필요성을 자율적으로 판단하고 선택한 commit-review workflow를 실행하기 위한 스킬
+- [`software-engineering`](skills/software-engineering/) - 비사소한 구현과 로컬 검증을 작업 에이전트에 위임하고, CRA 또는 TCA의 필요성을 자율적으로 판단해 선택한 workflow를 실행하기 위한 스킬
 - [`writing-quality`](skills/writing-quality/) - 독자가 그대로 읽거나 보내거나 게시할 원고를 과제에 맞는 구조와 확인된 글쓰기 원칙으로 작성·편집하기 위한 범용 스킬
+
+`software-engineering`의 위임 계약은 모델 중립적입니다. 선택적 custom `worker` 예시는 [`worker-luna-max-fast.toml`](skills/software-engineering/references/worker-luna-max-fast.toml)에 있으며 GPT-5.6 Luna, Max reasoning, Fast service tier를 사용합니다. 이 예시는 설치 시 자동 적용되지 않습니다.
 
 ## 첫 번째 기준점
 
