@@ -20,7 +20,7 @@ For `autonomous-structure`, record the concrete task boundaries, dependency, or 
 1. TCA is not an ordinary plan or a reason to split every multi-step change.
 2. Each task unit must have one clear goal, an explainable scope, a local validation contract, and a clean commit boundary.
 3. Every TCA task runs CRA after local validation. Do not proceed to the next task while the current task's CRA is running or has unresolved valid findings.
-4. When using a worker, delegate only the active task unit and keep at most one write-capable worker in the worktree.
+4. When using a worker, delegate only the active task unit. Treat its mutable worktree as a single-writer, stable-reader boundary: serialize repository-state-dependent readers until the writer exits, or give them a separate worktree or fixed commit snapshot.
 5. Do not manufacture task boundaries that leave the repository broken, misleading, or materially incomplete.
 6. Exclude unrelated user or coworker changes, secrets, caches, logs, review output, and temporary artifacts from every task commit.
 7. A local commit and CRA result do not authorize push, deployment, migration, snapshot approval, production data changes, or other remote mutation.
@@ -77,9 +77,9 @@ For each task unit:
 
 1. Select the task and restate its goal, scope, dependency, validation, and completion condition.
 2. Create the execution contract from `references/worker-delegation.md`. Delegate implementation and local validation to `worker` by default when the contract is precise and subagents are available; otherwise record the direct-execution fallback.
-3. Wait for the active task's worker to return before starting another write task in the same worktree.
+3. Wait for the active writer to return before starting any repository-state-dependent agent in the same worktree. Parallel readers require a separate worktree or fixed commit snapshot.
 4. Inspect the actual changes, worker evidence, and repository state; do not accept a completion summary as proof.
-5. Run or repeat local validation appropriate to the changed contract when the returned evidence is insufficient or the task risk warrants independent execution.
+5. Independently verify every validation result required for completion by re-running it or inspecting independently accessible raw output, exit status, and artifacts. If only the worker's prose summary exists, re-run the validation.
 6. Check `git status --short` and the relevant diff; separate unrelated changes.
 7. Commit only the current task unit.
 8. Run CRA with entry source `tca-required`.
@@ -87,7 +87,7 @@ For each task unit:
 10. Record the final commit and CRA terminal state in the queue.
 11. Reassess whether the next planned task is still necessary and correctly bounded.
 
-Do not start implementing the next task until the current task has a commit, a local validation record, a CRA terminal state, and an updated queue entry.
+Do not start implementing the next task until the current task has a commit, an independently verified local validation record, a CRA terminal state, and an updated queue entry.
 
 ## CRA Restart Rules
 
@@ -107,7 +107,7 @@ The current task is not complete until the amended commit reaches a CRA terminal
 Proceed only when all are true:
 
 1. the current task has one coherent commit
-2. local validation appropriate to that task has run
+2. validation required for completion has been independently verified
 3. skipped validation and reasons are recorded
 4. the primary session inspected the actual diff and repository state
 5. the last CRA reached a terminal state
@@ -123,7 +123,7 @@ Stop instead of continuing when:
 1. the user cancels or reverses the workflow
 2. the current task boundary becomes unclear
 3. unrelated changes cannot be separated safely
-4. required local validation is unavailable or its failure cannot be classified
+4. required local validation or independently checkable evidence is unavailable, or its failure cannot be classified
 5. the worker handoff fails and no safer direct-execution fallback exists
 6. CRA fails in a way that cannot be corrected inside the current task
 7. a migration, deployment, production data update, purchase, or other external state change needs explicit approval
@@ -138,7 +138,7 @@ Report:
 2. completed, merged, removed, and deferred task units
 3. execution owner and worker evidence for each completed task
 4. final commit hash for each completed task
-5. local validation and skipped checks for each task
+5. independently verified validation and skipped checks for each task
 6. CRA terminal state, accepted findings, and rejected findings for each task
 7. review fixes that changed a task boundary or restart point
 8. remaining risk and any external action still requiring approval

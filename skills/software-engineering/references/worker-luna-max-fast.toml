@@ -26,7 +26,7 @@ Return:
 
 - behavioral result
 - changed files and rationale
-- validation commands and outcomes
+- validation commands, exit status, and relevant raw output or stable artifact locations
 - skipped validation and reasons
 - repository-state or diff concerns
 - remaining uncertainty

@@ -15,8 +15,8 @@ For every software modification:
 2. If TCA is selected, read `references/tca-loop.md` before creating the task queue or editing.
 3. Define the current task unit and its execution contract before delegating or editing.
 4. For non-trivial implementation, delegate the bounded change and local validation to the `worker` agent by default when subagents are available and the handoff can be made precise.
-5. Under TCA, delegate and finish one task unit at a time. Do not let multiple write-capable workers edit the same worktree concurrently.
-6. The primary session must inspect the actual diff, repository state, and validation evidence. A worker summary or completion claim is not sufficient.
+5. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
+6. The primary session must inspect the actual diff and repository state, then independently verify every validation result required for completion. A worker summary or completion claim is not sufficient.
 7. After local validation of the task unit, decide whether CRA is warranted.
 8. If neither TCA nor CRA is warranted, finish normally without creating a task queue, extra commits, or review ceremony.
 
@@ -32,18 +32,19 @@ The primary session owns:
 2. TCA and CRA selection
 3. task boundaries, dependencies, and execution contracts
 4. commit boundaries and independent review
-5. inspection of the final diff and validation evidence
-6. the final completion decision and response
+5. inspection of the final diff and repository state
+6. independent verification of completion-critical validation
+7. the final completion decision and response
 
 The worker owns only the bounded implementation and local validation described in its contract. Give it:
 
 1. goal and scope
 2. constraints and applicable project instructions
-3. required validation and completion evidence
+3. required validation and independently checkable completion evidence
 4. permitted authority, including whether it may commit
 5. the exact return contract
 
-The worker must return changed files, behavioral effect, validation commands and outcomes, skipped checks, remaining uncertainty, and blockers or contradictions. It may not broaden product intent, hide unrelated changes, select a different workflow, push, deploy, migrate, purchase, or mutate remote state.
+The worker must return changed files, behavioral effect, validation commands, exit status, relevant raw output or stable artifact locations, skipped checks, remaining uncertainty, and blockers or contradictions. It may not broaden product intent, hide unrelated changes, select a different workflow, push, deploy, migrate, purchase, or mutate remote state.
 
 The primary session may implement directly when the change is trivial, the work cannot be separated from an active interactive decision, subagents are unavailable, or a failed handoff makes direct recovery safer than another delegation. Do not delegate merely to add ceremony when coordination cost is greater than the expected benefit.
 
@@ -97,13 +98,13 @@ When CRA is selected, read `references/cra-loop.md` and follow it without duplic
 
 ## Reporting
 
-When worker delegation is used, report the delegated task boundary, returned validation evidence, the primary session's independent inspection, and any remaining risk. When CRA or TCA is used, also report the entry source and rationale, task or commit boundaries, validation, review terminal state, accepted and rejected findings, skipped checks, and remaining risk.
+When worker delegation is used, report the delegated task boundary, returned validation evidence, the primary session's independent diff inspection and validation verification, and any remaining risk. When CRA or TCA is used, also report the entry source and rationale, task or commit boundaries, validation, review terminal state, accepted and rejected findings, skipped checks, and remaining risk.
 
 When delegation, CRA, or TCA is skipped, do not add process narration solely to announce that it was skipped unless the missing capability or direct-execution fallback materially affects confidence.
 
 ## References
 
-1. `references/worker-delegation.md` - primary/worker responsibilities, execution contract, write-concurrency boundary, return evidence, and direct-execution fallbacks.
+1. `references/worker-delegation.md` - primary/worker responsibilities, execution contract, worktree concurrency boundary, independent validation evidence, optional-profile installation, and direct-execution fallbacks.
 2. `references/worker-luna-max-fast.toml` - optional model-specific custom `worker` example using GPT-5.6 Luna, Max reasoning, and Fast service tier; it is not an installed or normative default.
 3. `references/cra-loop.md` - Commit-Review-Amend mechanics, state model, blocking reviewer command, findings, amendments, stop conditions, and reporting.
 4. `references/tca-loop.md` - Task-Commit-Approve selection record, task queue, per-task worker execution and CRA gate, restart rules, stop conditions, and reporting.

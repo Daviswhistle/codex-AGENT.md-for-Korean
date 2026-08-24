@@ -9,12 +9,14 @@
 경계:
 
 1. 위임은 책임 이전이 아니다. 작업자의 완료 선언이나 요약만으로 완료를 판정하지 않는다.
-2. 같은 worktree에는 쓰기 가능한 worker를 한 번에 하나만 둔다. 병렬 탐색과 검토는 읽기 전용일 때 우선한다.
+2. 하나의 mutable worktree는 single-writer, stable-reader 경계로 취급한다. writer가 실행 중이면 같은 worktree의 저장소 상태를 읽는 다른 에이전트를 직렬화하고, 병렬 읽기가 필요하면 별도 worktree나 고정 commit snapshot을 사용한다.
 3. 작업 계약에는 목표, 범위, 제외 범위, 제약, 권한, 검증, 완료 근거, 반환 형식을 포함한다.
-4. worker는 제품 의도를 넓히거나 TCA·CRA를 선택하거나 원격 상태를 변경하지 않는다.
-5. 사소한 수정, 실시간 사용자 판단과 분리할 수 없는 작업, 하위 에이전트 부재, 안전한 인계가 불가능한 작업은 주 세션이 직접 수행할 수 있다.
-6. Luna Max + Fast 예시는 installer가 자동 적용하지 않는다. 사용자는 현재 모델 카탈로그와 계정에서 해당 reasoning effort와 service tier가 지원되는지 확인한 뒤 opt-in한다.
-7. Fast는 속도를 높이는 서비스 티어이며 더 많은 사용량을 소비할 수 있으므로 기존 계정과 사용량 범위 안에서만 사용한다.
+4. 완료에 필수적인 검증은 주 세션이 직접 재실행하거나 독립적으로 접근 가능한 원문 출력, 종료 코드, 산출물을 확인한다. worker의 산문 요약만으로 검증 성공을 받아들이지 않는다.
+5. worker는 제품 의도를 넓히거나 TCA·CRA를 선택하거나 원격 상태를 변경하지 않는다.
+6. 사소한 수정, 실시간 사용자 판단과 분리할 수 없는 작업, 하위 에이전트 부재, 안전한 인계가 불가능한 작업은 주 세션이 직접 수행할 수 있다.
+7. Luna Max + Fast 예시는 installer가 자동 적용하지 않는다. 현재 Codex는 `~/.codex/agents/` 또는 `.codex/agents/`의 standalone TOML을 직접 발견하며, 예시 복사는 기존 `worker.toml`을 덮어쓰지 않고 충돌 시 중단한다.
+8. 사용자는 현재 모델 카탈로그와 계정에서 해당 reasoning effort와 service tier가 지원되는지 확인한 뒤 opt-in한다.
+9. Fast는 속도를 높이는 서비스 티어이며 더 많은 사용량을 소비할 수 있으므로 기존 계정과 사용량 범위 안에서만 사용한다.
 
 2026-07-16의 모델 중립적 위임 원칙은 유지한다. 이번 결정은 특정 모델을 공개 전역 기본값으로 승격하지 않고, 기존 `software-engineering` 스킬에 실행 위임 계약을 추가하며 모델별 설정은 예시로 분리한다.
 
@@ -23,5 +25,5 @@
 - worker 인계가 반복해서 범위 누락, 잘못된 수정, 검증 손실을 만든다.
 - 주 세션의 독립 확인 비용이 직접 구현보다 지속적으로 크다.
 - Codex의 custom agent 파일 형식, 모델 식별자, reasoning effort, Fast service tier 동작이 바뀐다.
-- 여러 write worker를 안전하게 격리하는 worktree orchestration이 안정적인 기본 기능이 된다.
+- 여러 write worker나 reader/writer를 안전하게 격리하는 worktree orchestration이 안정적인 기본 기능이 된다.
 - 예시 설정을 installer가 관리해야 할 만큼 설치 수요와 검증 계약이 쌓인다.
