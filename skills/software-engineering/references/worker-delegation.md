@@ -85,7 +85,7 @@ The primary session must independently verify every validation result needed for
 
 Current Codex releases discover standalone custom-agent files under `~/.codex/agents/` for personal agents and `.codex/agents/` for project agents. No `[agents.worker]` or `config_file` registration is required. The `name = "worker"` field is the source of truth and makes the custom agent take precedence over the built-in role.
 
-After installing the skill, a user may copy the example into the personal custom-agent directory. The copy must refuse to overwrite an existing `worker.toml` so the user can inspect, merge, rename, or back it up explicitly:
+After installing the skill, a user may copy the example into the personal custom-agent directory. The example stages and fsyncs a complete file in the target directory, then publishes it atomically without replacing an existing `worker.toml`. If the target already exists or the filesystem cannot provide no-clobber hard-link publication, it stops without changing the target:
 
 ```bash
 CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"
@@ -96,20 +96,41 @@ mkdir -p "$CODEX_DIR/agents"
 
 python3 - "$SOURCE" "$TARGET" <<'PY'
 from pathlib import Path
+import os
 import shutil
 import sys
+import tempfile
 
 source = Path(sys.argv[1])
 target = Path(sys.argv[2])
 
-try:
-    with source.open("rb") as src, target.open("xb") as dst:
-        shutil.copyfileobj(src, dst)
-except FileExistsError:
-    raise SystemExit(
-        f"refusing to overwrite existing custom agent: {target}\n"
-        "inspect, merge, rename, or back it up explicitly"
+with source.open("rb") as src:
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{target.name}.",
+        suffix=".tmp",
+        dir=target.parent,
     )
+    temp = Path(temp_name)
+    try:
+        with os.fdopen(fd, "wb") as dst:
+            shutil.copyfileobj(src, dst)
+            dst.flush()
+            os.fsync(dst.fileno())
+
+        try:
+            os.link(temp, target)
+        except FileExistsError:
+            raise SystemExit(
+                f"refusing to overwrite existing custom agent: {target}\n"
+                "inspect, merge, rename, or back it up explicitly"
+            )
+        except OSError as exc:
+            raise SystemExit(
+                f"cannot atomically publish custom agent: {exc}\n"
+                f"target left unchanged: {target}"
+            ) from exc
+    finally:
+        temp.unlink(missing_ok=True)
 PY
 ```
 
