@@ -1,10 +1,12 @@
 # Software Engineering References
 
-These references keep `software-engineering/SKILL.md` focused on autonomous workflow selection while preserving the detailed mechanics of the two supported workflows.
+These references keep `software-engineering/SKILL.md` focused on execution ownership and autonomous workflow selection while preserving detailed worker-delegation, runtime-example, CRA, and TCA mechanics.
 
-Use a reference when the user explicitly requests that workflow or when the software-engineering skill selects it autonomously. The references refine the selection contract; they do not override root or project instructions.
+Use a reference when the software-engineering skill selects that execution path or when the user explicitly requests it. The references refine the selection contract; they do not override root or project instructions.
 
 ## Current References
 
+- `worker-delegation.md`: primary/worker responsibilities, execution contract, worktree concurrency, independent validation evidence, direct-execution fallbacks, and optional profile installation.
+- `worker-luna-max-fast.toml`: opt-in custom `worker` example using GPT-5.6 Luna, Max reasoning, Fast service tier, and workspace-write sandboxing.
 - `cra-loop.md`: Commit-Review-Amend state, blocking review, finding handling, amendment, stop, and reporting mechanics.
-- `tca-loop.md`: Task-Commit-Approve entry records, task boundaries, per-task CRA gates, restart rules, stop conditions, and reporting.
+- `tca-loop.md`: Task-Commit-Approve entry records, task boundaries, per-task worker execution and CRA gates, restart rules, stop conditions, and reporting.

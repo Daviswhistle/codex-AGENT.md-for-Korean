@@ -1,4 +1,4 @@
 interface:
-  display_name: "Software Engineering Workflows"
-  short_description: "Select and run CRA or TCA for software work"
-  default_prompt: "Use $software-engineering to decide whether this software task needs CRA or TCA, then run the selected workflow."
+  display_name: "Software Engineering Orchestration"
+  short_description: "Delegate implementation and run CRA or TCA when useful"
+  default_prompt: "Use $software-engineering to define the task contract, delegate non-trivial implementation to a worker, verify the result, and decide whether CRA or TCA is warranted."
