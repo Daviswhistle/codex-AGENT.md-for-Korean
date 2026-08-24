@@ -25,7 +25,7 @@ davis-agent-kit/
   checklists/         # 완료 전 검수 기준
   templates/          # 글, 리서치, 리뷰 등 출력 형식 템플릿
   skills/             # 독립 Codex skill 원본
-  examples/           # 좋은 결과물과 나쁜 결과물 예시
+  examples/           # 결과물과 선택적 런타임 설정 예시
   user-model/         # 작업 재현성에 필요한 사용자 선호와 품질 기준
   decisions/          # 왜 이렇게 정했는지 남기는 결정 기록
   inbox/              # 아직 정리되지 않은 원칙, 피드백, 아이디어
@@ -155,8 +155,12 @@ Doctor는 다음을 함께 확인합니다.
 
 - [`translation-quality`](skills/translation-quality/) - 실적발표 컨퍼런스콜과 긴 비즈니스 문서를 자연스러운 한국어로 번역하고 개념 검수와 HTML QA까지 수행하기 위한 스킬
 - [`handoff-agent-builder`](skills/handoff-agent-builder/) - 프로젝트별 인수인계 에이전트를 설계하고 멀티턴 검증까지 수행하기 위한 스킬
-- [`software-engineering`](skills/software-engineering/) - 소프트웨어 작업에서 CRA 또는 TCA의 필요성을 자율적으로 판단하고 선택한 commit-review workflow를 실행하기 위한 스킬
+- [`software-engineering`](skills/software-engineering/) - 소프트웨어 작업을 명확한 계약으로 worker에 위임하고 CRA 또는 TCA의 필요성을 자율적으로 판단해 선택한 실행 구조를 완료하기 위한 스킬
 - [`writing-quality`](skills/writing-quality/) - 독자가 그대로 읽거나 보내거나 게시할 원고를 과제에 맞는 구조와 확인된 글쓰기 원칙으로 작성·편집하기 위한 범용 스킬
+
+## 선택적 Codex 런타임 예시
+
+[`examples/codex/agents/worker.toml`](examples/codex/agents/worker.toml)은 `gpt-5.6-luna`, `max`, `fast`를 사용하는 구현 worker 예시입니다. 전역 지침과 스킬은 특정 모델과 비용 등급을 강제하지 않으며, installer도 이 파일을 자동 적용하지 않습니다. 적용 방법과 비용 경계는 [`examples/codex/README.md`](examples/codex/README.md)를 따릅니다.
 
 ## 첫 번째 기준점
 

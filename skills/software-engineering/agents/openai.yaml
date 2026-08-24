@@ -1,4 +1,4 @@
 interface:
   display_name: "Software Engineering Workflows"
-  short_description: "Select and run CRA or TCA for software work"
-  default_prompt: "Use $software-engineering to decide whether this software task needs CRA or TCA, then run the selected workflow."
+  short_description: "Delegate bounded implementation and run CRA or TCA"
+  default_prompt: "Use $software-engineering to choose a safe worker-delegation, CRA, or TCA structure for this software task and run it."
