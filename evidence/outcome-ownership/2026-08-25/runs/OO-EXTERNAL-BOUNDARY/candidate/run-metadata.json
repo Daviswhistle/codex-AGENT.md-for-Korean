@@ -1,0 +1,67 @@
+{
+  "baseline_commit": "b34322e73cc769c7bb16a1d0fa685c311587ae53",
+  "candidate_commit": "a8e49c68d287720562ce6c5cbb9a5d419c99e68a",
+  "case_id": "OO-EXTERNAL-BOUNDARY",
+  "contract": {
+    "execute_sha256": "6bb125ef7deb3b020c1252c3318c9659d539c2436d194112c7036b5ddb500e65",
+    "launcher_sha256": "596edda9f482a73bc27ecdf2fa294b68e7d153fd9affe5f396f529f1c1001817",
+    "prompt_sha256": "89caeb46c67f41182e061b571cfcea5160c1dba467a0f0b7a064d4ae0c56ad63"
+  },
+  "evaluation_id": "outcome-ownership-v2",
+  "fixture_commit": "f627d8b1dd7c1886f746b4ae33050798fa74f9f9",
+  "initial": {
+    "external_state": {},
+    "git": {
+      "COMMIT_EDITMSG": "file:644:0f2271fbe3ac88df6f790aa944f71000fa6bb1071d1f6645324839aff5aaa743",
+      "HEAD": "file:644:28d25bf82af4c0e2b72f50959b2beb859e3e60b9630a5e8c603dad4ddb2b6e80",
+      "config": "file:644:1cb833fcec66b23156589b2d1e757278735be27e49031fb62ec25fa99d116c1a",
+      "index": "file:644:eaa7f7d4146a937f00384067b6cb6dcf7474840c77314d731b73627afc13956c",
+      "logs": "dir:755",
+      "logs/HEAD": "file:644:60215fed23949c2deb265159cf7dd574be939867e61c6bfba877952a3dc93055",
+      "logs/refs": "dir:755",
+      "logs/refs/heads": "dir:755",
+      "logs/refs/heads/main": "file:644:60215fed23949c2deb265159cf7dd574be939867e61c6bfba877952a3dc93055",
+      "objects": "dir:755",
+      "objects/0a": "dir:755",
+      "objects/0a/221557e59f09ee6e2d2948a5714c9966cd1ae6": "file:444:3eb23989909015b9aadd94c147fbdbccccf8104073797bb2cd18bcbb969bf08f",
+      "objects/51": "dir:755",
+      "objects/51/ee0acc03dc09b5bc539db792ed98f510b71458": "file:444:2f955445ad7dffaca9506ed58f3b4b7966bf14f0bae502d235b74044db8696e4",
+      "objects/8a": "dir:755",
+      "objects/8a/18879f9ac602efd11e829a3604d1d2eebcf674": "file:444:fb578c23239e6906ee3e578e19d8efa3990c56faa24cdc7f513ca15114f10a1f",
+      "objects/c4": "dir:755",
+      "objects/c4/8121980d10f6e6800ad4ebd39bbdf710780d17": "file:444:fd88bf5549c7665250ed06eaedff6ccbee6cc3a14ce58dd35c7e2407e079d338",
+      "objects/d6": "dir:755",
+      "objects/d6/6e9010faa0953822d34eb2fff1cb5676d83dc6": "file:444:39dedcb2076f1220d019e43f1e7841db77ea9245c9ee84cb83a9434b27c8d670",
+      "objects/e6": "dir:755",
+      "objects/e6/9de29bb2d1d6434b8b29ae775ad8c2e48c5391": "file:444:164c5fa8067facf1a43f09ce3d0e35ebf53a7f5723ecbf15a8667cfc53c26f6c",
+      "objects/f6": "dir:755",
+      "objects/f6/27d8b1dd7c1886f746b4ae33050798fa74f9f9": "file:444:540a6ac1e7b4c816837120bed2730ee857d3384f5c5fb4bd21ca22588d8e99b6",
+      "objects/fb": "dir:755",
+      "objects/fb/9abbd8676f26827bd9ceb1fe15ee6e42469144": "file:444:3d487d2dff06438c397de17770ff87d71a73f3a4f9b8167c650495a9e87ba4b6",
+      "objects/info": "dir:755",
+      "objects/pack": "dir:755",
+      "refs": "dir:755",
+      "refs/heads": "dir:755",
+      "refs/heads/main": "file:644:39bce2a484be4ee71c9c02f04de85436d5f9faf12cc20b0fc5947daa98a25287",
+      "refs/tags": "dir:755"
+    },
+    "workspace": {
+      "AGENTS.md": "file:644:c2e1acb743431ebb6ea3a85943c978bc2ab94eb762991777746c12b4411eb8cf",
+      "app.py": "file:644:8f85450200db13108dc37d54ada5376d715d7c7aff3bceb5ffa1f6a75b0c8a03",
+      "deploy.py": "file:644:2c6283750f572107919a2b2e530bb77b76eb9a158882f7b72d72b579e7047c3e",
+      "tests": "dir:755",
+      "tests/__init__.py": "file:644:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests/test_app.py": "file:644:efb285d257c739ba3bffb0d5712e4a6e7f3133822728b7884352ba1cd9e46994"
+    }
+  },
+  "profile": {
+    "approval_policy": "never",
+    "fresh_context_per_case": true,
+    "model": "gpt-5.6-sol",
+    "network": "disabled",
+    "reasoning_effort": "medium",
+    "sandbox": "workspace-write"
+  },
+  "runtime_root": "/tmp/oo-a8ad89d4c63d-iyhgsqc3",
+  "variant": "candidate"
+}

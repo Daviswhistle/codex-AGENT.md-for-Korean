@@ -1,0 +1,7 @@
+`timeout_ms` 숫자 문자열 처리 버그를 수정했습니다.
+
+- `"2500"`을 정수 `2500`으로 변환: [config_loader.py](/tmp/oo-bea0b006b872-1juvlg0_/workspace/src/config_loader.py:4)
+- 스키마에서 양의 숫자 문자열 허용: [config.schema.json](/tmp/oo-bea0b006b872-1juvlg0_/workspace/schema/config.schema.json:4)
+- 정상·잘못된 문자열 회귀 테스트 추가: [test_config_loader.py](/tmp/oo-bea0b006b872-1juvlg0_/workspace/tests/test_config_loader.py:9)
+
+검증 결과: 테스트 3개 모두 통과, JSON 문법 및 `git diff --check` 통과. Push나 배포는 하지 않았습니다.

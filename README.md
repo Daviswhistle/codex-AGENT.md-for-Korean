@@ -26,6 +26,7 @@ davis-agent-kit/
   templates/          # 글, 리서치, 리뷰 등 출력 형식 템플릿
   skills/             # 독립 Codex skill 원본
   examples/           # 좋은 결과물과 나쁜 결과물 예시
+  evidence/           # 대표 행동 평가의 원시 결과와 수동 판정
   user-model/         # 작업 재현성에 필요한 사용자 선호와 품질 기준
   decisions/          # 왜 이렇게 정했는지 남기는 결정 기록
   inbox/              # 아직 정리되지 않은 원칙, 피드백, 아이디어
@@ -63,6 +64,8 @@ python3 scripts/validate_kit.py
 이 명령은 실행 가능한 테스트 디렉터리와 helper를 자동 발견합니다. `.github/workflows/validate.yml`도 pull request와 `main` push에서 같은 명령을 실행하므로 로컬 코드 검증과 CI 검증이 갈라지지 않습니다.
 
 Markdown의 특정 문구, 제목, 섹션 배치, 라우팅 선언, 예시는 자동 테스트로 고정하지 않습니다. 지침과 스킬의 판단 품질은 같은 대표 과제를 실제로 다시 실행하고 결과를 비교하며 검토합니다. 정적 검증 통과는 행동 품질의 증거가 아닙니다.
+
+보존 가치가 있는 대표 행동 평가의 원시 trace, 최종 응답, 자동 판정과 수동 판정은 [`evidence/`](evidence/)에 둡니다. 일회성 평가 러너는 제품 실행물과 분리하고, 결과를 재현하는 데 필요한 고정 commit이나 별도 브랜치를 증거 기록에 명시합니다.
 
 설치 링크를 요구하지 않고 저장소와 manifest 상태만 진단하려면 다음을 실행합니다.
 
@@ -155,6 +158,7 @@ Doctor는 다음을 함께 확인합니다.
 
 - [`translation-quality`](skills/translation-quality/) - 실적발표 컨퍼런스콜과 긴 비즈니스 문서를 자연스러운 한국어로 번역하고 개념 검수와 HTML QA까지 수행하기 위한 스킬
 - [`handoff-agent-builder`](skills/handoff-agent-builder/) - 프로젝트별 인수인계 에이전트를 설계하고 멀티턴 검증까지 수행하기 위한 스킬
+- [`outcome-owner`](skills/outcome-owner/) - 비사소하거나 장기적인 목표의 목적·제약·성공 기준·진행 근거·소유권 lease를 보존하고, 권한 안에서 주도적으로 실행한 뒤 검증된 완료까지 책임지기 위한 스킬
 - [`software-engineering`](skills/software-engineering/) - 비사소한 구현과 로컬 검증을 작업 에이전트에 위임하고, CRA 또는 TCA의 필요성을 자율적으로 판단해 선택한 workflow를 실행하기 위한 스킬
 - [`writing-quality`](skills/writing-quality/) - 독자가 그대로 읽거나 보내거나 게시할 원고를 과제에 맞는 구조와 확인된 글쓰기 원칙으로 작성·편집하기 위한 범용 스킬
 

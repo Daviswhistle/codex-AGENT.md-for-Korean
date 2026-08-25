@@ -1,5 +1,5 @@
 schema_version = 1
-kit_version = "0.1.0"
+kit_version = "0.2.0"
 minimum_python = "3.11"
 normative_source = "AGENTS.md"
 
@@ -17,6 +17,11 @@ entrypoint = "SKILL.md"
 [[skills]]
 name = "handoff-agent-builder"
 path = "skills/handoff-agent-builder"
+entrypoint = "SKILL.md"
+
+[[skills]]
+name = "outcome-owner"
+path = "skills/outcome-owner"
 entrypoint = "SKILL.md"
 
 [[skills]]

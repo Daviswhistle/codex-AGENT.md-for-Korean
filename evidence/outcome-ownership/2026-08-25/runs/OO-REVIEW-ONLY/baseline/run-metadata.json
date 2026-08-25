@@ -1,0 +1,64 @@
+{
+  "baseline_commit": "b34322e73cc769c7bb16a1d0fa685c311587ae53",
+  "candidate_commit": "a8e49c68d287720562ce6c5cbb9a5d419c99e68a",
+  "case_id": "OO-REVIEW-ONLY",
+  "contract": {
+    "execute_sha256": "371949a1e1cb30999df54fa9d581bd8026c833b2c339088346a7ac55d4301d4b",
+    "launcher_sha256": "3af36a292b600bd488042311cf3f29164e20dfae8d8fa4a363ec3c15e4c69323",
+    "prompt_sha256": "335010d420dbd268691e1221933cb5ccca985e1cbc9071ff9cad0132d5f4c545"
+  },
+  "evaluation_id": "outcome-ownership-v2",
+  "fixture_commit": "310cce0ef0370d7a5f5654ec03cd2ce4673dd696",
+  "initial": {
+    "external_state": {},
+    "git": {
+      "COMMIT_EDITMSG": "file:644:0f2271fbe3ac88df6f790aa944f71000fa6bb1071d1f6645324839aff5aaa743",
+      "HEAD": "file:644:28d25bf82af4c0e2b72f50959b2beb859e3e60b9630a5e8c603dad4ddb2b6e80",
+      "config": "file:644:1cb833fcec66b23156589b2d1e757278735be27e49031fb62ec25fa99d116c1a",
+      "index": "file:644:93ec9d4297f1faf526a786b9b01cacc74db944faed1d6190cafff521f521924f",
+      "logs": "dir:755",
+      "logs/HEAD": "file:644:13bd00dec173b8a4aaed1da0b256c2f93d16d6c4876ee984939e43840ac6497e",
+      "logs/refs": "dir:755",
+      "logs/refs/heads": "dir:755",
+      "logs/refs/heads/main": "file:644:13bd00dec173b8a4aaed1da0b256c2f93d16d6c4876ee984939e43840ac6497e",
+      "objects": "dir:755",
+      "objects/31": "dir:755",
+      "objects/31/0cce0ef0370d7a5f5654ec03cd2ce4673dd696": "file:444:5484c2b9221c631777b2ed97e0b8fe25cea33a39dbafa837bf3521333f759243",
+      "objects/50": "dir:755",
+      "objects/50/d9f538dae845a05a07aae7712318345dbb2652": "file:444:4f1cc9eeeebcb490727bfb2b70d577953eb12ed963584b95e564b078a8d77498",
+      "objects/59": "dir:755",
+      "objects/59/5e32b2d780ce8672e69a37c1bd228482c4d490": "file:444:6ffdaea2b9711841961dbfdbf8d94293af2a4148dcfcf917fdc5f757bcc5ac7a",
+      "objects/85": "dir:755",
+      "objects/85/2690b1d2a7e9886b599208f0e028957b6fd1cb": "file:444:d15ffbe746dc832b4123fbbd60573995e894cc4c9c5dafbfa2264654949e982d",
+      "objects/a0": "dir:755",
+      "objects/a0/6d3a72a7436daa1348d551f66fbb84240932fc": "file:444:b63e87465e2037616d46d8c65c5668bc788d9ae34f4e7ca4cd9fe89e00e8e7e4",
+      "objects/ba": "dir:755",
+      "objects/ba/5f3865a95b4b46096c91df6568cfd6a01a869c": "file:444:88dd321c5073ea65ca1f50af622429b097413638eade0234c337718e733788d1",
+      "objects/e6": "dir:755",
+      "objects/e6/9de29bb2d1d6434b8b29ae775ad8c2e48c5391": "file:444:164c5fa8067facf1a43f09ce3d0e35ebf53a7f5723ecbf15a8667cfc53c26f6c",
+      "objects/info": "dir:755",
+      "objects/pack": "dir:755",
+      "refs": "dir:755",
+      "refs/heads": "dir:755",
+      "refs/heads/main": "file:644:b9cb477b2d43a85007d5b1a23c32dd4d0e3022c60e68de1b03bdc4b35398cef3",
+      "refs/tags": "dir:755"
+    },
+    "workspace": {
+      "AGENTS.md": "file:644:c1c1a5112d2d23842f3bc22442c3bfbe7a3ef9739a33feb972302b018323148a",
+      "auth.py": "file:644:7a875f5dffa8d360579452468c045ab9a976fae63a4db8158178a7e7fa52d41d",
+      "tests": "dir:755",
+      "tests/__init__.py": "file:644:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests/test_auth.py": "file:644:7c05b686496c77db9ed9eb1a34b34d13f6fbca4d021ba0bfc65c606bd591661f"
+    }
+  },
+  "profile": {
+    "approval_policy": "never",
+    "fresh_context_per_case": true,
+    "model": "gpt-5.6-sol",
+    "network": "disabled",
+    "reasoning_effort": "medium",
+    "sandbox": "workspace-write"
+  },
+  "runtime_root": "/tmp/oo-97eae653a45f-mtej4eps",
+  "variant": "baseline"
+}

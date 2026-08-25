@@ -1,0 +1,4 @@
+interface:
+  display_name: "Outcome Owner"
+  short_description: "Own long-running outcomes with durable local evidence"
+  default_prompt: "Use $outcome-owner to preserve the objective, purpose, constraints, and success criteria; claim fenced ownership with a unique execution ID plus the observed lease generation and mission version; act proactively within bounded authority; reconcile interruptions and conflicts; and record fresh evidence before completion."

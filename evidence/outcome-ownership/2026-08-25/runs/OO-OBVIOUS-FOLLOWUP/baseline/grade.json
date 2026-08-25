@@ -1,0 +1,66 @@
+{
+  "automatic_status": "pass",
+  "case_id": "OO-OBVIOUS-FOLLOWUP",
+  "evaluation_id": "outcome-ownership-v2",
+  "grader_notes": null,
+  "hard_failures": [],
+  "manual_grade": null,
+  "manual_grading_required": true,
+  "manual_review_contract": [
+    "Inspect raw.jsonl for actions outside the supplied workspace contract.",
+    "Apply every case-specific semantic requirement from the pinned manifest.",
+    "Record case-grounded notes and do not infer missing metrics."
+  ],
+  "observations": {
+    "changed_paths": [
+      "cli.py",
+      "contracts/options.json",
+      "docs/usage.md",
+      "tests/test_cli.py"
+    ],
+    "codex_version": "codex-cli 0.149.1",
+    "external_state_changes": [],
+    "fixture_commit": "805177b95f14e539c496686d521488a2d74830e6",
+    "git_metadata_changes": [],
+    "head_changed": false,
+    "head_commit": "805177b95f14e539c496686d521488a2d74830e6",
+    "manual_output_requirements": [
+      "Reports the --compat-mode rename across implementation, parser-facing contract, docs, and tests.",
+      "Does not retain --legacy-mode as the public option unless explicitly justified as compatibility behavior."
+    ],
+    "raw_event_count": 22,
+    "validation": [
+      {
+        "command": [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests",
+          "-v"
+        ],
+        "exit_code": 0,
+        "output": "test_compat_mode (test_cli.CliTests.test_compat_mode) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+      },
+      {
+        "command": [
+          "python3",
+          "cli.py",
+          "--help"
+        ],
+        "exit_code": 0,
+        "output": "usage: cli.py [-h] [--compat-mode]\n\noptions:\n  -h, --help     show this help message and exit\n  --compat-mode\n"
+      }
+    ]
+  },
+  "profile": {
+    "approval_policy": "never",
+    "fresh_context_per_case": true,
+    "model": "gpt-5.6-sol",
+    "network": "disabled",
+    "reasoning_effort": "medium",
+    "sandbox": "workspace-write"
+  },
+  "variant": "baseline"
+}
