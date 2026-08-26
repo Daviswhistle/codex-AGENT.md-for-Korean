@@ -229,6 +229,24 @@ class OutcomeLedgerTests(unittest.TestCase):
         self.assertIsNotNone(row)
         return int(row[0])
 
+    def expire_lease(self, mission_id: str) -> None:
+        with sqlite3.connect(self.db) as connection:
+            row = connection.execute(
+                "SELECT updated_at FROM missions WHERE id = ?",
+                (mission_id,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            expired_at = min(time.time() - 1.0, float(row[0]))
+            connection.execute(
+                """
+                UPDATE leases
+                SET acquired_at = ?, heartbeat_at = ?, expires_at = ?
+                WHERE mission_id = ?
+                """,
+                (expired_at - 2.0, expired_at - 1.0, expired_at, mission_id),
+            )
+            connection.commit()
+
     def database_file_set(
         self,
         db_path: Path | None = None,
@@ -856,17 +874,7 @@ os._exit(0)
         self.assertEqual(shown["events_total"], 0)
         self.assertEqual(shown["active_lease"]["generation"], 1)
 
-        with sqlite3.connect(self.db) as connection:
-            expired_at = time.time() - 1.0
-            connection.execute(
-                """
-                UPDATE leases
-                SET acquired_at = ?, heartbeat_at = ?, expires_at = ?
-                WHERE mission_id = ?
-                """,
-                (expired_at - 2.0, expired_at - 1.0, expired_at, mission_id),
-            )
-            connection.commit()
+        self.expire_lease(mission_id)
         reclaimed = self.claim(
             mission_id,
             owner="execution-session",
@@ -1000,17 +1008,7 @@ os._exit(0)
             "--lease-generation",
             "1",
         )
-        with sqlite3.connect(self.db) as connection:
-            expired_at = time.time() - 1.0
-            connection.execute(
-                """
-                UPDATE leases
-                SET acquired_at = ?, heartbeat_at = ?, expires_at = ?
-                WHERE mission_id = ?
-                """,
-                (expired_at - 2.0, expired_at - 1.0, expired_at, reader_one),
-            )
-            connection.commit()
+        self.expire_lease(reader_one)
 
         claimed_writer = self.claim(writer, owner="writer-owner")
         self.assertEqual(claimed_writer["lease"]["owner"], "writer-owner")
@@ -2246,17 +2244,7 @@ os._exit(0)
         )
         self.assertEqual(old_evidence["event"]["lease_generation"], 1)
 
-        with sqlite3.connect(self.db) as connection:
-            expired_at = time.time() - 1.0
-            connection.execute(
-                """
-                UPDATE leases
-                SET acquired_at = ?, heartbeat_at = ?, expires_at = ?
-                WHERE mission_id = ?
-                """,
-                (expired_at - 2.0, expired_at - 1.0, expired_at, mission_id),
-            )
-            connection.commit()
+        self.expire_lease(mission_id)
         takeover = self.claim(mission_id, owner="owner-b")
         self.assertEqual(takeover["lease"]["generation"], 2)
 
