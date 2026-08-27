@@ -1,13 +1,14 @@
 {
-  "evaluation_id": "software-engineering-durable-thread-v2",
+  "evaluation_id": "software-engineering-durable-thread-v3",
   "reviewed_at": "2026-08-27",
-  "reviewer": "primary session with GitHub Actions environment probe",
+  "reviewer": "primary session",
   "summary": {
     "baseline_behavioral_runs": 0,
     "candidate_behavioral_runs": 0,
-    "blocked_runs": 16,
+    "blocked_runs": 18,
     "behavioral_verdict": "not-run",
-    "static_policy_review": "The candidate text encodes all eight expected boundaries. This is not model-behavior evidence."
+    "fixture_self_test": "passed",
+    "manual_policy_review": "completed; see manual-policy-review.md"
   },
   "blocker": {
     "codex_command_exit": 1,
@@ -20,89 +21,99 @@
     "surfaced_durable_thread_tools": "unavailable"
   },
   "repository_validation": {
-    "validate_kit_exit": 1,
-    "static_policy_check_exit": 0
+    "validate_kit_exit_in_evidence_run": 1,
+    "fixture_self_test_exit": 0
   },
   "cases": [
     {
       "case_id": "SE-BOUNDED-CHILD",
+      "fixture": "defined and self-tested",
       "baseline": {
         "grade": "not-run"
       },
       "candidate": {
         "grade": "not-run"
-      },
-      "static_candidate_contract": "covered"
+      }
     },
     {
       "case_id": "SE-DURABLE-CONTEXT-REUSE",
+      "fixture": "defined and self-tested",
       "baseline": {
         "grade": "not-run"
       },
       "candidate": {
         "grade": "not-run"
-      },
-      "static_candidate_contract": "covered"
+      }
     },
     {
       "case_id": "SE-DURABLE-ADDRESSABILITY",
+      "fixture": "defined and self-tested",
       "baseline": {
         "grade": "not-run"
       },
       "candidate": {
         "grade": "not-run"
-      },
-      "static_candidate_contract": "covered"
+      }
     },
     {
       "case_id": "SE-DURABLE-VISIBLE-TASK",
+      "fixture": "defined and self-tested",
       "baseline": {
         "grade": "not-run"
       },
       "candidate": {
         "grade": "not-run"
-      },
-      "static_candidate_contract": "covered"
+      }
     },
     {
       "case_id": "SE-RECOVERY-OWNERSHIP-ONLY",
+      "fixture": "defined and self-tested",
       "baseline": {
         "grade": "not-run"
       },
       "candidate": {
         "grade": "not-run"
-      },
-      "static_candidate_contract": "covered"
+      }
     },
     {
       "case_id": "SE-PREFLIGHT-MISMATCH",
+      "fixture": "defined and self-tested",
       "baseline": {
         "grade": "not-run"
       },
       "candidate": {
         "grade": "not-run"
-      },
-      "static_candidate_contract": "covered"
+      }
     },
     {
-      "case_id": "SE-THREAD-FALLBACK",
+      "case_id": "SE-PREACTIVATION-FALLBACK",
+      "fixture": "defined and self-tested",
       "baseline": {
         "grade": "not-run"
       },
       "candidate": {
         "grade": "not-run"
-      },
-      "static_candidate_contract": "covered"
+      }
     },
     {
-      "case_id": "SE-ACTIVE-WRITER",
+      "case_id": "SE-POSTACTIVATION-TRANSPORT-LOSS",
+      "fixture": "defined and self-tested",
       "baseline": {
         "grade": "not-run"
       },
       "candidate": {
         "grade": "not-run"
+      }
+    },
+    {
+      "case_id": "SE-ACTIVE-WRITER-PREFLIGHT-ORDER",
+      "fixture": "defined and self-tested",
+      "baseline": {
+        "grade": "not-run"
       },
-      "static_candidate_contract": "covered"
+      "candidate": {
+        "grade": "not-run"
+      }
     }
   ]
 }

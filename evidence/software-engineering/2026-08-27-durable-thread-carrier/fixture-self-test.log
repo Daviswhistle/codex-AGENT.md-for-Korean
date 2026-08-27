@@ -1,0 +1,62 @@
++ echo '$ python3 fixture/setup.py'
+$ python3 fixture/setup.py
++ python3 evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/setup.py --root /tmp/tmp.WvENovxsU4/carrier-fixture
+{
+  "root": "/tmp/tmp.WvENovxsU4/carrier-fixture",
+  "repo": "/tmp/tmp.WvENovxsU4/carrier-fixture/repo",
+  "primary_branch": "eval-base",
+  "primary_sha": "99be512b440c3b9b6a73012330c8937698f6a292",
+  "wrong_worktree": "/tmp/tmp.WvENovxsU4/carrier-fixture/wrong-worktree",
+  "wrong_branch": "wrong-start",
+  "wrong_sha": "1c5a7cab5c1844f2b4e1bfa13fced00791e16b19",
+  "state": "/tmp/tmp.WvENovxsU4/carrier-fixture/state"
+}
++ echo
+
++ echo '$ baseline fixture/verify.py (expected nonzero)'
+$ baseline fixture/verify.py (expected nonzero)
++ set +e
++ python3 evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/verify.py --repo /tmp/tmp.WvENovxsU4/carrier-fixture/repo
+test_collapses_whitespace (test_labels.NormalizeLabelTests.test_collapses_whitespace) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+dedupe_labels is missing
++ BASELINE_VERIFY_EXIT=1
++ set -e
++ echo exit=1
+exit=1
++ '[' 1 -eq 0 ']'
++ echo
+
++ echo '$ python3 fixture/apply_reference.py'
+$ python3 fixture/apply_reference.py
++ python3 evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/apply_reference.py --repo /tmp/tmp.WvENovxsU4/carrier-fixture/repo
++ echo exit=0
+exit=0
++ echo
+
++ echo '$ reference fixture/verify.py'
+$ reference fixture/verify.py
++ python3 evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/verify.py --repo /tmp/tmp.WvENovxsU4/carrier-fixture/repo
+test_normalizes_drops_empty_and_preserves_first_spelling (test_labels.DedupeLabelsTests.test_normalizes_drops_empty_and_preserves_first_spelling) ... ok
+test_uses_casefold (test_labels.DedupeLabelsTests.test_uses_casefold) ... ok
+test_collapses_whitespace (test_labels.NormalizeLabelTests.test_collapses_whitespace) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK
+fixture verification passed
++ echo exit=0
+exit=0
++ echo
+
++ echo '$ python3 fixture/teardown.py'
+$ python3 fixture/teardown.py
++ python3 evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/teardown.py --root /tmp/tmp.WvENovxsU4/carrier-fixture
+removed /tmp/tmp.WvENovxsU4/carrier-fixture
++ echo exit=0
+exit=0

@@ -1,8 +1,0 @@
-PASS: bounded child-agent default
-PASS: only three durable lifecycle conditions
-PASS: root README lifecycle alignment
-PASS: skills README lifecycle alignment
-PASS: read-only preflight before activation
-PASS: separate write activation
-PASS: fallback preserves validation
-PASS: single-writer boundary retained

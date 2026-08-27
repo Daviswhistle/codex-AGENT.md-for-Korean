@@ -6,15 +6,18 @@ Python 3.12.3
 exit=0
 
 $ git rev-parse HEAD
-1020f977ff2a64039a6f59a9db39618dee55d165
+8b1e358a3142d2011a4c5ed6c8e735489d8d7f1a
 exit=0
 
 $ git status --short --branch
 ## refactor/thread-aware-execution-orchestration...origin/refactor/thread-aware-execution-orchestration [ahead 1]
  M evidence/software-engineering/2026-08-27-durable-thread-carrier/environment-probe.txt
+ D evidence/software-engineering/2026-08-27-durable-thread-carrier/static-policy-check.txt
+?? evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture-self-test.log
+?? evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/
 exit=0
 
-GitHub Actions run: https://github.com/Daviswhistle/davis-agent-kit/actions/runs/33089746491
+GitHub Actions run: https://github.com/Daviswhistle/davis-agent-kit/actions/runs/33092751533
 Runner OS: Linux
 Runner architecture: X64
 No Codex model session or surfaced child-agent/durable-thread tool surface exists in this workflow.

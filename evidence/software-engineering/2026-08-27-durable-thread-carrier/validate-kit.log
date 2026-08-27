@@ -22,7 +22,7 @@ test_repository_manifest_is_valid (test_runtime_tools.ManifestAndValidationTests
 test_validation_runner_discovers_executable_suites_and_helpers (test_runtime_tools.ManifestAndValidationTests.test_validation_runner_discovers_executable_suites_and_helpers) ... ok
 
 ----------------------------------------------------------------------
-Ran 18 tests in 0.712s
+Ran 18 tests in 0.767s
 
 OK (skipped=1)
 [PASS] unittest:tests
@@ -114,21 +114,17 @@ FAIL: test_pathological_metadata_errors_are_structured_and_nonmutating (test_out
 Traceback (most recent call last):
   File "/home/runner/work/davis-agent-kit/davis-agent-kit/skills/outcome-owner/tests/test_outcome_ledger.py", line 1973, in test_pathological_metadata_errors_are_structured_and_nonmutating
     self.assertEqual(after, before)
-AssertionError: Tuples differ: (1787845678.5798113, 1) != (1787845678.161346, 0)
+AssertionError: Tuples differ: (1787847691.824359, 1) != (1787847691.646038, 0)
 
 First differing element 0:
-1787845678.5798113
-1787845678.161346
+1787847691.824359
+1787847691.646038
 
-- (1787845678.5798113, 1)
-?             ----     ^
-
-+ (1787845678.161346, 0)
-?              +  ++  ^
-
+- (1787847691.824359, 1)
++ (1787847691.646038, 0)
 
 ----------------------------------------------------------------------
-Ran 65 tests in 34.477s
+Ran 65 tests in 44.826s
 
 FAILED (failures=2, skipped=1)
 [FAIL] unittest:skills/outcome-owner/tests (exit 1)
@@ -162,7 +158,7 @@ test_missing_table_alignment_fails (test_report_equivalence.ReportEquivalenceTes
 test_raw_markdown_artifact_fails (test_report_equivalence.ReportEquivalenceTests.test_raw_markdown_artifact_fails) ... ok
 
 ----------------------------------------------------------------------
-Ran 25 tests in 1.214s
+Ran 25 tests in 1.421s
 
 OK
 [PASS] unittest:skills/translation-quality/tests

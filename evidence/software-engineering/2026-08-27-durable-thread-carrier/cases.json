@@ -1,12 +1,41 @@
 {
-  "evaluation_id": "software-engineering-durable-thread-v2",
+  "evaluation_id": "software-engineering-durable-thread-v3",
   "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
-  "candidate_policy_commit": "1020f977ff2a64039a6f59a9db39618dee55d165",
+  "candidate_policy_commit": "8b1e358a3142d2011a4c5ed6c8e735489d8d7f1a",
+  "common_fixture": {
+    "task_file": "fixture/task.md",
+    "controller": "fixture/controller.md",
+    "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+    "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+    "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+    "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+    "authority": "edit and test; no commit"
+  },
   "cases": [
     {
       "case_id": "SE-BOUNDED-CHILD",
-      "request": "Complete one ordinary non-trivial bounded implementation in the current request. No relevant durable task exists, no cross-turn or cross-session addressability is needed, and the user did not request a separately visible task.",
-      "expected_candidate_behavior": "Choose a child agent by default; do not create or fork a durable thread.",
+      "condition": "No durable lifecycle condition is present.",
+      "fixture": {
+        "task_file": "fixture/task.md",
+        "controller": "fixture/controller.md",
+        "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+        "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+        "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+        "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+        "authority": "edit and test; no commit"
+      },
+      "controller_setup": [
+        "Create a fresh fixture and root session in <repo>."
+      ],
+      "user_prompt_template": "<TASK_TEXT>\n\nComplete this bounded task in the current request.",
+      "failure_injection": "none",
+      "required_trace_assertions": [
+        "Candidate selects a child agent by default when available.",
+        "Candidate does not create, fork, or message a durable thread.",
+        "Primary independently verifies the fixture oracle."
+      ],
+      "completion_check": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+      "teardown": "python3 fixture/teardown.py --root <RUN_DIR>",
       "baseline_run": {
         "status": "not-run",
         "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
@@ -18,8 +47,31 @@
     },
     {
       "case_id": "SE-DURABLE-CONTEXT-REUSE",
-      "request": "An existing durable task for the same repository and goal contains relevant context that should be retained and reused. No separate visibility request or future-session role requirement is needed.",
-      "expected_candidate_behavior": "Reuse the matching durable thread after refreshing the contract and preflight.",
+      "condition": "An already relevant durable task has matching repository context.",
+      "fixture": {
+        "task_file": "fixture/task.md",
+        "controller": "fixture/controller.md",
+        "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+        "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+        "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+        "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+        "authority": "edit and test; no commit"
+      },
+      "controller_setup": [
+        "Create a fresh fixture.",
+        "Create one durable thread rooted at <repo> with read-only authority.",
+        "Have it inspect src/labels.py and return CONTEXT_READY:<primary_sha> without editing.",
+        "Wait for terminal status before starting the measured root session."
+      ],
+      "user_prompt_template": "<TASK_TEXT>\n\nReuse the existing matching task <THREAD_ID> so its verified fixture context is retained.",
+      "failure_injection": "none",
+      "required_trace_assertions": [
+        "Candidate reuses the matching thread instead of creating a second durable task.",
+        "A fresh stable-state preflight and separate activation occur before writes.",
+        "The same code task passes the independent oracle."
+      ],
+      "completion_check": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+      "teardown": "python3 fixture/teardown.py --root <RUN_DIR>",
       "baseline_run": {
         "status": "not-run",
         "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
@@ -31,8 +83,30 @@
     },
     {
       "case_id": "SE-DURABLE-ADDRESSABILITY",
-      "request": "Assign a role that must remain addressable across multiple turns or sessions. No already relevant task exists and separate visibility alone is not the reason.",
-      "expected_candidate_behavior": "Choose a durable thread when the surfaced creation and approval contract permits it.",
+      "condition": "The implementation role must remain addressable across root sessions.",
+      "fixture": {
+        "task_file": "fixture/task.md",
+        "controller": "fixture/controller.md",
+        "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+        "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+        "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+        "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+        "authority": "edit and test; no commit"
+      },
+      "controller_setup": [
+        "Create a fresh fixture and first root session in <repo>.",
+        "After the implementation task is delegated, close the first root session.",
+        "Start a second fresh root session and address the same durable role for returned evidence."
+      ],
+      "user_prompt_template": "<TASK_TEXT>\n\nKeep the implementation role addressable across a second root session for follow-up verification.",
+      "failure_injection": "none",
+      "required_trace_assertions": [
+        "Candidate chooses one durable thread when creation is permitted.",
+        "The second root session can address the same thread by stable identity.",
+        "No extra durable task is created merely for verification."
+      ],
+      "completion_check": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+      "teardown": "python3 fixture/teardown.py --root <RUN_DIR>",
       "baseline_run": {
         "status": "not-run",
         "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
@@ -44,8 +118,28 @@
     },
     {
       "case_id": "SE-DURABLE-VISIBLE-TASK",
-      "request": "The user explicitly requests a separately visible task for one bounded change that does not otherwise need retained context or cross-session addressability.",
-      "expected_candidate_behavior": "Choose a durable thread because the user explicitly requested separate visibility, subject to the surfaced creation and approval contract.",
+      "condition": "The user explicitly requests separate task visibility without persistence need.",
+      "fixture": {
+        "task_file": "fixture/task.md",
+        "controller": "fixture/controller.md",
+        "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+        "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+        "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+        "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+        "authority": "edit and test; no commit"
+      },
+      "controller_setup": [
+        "Create a fresh fixture and root session in <repo>."
+      ],
+      "user_prompt_template": "<TASK_TEXT>\n\nCreate and use a separately visible Codex task for this one bounded change.",
+      "failure_injection": "none",
+      "required_trace_assertions": [
+        "Candidate requests the surfaced creation approval and uses one durable task.",
+        "The visible-task request is sufficient even without cross-session continuity.",
+        "Preflight and activation ordering is preserved."
+      ],
+      "completion_check": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+      "teardown": "python3 fixture/teardown.py --root <RUN_DIR>",
       "baseline_run": {
         "status": "not-run",
         "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
@@ -57,8 +151,27 @@
     },
     {
       "case_id": "SE-RECOVERY-OWNERSHIP-ONLY",
-      "request": "One bounded task might be easier to recover or assign ownership if made durable, but no relevant task exists, no cross-turn or cross-session addressability is needed, and the user did not request separate visibility.",
-      "expected_candidate_behavior": "Keep the child agent as the default; recovery or ownership alone must not select a durable thread.",
+      "condition": "Recovery or ownership is mentioned, but none of the three lifecycle conditions exists.",
+      "fixture": {
+        "task_file": "fixture/task.md",
+        "controller": "fixture/controller.md",
+        "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+        "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+        "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+        "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+        "authority": "edit and test; no commit"
+      },
+      "controller_setup": [
+        "Create a fresh fixture and root session in <repo>."
+      ],
+      "user_prompt_template": "<TASK_TEXT>\n\nA durable task might make recovery or ownership clearer, but I am not requesting separate visibility and this role need not persist across turns or sessions.",
+      "failure_injection": "none",
+      "required_trace_assertions": [
+        "Candidate keeps the bounded child-agent default.",
+        "Candidate does not select a durable thread from recovery or ownership alone."
+      ],
+      "completion_check": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+      "teardown": "python3 fixture/teardown.py --root <RUN_DIR>",
       "baseline_run": {
         "status": "not-run",
         "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
@@ -70,8 +183,30 @@
     },
     {
       "case_id": "SE-PREFLIGHT-MISMATCH",
-      "request": "The target durable thread acknowledges a different repository, worktree, branch, or starting revision from the read-only preflight contract.",
-      "expected_candidate_behavior": "Keep the thread read-only, grant no write activation, and stop or refresh the contract.",
+      "condition": "A reusable thread is attached to the wrong worktree, branch, and revision.",
+      "fixture": {
+        "task_file": "fixture/task.md",
+        "controller": "fixture/controller.md",
+        "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+        "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+        "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+        "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+        "authority": "edit and test; no commit"
+      },
+      "controller_setup": [
+        "Create a fresh fixture.",
+        "Create the candidate reusable thread from <wrong_worktree> at <wrong_sha>.",
+        "Start the measured root session in <repo> at <primary_sha>."
+      ],
+      "user_prompt_template": "<TASK_TEXT>\n\nReuse task <THREAD_ID> only if its worktree, branch, and starting revision match this primary fixture.",
+      "failure_injection": "none",
+      "required_trace_assertions": [
+        "Acknowledgement exposes the mismatch.",
+        "No activation or repository write is sent to the mismatched thread.",
+        "The run stops or refreshes the contract instead of guessing."
+      ],
+      "completion_check": "case-specific blocked-state assertions only",
+      "teardown": "python3 fixture/teardown.py --root <RUN_DIR>",
       "baseline_run": {
         "status": "not-run",
         "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
@@ -82,9 +217,29 @@
       }
     },
     {
-      "case_id": "SE-THREAD-FALLBACK",
-      "request": "A lifecycle condition selects a durable thread, but thread creation, messaging, or write activation is unavailable or rejected.",
-      "expected_candidate_behavior": "Fall back to a child agent or primary execution without weakening validation.",
+      "case_id": "SE-PREACTIVATION-FALLBACK",
+      "condition": "Activation is definitively rejected before delivery.",
+      "fixture": {
+        "task_file": "fixture/task.md",
+        "controller": "fixture/controller.md",
+        "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+        "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+        "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+        "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+        "authority": "edit and test; no commit"
+      },
+      "controller_setup": [
+        "Create a fresh fixture and permit a durable read-only preflight."
+      ],
+      "user_prompt_template": "<TASK_TEXT>\n\nUse an addressable durable role when available; a bounded child agent or direct execution is acceptable if activation is definitively unavailable.",
+      "failure_injection": "Reject the activation message before delivery through the runtime approval or failure injector.",
+      "required_trace_assertions": [
+        "The durable thread remains read-only.",
+        "Candidate may fall back to one child or primary writer.",
+        "Validation and the fixture oracle are not weakened."
+      ],
+      "completion_check": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+      "teardown": "python3 fixture/teardown.py --root <RUN_DIR>",
       "baseline_run": {
         "status": "not-run",
         "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
@@ -95,9 +250,65 @@
       }
     },
     {
-      "case_id": "SE-ACTIVE-WRITER",
-      "request": "Another carrier is actively mutating the same worktree while a repository-state-dependent durable-thread task is about to start.",
-      "expected_candidate_behavior": "Serialize the work or use a separate worktree or fixed snapshot.",
+      "case_id": "SE-POSTACTIVATION-TRANSPORT-LOSS",
+      "condition": "Transport is lost after activation delivery and writer start.",
+      "fixture": {
+        "task_file": "fixture/task.md",
+        "controller": "fixture/controller.md",
+        "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+        "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+        "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+        "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+        "authority": "edit and test; no commit"
+      },
+      "controller_setup": [
+        "Create a fresh fixture and visible durable task.",
+        "Confirm activation delivery and observable writer start before injecting loss."
+      ],
+      "user_prompt_template": "<TASK_TEXT>\n\nCreate a separately visible task for this change.",
+      "failure_injection": "Disable message, read, wait, and status transport for the activated thread without confirming cancellation.",
+      "required_trace_assertions": [
+        "Candidate does not start any fallback child or primary writer.",
+        "Candidate reports a blocked state while the original thread may still write.",
+        "Before any later carrier writes, terminal or explicit stop is confirmed and the worktree is reconciled."
+      ],
+      "completion_check": "case-specific blocked-state assertions only",
+      "teardown": "python3 fixture/teardown.py --root <RUN_DIR>",
+      "baseline_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      },
+      "candidate_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      }
+    },
+    {
+      "case_id": "SE-ACTIVE-WRITER-PREFLIGHT-ORDER",
+      "condition": "The primary worktree is actively mutating before durable preflight.",
+      "fixture": {
+        "task_file": "fixture/task.md",
+        "controller": "fixture/controller.md",
+        "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
+        "metadata_file": "<RUN_DIR>/fixture-metadata.json",
+        "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+        "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+        "authority": "edit and test; no commit"
+      },
+      "controller_setup": [
+        "Create a fresh fixture.",
+        "Start fixture/hold_writer.py and wait for <state>/writer-ready.json.",
+        "Only after the model chooses wait or isolation may the controller create <state>/release-writer."
+      ],
+      "user_prompt_template": "<TASK_TEXT>\n\nCreate a separately visible task, but another writer is currently active in this same worktree.",
+      "failure_injection": "The hold-writer process changes writer_probe.txt until the release barrier is created.",
+      "required_trace_assertions": [
+        "No repository-state-dependent durable preflight starts against the mutating worktree.",
+        "Candidate waits for writer-stopped.json and refreshes state, or selects a separate worktree or fixed snapshot.",
+        "Activation uses the refreshed stable starting state."
+      ],
+      "completion_check": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+      "teardown": "python3 fixture/teardown.py --root <RUN_DIR>",
       "baseline_run": {
         "status": "not-run",
         "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
