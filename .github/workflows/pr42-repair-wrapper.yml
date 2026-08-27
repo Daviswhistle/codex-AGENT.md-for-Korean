@@ -1,0 +1,59 @@
+name: Repair PR 42 safety fixture workflow
+
+on:
+  push:
+    branches:
+      - refactor/thread-aware-execution-orchestration
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/thread-aware-execution-orchestration
+          fetch-depth: 0
+
+      - name: Recover and execute the patch script
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path(".github/workflows/pr42-safety-fixture-fixes.yml")
+          text = source.read_text(encoding="utf-8")
+          first_marker = "        run: |\n          set -euo pipefail\n"
+          second_step = "\n      - name: Build executable fixture and evidence plan\n"
+          first_start = text.index(first_marker) + len("        run: |\n")
+          first_end = text.index(second_step, first_start)
+          second_run = text.index("        run: |\n", first_end) + len("        run: |\n")
+
+          def recover(block: str) -> str:
+              lines = block.splitlines()
+              return "\n".join(line[10:] if line.startswith("          ") else line for line in lines)
+
+          script = recover(text[first_start:first_end]) + "\n" + recover(text[second_run:]) + "\n"
+          script = script.replace(
+              'echo "POLICY_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"',
+              'export POLICY_SHA="$(git rev-parse HEAD)"',
+          )
+          script = script.replace(
+              "rm .github/workflows/pr42-safety-fixture-fixes.yml\n",
+              "rm .github/workflows/pr42-safety-fixture-fixes.yml\n"
+              "rm .github/workflows/pr42-repair-wrapper.yml\n",
+              1,
+          )
+          script = script.replace(
+              "git add \\\n  .github/workflows/pr42-safety-fixture-fixes.yml \\\n",
+              "git add \\\n  .github/workflows/pr42-safety-fixture-fixes.yml \\\n  .github/workflows/pr42-repair-wrapper.yml \\\n",
+              1,
+          )
+          target = Path("/tmp/pr42-safety-fixture-fixes.sh")
+          target.write_text(script, encoding="utf-8")
+          PY
+          bash -x /tmp/pr42-safety-fixture-fixes.sh
