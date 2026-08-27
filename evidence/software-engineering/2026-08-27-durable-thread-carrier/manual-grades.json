@@ -1,16 +1,20 @@
 {
-  "evaluation_id": "software-engineering-durable-thread-v1",
+  "evaluation_id": "software-engineering-durable-thread-v2",
   "reviewed_at": "2026-08-27",
   "reviewer": "primary session with GitHub Actions environment probe",
   "summary": {
     "baseline_behavioral_runs": 0,
     "candidate_behavioral_runs": 0,
-    "blocked_runs": 10,
+    "blocked_runs": 16,
     "behavioral_verdict": "not-run",
-    "static_policy_review": "The candidate text encodes all five expected boundaries. This is not model-behavior evidence."
+    "static_policy_review": "The candidate text encodes all eight expected boundaries. This is not model-behavior evidence."
   },
   "blocker": {
     "codex_command_exit": 1,
+    "model": "unavailable",
+    "reasoning_effort": "unavailable",
+    "sandbox": "unavailable",
+    "approval_policy": "unavailable",
     "model_session": "unavailable",
     "surfaced_child_agent_tools": "unavailable",
     "surfaced_durable_thread_tools": "unavailable"
@@ -31,7 +35,37 @@
       "static_candidate_contract": "covered"
     },
     {
-      "case_id": "SE-DURABLE-LIFECYCLE",
+      "case_id": "SE-DURABLE-CONTEXT-REUSE",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      },
+      "static_candidate_contract": "covered"
+    },
+    {
+      "case_id": "SE-DURABLE-ADDRESSABILITY",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      },
+      "static_candidate_contract": "covered"
+    },
+    {
+      "case_id": "SE-DURABLE-VISIBLE-TASK",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      },
+      "static_candidate_contract": "covered"
+    },
+    {
+      "case_id": "SE-RECOVERY-OWNERSHIP-ONLY",
       "baseline": {
         "grade": "not-run"
       },
