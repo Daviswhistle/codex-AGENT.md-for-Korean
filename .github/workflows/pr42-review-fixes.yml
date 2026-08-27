@@ -182,8 +182,12 @@ jobs:
           EVIDENCE_DIR="evidence/software-engineering/2026-08-27-durable-thread-carrier"
           mkdir -p "$EVIDENCE_DIR"
 
-          CODEX_PATH="$(command -v codex 2>/dev/null)"
-          CODEX_EXIT=$?
+          CODEX_PATH="$(command -v codex 2>/dev/null || true)"
+          if [ -n "$CODEX_PATH" ]; then
+            CODEX_EXIT=0
+          else
+            CODEX_EXIT=1
+          fi
           {
             echo '$ command -v codex'
             if [ -n "$CODEX_PATH" ]; then
