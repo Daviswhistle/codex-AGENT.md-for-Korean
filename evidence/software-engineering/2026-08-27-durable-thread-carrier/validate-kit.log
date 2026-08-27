@@ -1,0 +1,188 @@
+[PASS] manifest validation (kit 0.2.0, schema 1)
+
+==> unittest:tests
+    /usr/bin/python3 -m unittest discover -s tests -p test*.py -v
+test_doctor_failure_removes_every_created_parent_directory (test_install_codex_review_feedback.InstallCodexReviewFeedbackTests.test_doctor_failure_removes_every_created_parent_directory) ... ok
+test_doctor_interrupt_rolls_back_and_returns_130 (test_install_codex_review_feedback.InstallCodexReviewFeedbackTests.test_doctor_interrupt_rolls_back_and_returns_130) ... ok
+test_interrupt_during_link_creation_rolls_back_and_returns_130 (test_install_codex_review_feedback.InstallCodexReviewFeedbackTests.test_interrupt_during_link_creation_rolls_back_and_returns_130) ... ok
+test_non_numeric_port_like_netloc_does_not_break_sanitization (test_runtime_platform_regressions.DoctorSanitizationRegressionTests.test_non_numeric_port_like_netloc_does_not_break_sanitization) ... ok
+test_case_aliases_use_filesystem_identity (test_runtime_platform_regressions.MacOSPathIdentityRegressionTests.test_case_aliases_use_filesystem_identity) ... skipped 'case-insensitive path alias regression is macOS-specific'
+test_git_remote_sanitization_removes_credentials_and_query_data (test_runtime_tools.DoctorUtilityTests.test_git_remote_sanitization_removes_credentials_and_query_data) ... ok
+test_doctor_accepts_exact_installation (test_runtime_tools.InstallerAndDoctorTests.test_doctor_accepts_exact_installation) ... ok
+test_doctor_rejects_retired_skill_link (test_runtime_tools.InstallerAndDoctorTests.test_doctor_rejects_retired_skill_link) ... ok
+test_install_shell_entrypoint_is_idempotent (test_runtime_tools.InstallerAndDoctorTests.test_install_shell_entrypoint_is_idempotent) ... ok
+test_installer_preserves_direct_checkout_at_managed_path (test_runtime_tools.InstallerAndDoctorTests.test_installer_preserves_direct_checkout_at_managed_path) ... ok
+test_installer_refuses_existing_conflict_before_mutation (test_runtime_tools.InstallerAndDoctorTests.test_installer_refuses_existing_conflict_before_mutation) ... ok
+test_installer_refuses_unlisted_links_into_the_kit (test_runtime_tools.InstallerAndDoctorTests.test_installer_refuses_unlisted_links_into_the_kit) ... ok
+test_installer_rejects_overlapping_checkout_and_codex_home (test_runtime_tools.InstallerAndDoctorTests.test_installer_rejects_overlapping_checkout_and_codex_home) ... ok
+test_installer_rejects_whole_skills_root_symlink (test_runtime_tools.InstallerAndDoctorTests.test_installer_rejects_whole_skills_root_symlink) ... ok
+test_installer_rolls_back_partial_link_failure (test_runtime_tools.InstallerAndDoctorTests.test_installer_rolls_back_partial_link_failure) ... ok
+test_manifest_rejects_machine_readable_safety_violations (test_runtime_tools.ManifestAndValidationTests.test_manifest_rejects_machine_readable_safety_violations) ... ok
+test_repository_manifest_is_valid (test_runtime_tools.ManifestAndValidationTests.test_repository_manifest_is_valid) ... ok
+test_validation_runner_discovers_executable_suites_and_helpers (test_runtime_tools.ManifestAndValidationTests.test_validation_runner_discovers_executable_suites_and_helpers) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.913s
+
+OK (skipped=1)
+[PASS] unittest:tests
+
+==> unittest:skills/outcome-owner/tests
+    /usr/bin/python3 -m unittest discover -s skills/outcome-owner/tests -p test*.py -v
+test_binding_reuses_recorded_creation_identity_kind (test_outcome_ledger.OutcomeLedgerTests.test_binding_reuses_recorded_creation_identity_kind) ... ok
+test_case_insensitive_path_key_conflict_is_portably_simulated (test_outcome_ledger.OutcomeLedgerTests.test_case_insensitive_path_key_conflict_is_portably_simulated) ... ok
+test_case_only_distinct_directories_do_not_conflict_on_sensitive_filesystem (test_outcome_ledger.OutcomeLedgerTests.test_case_only_distinct_directories_do_not_conflict_on_sensitive_filesystem) ... ok
+test_case_variant_symlink_does_not_poison_case_semantics (test_outcome_ledger.OutcomeLedgerTests.test_case_variant_symlink_does_not_poison_case_semantics) ... ok
+test_claim_rejects_a_stale_observed_mission_version (test_outcome_ledger.OutcomeLedgerTests.test_claim_rejects_a_stale_observed_mission_version) ... ok
+test_claim_rejects_same_path_replacement_before_first_lease (test_outcome_ledger.OutcomeLedgerTests.test_claim_rejects_same_path_replacement_before_first_lease) ... ok
+test_claim_rejects_symlink_replacement_of_recorded_repo_root (test_outcome_ledger.OutcomeLedgerTests.test_claim_rejects_symlink_replacement_of_recorded_repo_root) ... ok
+test_claim_renewal_heartbeat_and_record_refresh_mission_recency (test_outcome_ledger.OutcomeLedgerTests.test_claim_renewal_heartbeat_and_record_refresh_mission_recency) ... ok
+test_claim_renewal_revalidates_repo_binding_without_mutation (test_outcome_ledger.OutcomeLedgerTests.test_claim_renewal_revalidates_repo_binding_without_mutation) ... ok
+test_claim_revalidates_unrelated_active_binding_before_conflict_match (test_outcome_ledger.OutcomeLedgerTests.test_claim_revalidates_unrelated_active_binding_before_conflict_match) ... ok
+test_complete_state_without_fresh_evidence_is_rejected_as_corrupt (test_outcome_ledger.OutcomeLedgerTests.test_complete_state_without_fresh_evidence_is_rejected_as_corrupt) ... ok
+test_completion_rejects_evidence_from_before_latest_verifying_cycle (test_outcome_ledger.OutcomeLedgerTests.test_completion_rejects_evidence_from_before_latest_verifying_cycle) ... ok
+test_completion_requires_evidence_from_current_lease_generation (test_outcome_ledger.OutcomeLedgerTests.test_completion_requires_evidence_from_current_lease_generation) ... ok
+test_completion_requires_verifying_evidence_and_summary (test_outcome_ledger.OutcomeLedgerTests.test_completion_requires_verifying_evidence_and_summary) ... ok
+test_corrupt_committed_wal_is_rejected_without_source_mutation (test_outcome_ledger.OutcomeLedgerTests.test_corrupt_committed_wal_is_rejected_without_source_mutation) ... ok
+test_corrupt_creation_identity_kind_is_rejected_as_persisted_data (test_outcome_ledger.OutcomeLedgerTests.test_corrupt_creation_identity_kind_is_rejected_as_persisted_data) ... ok
+test_corrupt_persisted_rows_are_structured_and_source_preserving (test_outcome_ledger.OutcomeLedgerTests.test_corrupt_persisted_rows_are_structured_and_source_preserving) ... ok
+test_creation_identity_detects_same_inode_directory_reuse (test_outcome_ledger.OutcomeLedgerTests.test_creation_identity_detects_same_inode_directory_reuse) ... ok
+test_empty_repo_root_is_rejected_instead_of_becoming_cwd (test_outcome_ledger.OutcomeLedgerTests.test_empty_repo_root_is_rejected_instead_of_becoming_cwd) ... ok
+test_existing_ledger_inside_governed_repo_is_rejected_without_mutation (test_outcome_ledger.OutcomeLedgerTests.test_existing_ledger_inside_governed_repo_is_rejected_without_mutation) ... ok
+test_filesystem_case_detection_has_portable_deterministic_contract (test_outcome_ledger.OutcomeLedgerTests.test_filesystem_case_detection_has_portable_deterministic_contract) ... ok
+test_foreign_application_only_in_wal_is_rejected_without_source_mutation (test_outcome_ledger.OutcomeLedgerTests.test_foreign_application_only_in_wal_is_rejected_without_source_mutation) ... ok
+test_foreign_hot_journal_is_rejected_without_byte_mutation (test_outcome_ledger.OutcomeLedgerTests.test_foreign_hot_journal_is_rejected_without_byte_mutation) ... ok
+test_future_schema_only_in_wal_is_rejected_without_source_mutation (test_outcome_ledger.OutcomeLedgerTests.test_future_schema_only_in_wal_is_rejected_without_source_mutation) ... ok
+test_future_schema_version_fails_clearly (test_outcome_ledger.OutcomeLedgerTests.test_future_schema_version_fails_clearly) ... ok
+test_heartbeat_revalidates_repo_binding_without_extending_lease (test_outcome_ledger.OutcomeLedgerTests.test_heartbeat_revalidates_repo_binding_without_extending_lease) ... ok
+test_huge_sqlite_limit_is_a_structured_argument_error (test_outcome_ledger.OutcomeLedgerTests.test_huge_sqlite_limit_is_a_structured_argument_error) ... ok
+test_identified_ledger_reads_committed_wal_after_crash (test_outcome_ledger.OutcomeLedgerTests.test_identified_ledger_reads_committed_wal_after_crash) ... ok
+test_identified_ledger_recovers_hot_rollback_journal (test_outcome_ledger.OutcomeLedgerTests.test_identified_ledger_recovers_hot_rollback_journal) ... ok
+test_identified_partial_schema_is_rejected_without_source_mutation (test_outcome_ledger.OutcomeLedgerTests.test_identified_partial_schema_is_rejected_without_source_mutation) ... ok
+test_identified_validation_uses_one_snapshot_during_concurrent_write (test_outcome_ledger.OutcomeLedgerTests.test_identified_validation_uses_one_snapshot_during_concurrent_write) ... ok
+test_impossible_persisted_state_is_rejected_by_transition_replay (test_outcome_ledger.OutcomeLedgerTests.test_impossible_persisted_state_is_rejected_by_transition_replay) ... ok
+test_invalid_transition_is_rejected_without_state_change (test_outcome_ledger.OutcomeLedgerTests.test_invalid_transition_is_rejected_without_state_change) ... ok
+test_json_wire_output_survives_ascii_python_io_encoding (test_outcome_ledger.OutcomeLedgerTests.test_json_wire_output_survives_ascii_python_io_encoding) ... ok
+test_lease_contention_renewal_heartbeat_and_expiry_takeover (test_outcome_ledger.OutcomeLedgerTests.test_lease_contention_renewal_heartbeat_and_expiry_takeover) ... ok
+test_lease_generation_fences_claim_and_every_authorized_mutation (test_outcome_ledger.OutcomeLedgerTests.test_lease_generation_fences_claim_and_every_authorized_mutation) ... ok
+test_lease_is_checked_after_waiting_for_writer_lock (test_outcome_ledger.OutcomeLedgerTests.test_lease_is_checked_after_waiting_for_writer_lock) ... ok
+test_local_state_uses_restrictive_permissions_and_expected_schema (test_outcome_ledger.OutcomeLedgerTests.test_local_state_uses_restrictive_permissions_and_expected_schema) ... ok
+test_looping_repo_and_database_paths_fail_with_structured_json (test_outcome_ledger.OutcomeLedgerTests.test_looping_repo_and_database_paths_fail_with_structured_json) ... ok
+test_malformed_database_failure_is_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_malformed_database_failure_is_structured_and_nonmutating) ... ok
+test_mutation_timestamps_remain_ordered_after_wall_clock_rollback (test_outcome_ledger.OutcomeLedgerTests.test_mutation_timestamps_remain_ordered_after_wall_clock_rollback) ... ok
+test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating) ...
+  test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating) (case='deeply-nested') ... FAIL
+test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating) ... FAIL
+test_preflight_clone_ignores_project_scoped_temp_directory (test_outcome_ledger.OutcomeLedgerTests.test_preflight_clone_ignores_project_scoped_temp_directory) ... ok
+test_record_replay_uses_historical_fencing_generation (test_outcome_ledger.OutcomeLedgerTests.test_record_replay_uses_historical_fencing_generation) ... ok
+test_record_requires_owner_and_has_canonical_idempotency (test_outcome_ledger.OutcomeLedgerTests.test_record_requires_owner_and_has_canonical_idempotency) ... ok
+test_release_requires_current_owner (test_outcome_ledger.OutcomeLedgerTests.test_release_requires_current_owner) ... ok
+test_released_state_rejects_a_fabricated_old_generation_lease (test_outcome_ledger.OutcomeLedgerTests.test_released_state_rejects_a_fabricated_old_generation_lease) ... ok
+test_repo_lease_fails_closed_on_inverse_same_path_replacement (test_outcome_ledger.OutcomeLedgerTests.test_repo_lease_fails_closed_on_inverse_same_path_replacement) ... ok
+test_repo_leases_conflict_for_ancestor_descendant_paths_only (test_outcome_ledger.OutcomeLedgerTests.test_repo_leases_conflict_for_ancestor_descendant_paths_only) ... ok
+test_repo_reader_writer_leases_fail_closed_across_missions (test_outcome_ledger.OutcomeLedgerTests.test_repo_reader_writer_leases_fail_closed_across_missions) ... ok
+test_repo_root_must_resolve_to_existing_directory (test_outcome_ledger.OutcomeLedgerTests.test_repo_root_must_resolve_to_existing_directory) ... ok
+test_repo_start_fails_closed_without_stable_creation_identity (test_outcome_ledger.OutcomeLedgerTests.test_repo_start_fails_closed_without_stable_creation_identity) ... ok
+test_show_and_filtered_list_are_machine_readable_and_reconcilable (test_outcome_ledger.OutcomeLedgerTests.test_show_and_filtered_list_are_machine_readable_and_reconcilable) ... ok
+test_show_and_list_use_explicit_read_transactions (test_outcome_ledger.OutcomeLedgerTests.test_show_and_list_use_explicit_read_transactions) ... ok
+test_snapshot_capture_retries_once_then_fails_closed (test_outcome_ledger.OutcomeLedgerTests.test_snapshot_capture_retries_once_then_fails_closed) ... ok
+test_start_is_idempotent_and_mismatch_fails_closed (test_outcome_ledger.OutcomeLedgerTests.test_start_is_idempotent_and_mismatch_fails_closed) ... ok
+test_start_rejects_database_inside_repo_before_creating_state (test_outcome_ledger.OutcomeLedgerTests.test_start_rejects_database_inside_repo_before_creating_state) ... ok
+test_start_replay_recovers_contract_when_repo_is_missing (test_outcome_ledger.OutcomeLedgerTests.test_start_replay_recovers_contract_when_repo_is_missing) ... ok
+test_terminal_missions_are_immutable (test_outcome_ledger.OutcomeLedgerTests.test_terminal_missions_are_immutable) ... ok
+test_transition_replay_separates_historical_effect_from_current_lease (test_outcome_ledger.OutcomeLedgerTests.test_transition_replay_separates_historical_effect_from_current_lease) ... ok
+test_ttl_below_clock_resolution_fails_without_creating_a_lease (test_outcome_ledger.OutcomeLedgerTests.test_ttl_below_clock_resolution_fails_without_creating_a_lease) ... ok
+test_unrelated_sqlite_is_rejected_without_persistent_mutation (test_outcome_ledger.OutcomeLedgerTests.test_unrelated_sqlite_is_rejected_without_persistent_mutation) ... ok
+test_unsafe_identified_main_and_sidecar_modes_fail_before_source_open (test_outcome_ledger.OutcomeLedgerTests.test_unsafe_identified_main_and_sidecar_modes_fail_before_source_open) ... ok
+test_waiting_blocked_interrupted_abandoned_and_complete_release_lease (test_outcome_ledger.OutcomeLedgerTests.test_waiting_blocked_interrupted_abandoned_and_complete_release_lease) ... ok
+test_wsl_mnt_c_case_semantics_are_detected_when_available (test_outcome_ledger.OutcomeLedgerTests.test_wsl_mnt_c_case_semantics_are_detected_when_available) ... skipped 'WSL /mnt/c case-insensitive path is unavailable'
+
+======================================================================
+FAIL: test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating) (case='deeply-nested')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/davis-agent-kit/davis-agent-kit/skills/outcome-owner/tests/test_outcome_ledger.py", line 1941, in test_pathological_metadata_errors_are_structured_and_nonmutating
+    completed, failure = self.run_cli(
+                         ^^^^^^^^^^^^^
+  File "/home/runner/work/davis-agent-kit/davis-agent-kit/skills/outcome-owner/tests/test_outcome_ledger.py", line 58, in run_cli
+    self.assertNotEqual(completed.returncode, 0)
+AssertionError: 0 == 0
+
+======================================================================
+FAIL: test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/davis-agent-kit/davis-agent-kit/skills/outcome-owner/tests/test_outcome_ledger.py", line 1973, in test_pathological_metadata_errors_are_structured_and_nonmutating
+    self.assertEqual(after, before)
+AssertionError: Tuples differ: (1787844488.576655, 1) != (1787844488.410722, 0)
+
+First differing element 0:
+1787844488.576655
+1787844488.410722
+
+- (1787844488.576655, 1)
++ (1787844488.410722, 0)
+
+----------------------------------------------------------------------
+Ran 65 tests in 27.781s
+
+FAILED (failures=2, skipped=1)
+[FAIL] unittest:skills/outcome-owner/tests (exit 1)
+
+==> unittest:skills/translation-quality/tests
+    /usr/bin/python3 -m unittest discover -s skills/translation-quality/tests -p test*.py -v
+test_escapes_raw_html_and_preserves_inline_markdown_and_links (test_md_to_html.MdToHtmlTests.test_escapes_raw_html_and_preserves_inline_markdown_and_links) ... ok
+test_mismatched_table_columns_fail (test_md_to_html.MdToHtmlTests.test_mismatched_table_columns_fail) ... ok
+test_numeric_columns_override_centered_markdown_separator (test_md_to_html.MdToHtmlTests.test_numeric_columns_override_centered_markdown_separator) ... ok
+test_table_alignment_classes_are_generated (test_md_to_html.MdToHtmlTests.test_table_alignment_classes_are_generated) ... ok
+test_aligned_table_passes (test_qa_html_translation.QaHtmlTranslationTests.test_aligned_table_passes) ... ok
+test_blank_between_speaker_and_paragraph_fails (test_qa_html_translation.QaHtmlTranslationTests.test_blank_between_speaker_and_paragraph_fails) ... ok
+test_clean_html_passes_strict_style (test_qa_html_translation.QaHtmlTranslationTests.test_clean_html_passes_strict_style) ... ok
+test_context_sensitive_words_do_not_fail_without_context (test_qa_html_translation.QaHtmlTranslationTests.test_context_sensitive_words_do_not_fail_without_context) ... ok
+test_domain_terms_need_conceptual_review_not_mechanical_failure (test_qa_html_translation.QaHtmlTranslationTests.test_domain_terms_need_conceptual_review_not_mechanical_failure) ... ok
+test_duplicate_name_translation_fails (test_qa_html_translation.QaHtmlTranslationTests.test_duplicate_name_translation_fails) ... ok
+test_expected_title_and_date_are_checked (test_qa_html_translation.QaHtmlTranslationTests.test_expected_title_and_date_are_checked) ... ok
+test_leftover_markdown_markers_fail (test_qa_html_translation.QaHtmlTranslationTests.test_leftover_markdown_markers_fail) ... ok
+test_mismatched_table_columns_fail (test_qa_html_translation.QaHtmlTranslationTests.test_mismatched_table_columns_fail) ... ok
+test_raw_extracted_speaker_label_as_visible_speaker_fails_hard (test_qa_html_translation.QaHtmlTranslationTests.test_raw_extracted_speaker_label_as_visible_speaker_fails_hard) ... ok
+test_report_profile_skips_transcript_specific_style_patterns (test_qa_html_translation.QaHtmlTranslationTests.test_report_profile_skips_transcript_specific_style_patterns) ... ok
+test_source_unit_numeric_range_must_match_final_data_unit (test_qa_html_translation.QaHtmlTranslationTests.test_source_unit_numeric_range_must_match_final_data_unit) ... ok
+test_strict_style_fails_exact_literal_template (test_qa_html_translation.QaHtmlTranslationTests.test_strict_style_fails_exact_literal_template) ... ok
+test_table_cells_require_alignment_class (test_qa_html_translation.QaHtmlTranslationTests.test_table_cells_require_alignment_class) ... ok
+test_unlinked_website_urls_flagged_style (test_qa_html_translation.QaHtmlTranslationTests.test_unlinked_website_urls_flagged_style) ... ok
+test_visible_interpreter_and_non_english_marker_fail_hard (test_qa_html_translation.QaHtmlTranslationTests.test_visible_interpreter_and_non_english_marker_fail_hard) ... ok
+test_visible_workflow_metadata_fails_hard (test_qa_html_translation.QaHtmlTranslationTests.test_visible_workflow_metadata_fails_hard) ... ok
+test_core_count_drift_fails (test_report_equivalence.ReportEquivalenceTests.test_core_count_drift_fails) ... ok
+test_matching_report_passes (test_report_equivalence.ReportEquivalenceTests.test_matching_report_passes) ... ok
+test_missing_table_alignment_fails (test_report_equivalence.ReportEquivalenceTests.test_missing_table_alignment_fails) ... ok
+test_raw_markdown_artifact_fails (test_report_equivalence.ReportEquivalenceTests.test_raw_markdown_artifact_fails) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 1.490s
+
+OK
+[PASS] unittest:skills/translation-quality/tests
+
+==> helper-help:skills/outcome-owner/scripts/outcome_ledger.py
+    /usr/bin/python3 skills/outcome-owner/scripts/outcome_ledger.py --help
+[PASS] helper-help:skills/outcome-owner/scripts/outcome_ledger.py
+
+==> helper-help:skills/translation-quality/scripts/evaluate_report_equivalence.py
+    /usr/bin/python3 skills/translation-quality/scripts/evaluate_report_equivalence.py --help
+[PASS] helper-help:skills/translation-quality/scripts/evaluate_report_equivalence.py
+
+==> helper-help:skills/translation-quality/scripts/md_to_html.py
+    /usr/bin/python3 skills/translation-quality/scripts/md_to_html.py --help
+[PASS] helper-help:skills/translation-quality/scripts/md_to_html.py
+
+==> helper-help:skills/translation-quality/scripts/merge_chunks.py
+    /usr/bin/python3 skills/translation-quality/scripts/merge_chunks.py --help
+[PASS] helper-help:skills/translation-quality/scripts/merge_chunks.py
+
+==> helper-help:skills/translation-quality/scripts/qa_html_translation.py
+    /usr/bin/python3 skills/translation-quality/scripts/qa_html_translation.py --help
+[PASS] helper-help:skills/translation-quality/scripts/qa_html_translation.py
+
+Validation summary: 7 passed, 1 failed, 8 total
+Failed checks:
+  - unittest:skills/outcome-owner/tests

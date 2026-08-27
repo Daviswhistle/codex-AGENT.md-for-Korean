@@ -1,0 +1,12 @@
+{
+  "evaluation_id": "software-engineering-durable-thread-v1",
+  "github_actions_run_id": "33087931679",
+  "github_actions_run_url": "https://github.com/Daviswhistle/davis-agent-kit/actions/runs/33087931679",
+  "runner_os": "Linux",
+  "runner_arch": "X64",
+  "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
+  "candidate_policy_commit": "f9926ebd6b53945a3cabf516f764af8d1e6c65e1",
+  "codex_command_exit": 1,
+  "validate_kit_exit": 1,
+  "static_policy_check_exit": 0
+}

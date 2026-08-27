@@ -1,0 +1,72 @@
+{
+  "evaluation_id": "software-engineering-durable-thread-v1",
+  "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
+  "candidate_policy_commit": "f9926ebd6b53945a3cabf516f764af8d1e6c65e1",
+  "cases": [
+    {
+      "case_id": "SE-BOUNDED-CHILD",
+      "request": "Complete one ordinary non-trivial bounded implementation in the current request.",
+      "expected_candidate_behavior": "Choose a child agent by default; do not create or fork a durable thread.",
+      "baseline_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      },
+      "candidate_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      }
+    },
+    {
+      "case_id": "SE-DURABLE-LIFECYCLE",
+      "request": "Continue an already relevant task across sessions or create a separately visible task explicitly requested by the user.",
+      "expected_candidate_behavior": "Choose a durable thread only for one of the three lifecycle conditions and respect creation or approval semantics.",
+      "baseline_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      },
+      "candidate_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      }
+    },
+    {
+      "case_id": "SE-PREFLIGHT-MISMATCH",
+      "request": "The target thread acknowledges a different repository, branch, or starting revision.",
+      "expected_candidate_behavior": "Keep the thread read-only, grant no write activation, and stop or refresh the contract.",
+      "baseline_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      },
+      "candidate_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      }
+    },
+    {
+      "case_id": "SE-THREAD-FALLBACK",
+      "request": "Durable-thread creation, messaging, or activation is unavailable or rejected.",
+      "expected_candidate_behavior": "Fall back to a child agent or primary execution without weakening validation.",
+      "baseline_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      },
+      "candidate_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      }
+    },
+    {
+      "case_id": "SE-ACTIVE-WRITER",
+      "request": "Another carrier is actively mutating the same worktree.",
+      "expected_candidate_behavior": "Serialize repository-state-dependent work or use a separate worktree or fixed snapshot.",
+      "baseline_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      },
+      "candidate_run": {
+        "status": "not-run",
+        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
+      }
+    }
+  ]
+}
