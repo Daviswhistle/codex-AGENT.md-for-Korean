@@ -485,6 +485,20 @@ jobs:
           (evidence / "README.md").write_text(readme, encoding="utf-8")
           PY
 
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path("evidence/software-engineering/2026-08-27-durable-thread-carrier")
+          for path in sorted(root.iterdir()):
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8")
+              path.write_text(
+                  "\n".join(line.rstrip() for line in text.splitlines()) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+
           git add "$EVIDENCE_DIR"
           git diff --cached --check
           git commit -m "Document durable thread evaluation blocker"
