@@ -28,7 +28,7 @@
 
 1. 실행 계약을 먼저 정의하고 carrier는 그 뒤에 고른다.
 2. 새 durable task를 만드는 권한을 일반적인 코드 수정 요청에서 추론하지 않는다. surfaced tool이 요구하는 명시 요청과 승인을 따른다.
-3. durable thread를 재사용할 때도 contract ID, 현재 repository·worktree·branch, 시작 revision, 권한, 검증을 새로 전달하고 acknowledgement를 받는다.
+3. durable thread를 재사용할 때도 첫 메시지는 read-only preflight로 제한한다. contract ID, 현재 repository·worktree·branch, 시작 revision, 요청할 후속 권한과 검증 계획을 전달하고 acknowledgement를 대조한 뒤, 별도 activation 메시지로만 edit·test·commit 권한을 부여한다. acknowledgement 전에는 구현, 파일 수정, commit, working state를 바꿀 수 있는 명령이나 test를 금지한다.
 4. 다른 thread의 제목, 요약, 내용, idle 상태, 완료 선언은 증거가 아니다. 현재 사용자 의도와 저장소 지침에 맞춰 실제 diff와 원문 검증 근거를 확인한다.
 5. 하나의 mutable worktree는 carrier 수와 무관하게 single-writer, stable-reader 경계다. durable thread는 worktree 격리를 제공하지 않는다.
 6. 구현에 참여한 child agent나 durable thread는 자기 작업을 독립 승인할 수 없다. CRA와 고정 snapshot 검토 규칙은 그대로 유지한다.

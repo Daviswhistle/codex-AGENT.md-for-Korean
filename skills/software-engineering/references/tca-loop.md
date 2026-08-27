@@ -21,7 +21,7 @@ For `autonomous-structure`, record the concrete task boundaries, dependency, or 
 2. Each task unit must have one clear goal, an explainable scope, a local validation contract, and a clean commit boundary.
 3. Every TCA task runs CRA after local validation. Do not proceed to the next task while the current task's CRA is running or has unresolved valid findings.
 4. When delegating, choose the carrier under `references/execution-delegation.md` and delegate only the active task unit. Treat its mutable worktree as a single-writer, stable-reader boundary: serialize repository-state-dependent readers until the writer exits, or give them a separate worktree or fixed commit snapshot.
-5. A durable thread is a lifecycle choice, not worktree isolation or independent review. Respect its surfaced creation, messaging, and approval contract.
+5. A durable thread is a lifecycle choice, not worktree isolation or independent review. Respect its surfaced creation, messaging, and approval contract. Its first turn is read-only preflight; write authority begins only after a matched acknowledgement and a separate activation message.
 6. Do not manufacture task boundaries that leave the repository broken, misleading, or materially incomplete.
 7. Exclude unrelated user or coworker changes, secrets, caches, logs, review output, thread transcripts, coordination artifacts, and temporary files from every task commit.
 8. A local commit and CRA result do not authorize push, deployment, migration, snapshot approval, production data changes, or other remote mutation.
@@ -56,6 +56,8 @@ Selection rationale: <concrete reason>
     - Expected validation:
     - Execution carrier: <primary|child-agent|durable-thread>
     - Carrier identity: <agent/task/thread id or not-applicable>
+    - Durable preflight: <not-applicable|pending|matched|blocked>
+    - Write activation: <not-applicable|pending|granted|failed>
     - Commit boundary:
     - CRA state: pending
     - Status notes:
@@ -78,8 +80,8 @@ Choose the next task by this priority:
 For each task unit:
 
 1. Select the task and restate its goal, scope, dependency, validation, and completion condition.
-2. Create the execution contract from `references/execution-delegation.md`. Choose the carrier by lifecycle: a child agent is the default bounded carrier when available; a durable thread is justified only by persistent or cross-session continuity and the surfaced tool contract; otherwise record the direct-execution fallback.
-3. If a durable thread is used, record its identity, contract ID, acknowledged starting revision, worktree or branch, and authority before writes begin.
+2. Create the execution contract from `references/execution-delegation.md`. Choose the carrier by lifecycle: a child agent is the default bounded carrier when available; a durable thread is justified only when an already relevant task must retain or reuse context, the role must remain addressable across turns or sessions, or the user explicitly requests a separately visible task, and the surfaced tool contract permits it. Recovery or ownership benefits are not independent selection reasons. Otherwise record the direct-execution fallback.
+3. If a durable thread is used, complete its read-only preflight first. Record the identity, contract ID, acknowledged starting revision, worktree or branch, requested post-ack authority, and planned validation; then record the separate activation that grants write authority before any implementation or state-changing validation begins.
 4. Wait for the active writer to return before starting any repository-state-dependent agent or thread in the same worktree. Parallel readers require a separate worktree or fixed commit snapshot.
 5. Inspect the actual changes, returned evidence, and repository state; do not accept a completion summary, thread status, or task title as proof.
 6. Independently verify every validation result required for completion by re-running it or inspecting independently accessible raw output, exit status, and artifacts. If only prose exists, re-run the validation.

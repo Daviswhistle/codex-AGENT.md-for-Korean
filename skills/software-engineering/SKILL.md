@@ -14,7 +14,7 @@ For every software modification:
 1. Before implementation, decide whether TCA is warranted.
 2. If TCA is selected, read `references/tca-loop.md` before creating the task queue or editing.
 3. Define the current task unit and its execution contract before delegating or editing.
-4. For non-trivial implementation, choose an execution carrier from `references/execution-delegation.md`. Use a bounded child agent by default when the handoff is precise and child agents are available. Use a durable thread only when persistent or cross-session continuity materially helps and the surfaced thread-tool contract permits the action.
+4. For non-trivial implementation, choose an execution carrier from `references/execution-delegation.md`. Use a bounded child agent by default when the handoff is precise and child agents are available. Use a durable thread only when an already relevant task must retain or reuse context, the role must remain addressable across turns or sessions, or the user explicitly requests a separately visible task, and only when the surfaced thread-tool contract permits the action. Recovery or ownership benefits may support one of those lifecycle conditions but are not independent reasons to select a durable thread.
 5. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
 6. The primary session must inspect the actual diff and repository state, then independently verify every validation result required for completion. A delegated summary, thread status, or completion claim is not sufficient.
 7. After local validation of the task unit, decide whether CRA is warranted.
@@ -43,15 +43,17 @@ A delegated execution owner, whether a child agent or a durable thread, owns onl
 2. constraints and applicable project instructions
 3. repository, worktree, branch, and starting-revision identity when relevant
 4. required validation and independently checkable completion evidence
-5. permitted authority, including whether it may edit or commit
+5. permitted authority; for a durable thread, the initial message grants read-only preflight authority only and may describe requested post-ack edit, test, or commit authority without activating it
 6. the exact return contract
 
 The execution owner must return the contract ID, status, changed files, behavioral effect, observed repository state, validation commands, exit status, relevant raw output or stable artifact locations, skipped checks, remaining uncertainty, and blockers or contradictions. It may not broaden product intent, hide unrelated changes, select a different workflow, push, deploy, migrate, purchase, or mutate remote state.
 
+For a durable thread, the general contract does not itself activate write authority. The primary session must verify a read-only preflight acknowledgement and send a separate activation message before implementation or any validation that may change repository state.
+
 Choose the carrier by lifecycle rather than novelty:
 
 1. Use a child agent for one bounded task inside the current request when isolated execution reduces context noise or implementation cost.
-2. Use a durable thread when an already relevant task should be resumed, the role must remain addressable across turns or sessions, or the user explicitly wants a separately visible task. Respect the surfaced tool's creation, fork, messaging, and approval contract; do not hardcode a Codex version, namespace, or assumed tool set.
+2. Use a durable thread only when an already relevant task should retain or reuse context, the role must remain addressable across turns or sessions, or the user explicitly wants a separately visible task. Recovery or ownership value may support one of those lifecycle conditions but is not a fourth selection condition. Respect the surfaced tool's creation, fork, messaging, and approval contract; do not hardcode a Codex version, namespace, or assumed tool set.
 3. Use the primary session directly when the change is trivial, the work cannot be separated from an active interactive decision, no safe carrier is available, or a failed handoff makes direct recovery safer than another delegation.
 4. Do not create or fork a durable thread merely to imitate a child agent or add ceremony.
 
