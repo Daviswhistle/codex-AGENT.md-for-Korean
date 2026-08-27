@@ -1,4 +1,4 @@
 interface:
   display_name: "Software Engineering Orchestration"
-  short_description: "Delegate implementation and run CRA or TCA when useful"
-  default_prompt: "Use $software-engineering to define the task contract, delegate non-trivial implementation to a worker, verify the result, and decide whether CRA or TCA is warranted."
+  short_description: "Choose an execution carrier and run CRA or TCA when useful"
+  default_prompt: "Use $software-engineering to define the task contract, choose direct execution, a bounded child agent, or an authorized durable thread, verify the result, and decide whether CRA or TCA is warranted."

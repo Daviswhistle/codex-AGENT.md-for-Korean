@@ -20,11 +20,12 @@ For `autonomous-structure`, record the concrete task boundaries, dependency, or 
 1. TCA is not an ordinary plan or a reason to split every multi-step change.
 2. Each task unit must have one clear goal, an explainable scope, a local validation contract, and a clean commit boundary.
 3. Every TCA task runs CRA after local validation. Do not proceed to the next task while the current task's CRA is running or has unresolved valid findings.
-4. When using a worker, delegate only the active task unit. Treat its mutable worktree as a single-writer, stable-reader boundary: serialize repository-state-dependent readers until the writer exits, or give them a separate worktree or fixed commit snapshot.
-5. Do not manufacture task boundaries that leave the repository broken, misleading, or materially incomplete.
-6. Exclude unrelated user or coworker changes, secrets, caches, logs, review output, and temporary artifacts from every task commit.
-7. A local commit and CRA result do not authorize push, deployment, migration, snapshot approval, production data changes, or other remote mutation.
-8. Autonomous delegation or TCA may use already-configured workers, reviewers, models, service tiers, and the current account's existing usage. It may not purchase credits or change billing, plan, quota, provider, or account settings without explicit approval.
+4. When delegating, choose the carrier under `references/execution-delegation.md` and delegate only the active task unit. Treat its mutable worktree as a single-writer, stable-reader boundary: serialize repository-state-dependent readers until the writer exits, or give them a separate worktree or fixed commit snapshot.
+5. A durable thread is a lifecycle choice, not worktree isolation or independent review. Respect its surfaced creation, messaging, and approval contract.
+6. Do not manufacture task boundaries that leave the repository broken, misleading, or materially incomplete.
+7. Exclude unrelated user or coworker changes, secrets, caches, logs, review output, thread transcripts, coordination artifacts, and temporary files from every task commit.
+8. A local commit and CRA result do not authorize push, deployment, migration, snapshot approval, production data changes, or other remote mutation.
+9. Autonomous delegation or TCA may use already-configured execution carriers, reviewers, models, service tiers, and the current account's existing usage only when the relevant tool contract permits it. It may not purchase credits or change billing, plan, quota, provider, or account settings without explicit approval.
 
 ## Task Unit Definition
 
@@ -53,7 +54,8 @@ Selection rationale: <concrete reason>
     - Scope:
     - Dependency:
     - Expected validation:
-    - Execution owner: <worker|primary>
+    - Execution carrier: <primary|child-agent|durable-thread>
+    - Carrier identity: <agent/task/thread id or not-applicable>
     - Commit boundary:
     - CRA state: pending
     - Status notes:
@@ -76,16 +78,17 @@ Choose the next task by this priority:
 For each task unit:
 
 1. Select the task and restate its goal, scope, dependency, validation, and completion condition.
-2. Create the execution contract from `references/worker-delegation.md`. Delegate implementation and local validation to `worker` by default when the contract is precise and subagents are available; otherwise record the direct-execution fallback.
-3. Wait for the active writer to return before starting any repository-state-dependent agent in the same worktree. Parallel readers require a separate worktree or fixed commit snapshot.
-4. Inspect the actual changes, worker evidence, and repository state; do not accept a completion summary as proof.
-5. Independently verify every validation result required for completion by re-running it or inspecting independently accessible raw output, exit status, and artifacts. If only the worker's prose summary exists, re-run the validation.
-6. Check `git status --short` and the relevant diff; separate unrelated changes.
-7. Commit only the current task unit.
-8. Run CRA with entry source `tca-required`.
-9. Verify and process CRA findings, amend the same task commit, and revalidate from the changed point.
-10. Record the final commit and CRA terminal state in the queue.
-11. Reassess whether the next planned task is still necessary and correctly bounded.
+2. Create the execution contract from `references/execution-delegation.md`. Choose the carrier by lifecycle: a child agent is the default bounded carrier when available; a durable thread is justified only by persistent or cross-session continuity and the surfaced tool contract; otherwise record the direct-execution fallback.
+3. If a durable thread is used, record its identity, contract ID, acknowledged starting revision, worktree or branch, and authority before writes begin.
+4. Wait for the active writer to return before starting any repository-state-dependent agent or thread in the same worktree. Parallel readers require a separate worktree or fixed commit snapshot.
+5. Inspect the actual changes, returned evidence, and repository state; do not accept a completion summary, thread status, or task title as proof.
+6. Independently verify every validation result required for completion by re-running it or inspecting independently accessible raw output, exit status, and artifacts. If only prose exists, re-run the validation.
+7. Check `git status --short` and the relevant diff; separate unrelated changes.
+8. Commit only the current task unit.
+9. Run CRA with entry source `tca-required`.
+10. Verify and process CRA findings, amend the same task commit, and revalidate from the changed point.
+11. Record the final commit and CRA terminal state in the queue.
+12. Reassess whether the next planned task is still necessary and correctly bounded.
 
 Do not start implementing the next task until the current task has a commit, an independently verified local validation record, a CRA terminal state, and an updated queue entry.
 
@@ -124,11 +127,12 @@ Stop instead of continuing when:
 2. the current task boundary becomes unclear
 3. unrelated changes cannot be separated safely
 4. required local validation or independently checkable evidence is unavailable, or its failure cannot be classified
-5. the worker handoff fails and no safer direct-execution fallback exists
-6. CRA fails in a way that cannot be corrected inside the current task
-7. a migration, deployment, production data update, purchase, or other external state change needs explicit approval
-8. review findings change the task premise and the queue has not yet been updated
-9. the next planned task is no longer necessary or cannot form a coherent boundary
+5. the execution handoff fails and no safer direct-execution fallback exists
+6. a durable thread cannot establish the current contract, starting revision, worktree, or authority
+7. CRA fails in a way that cannot be corrected inside the current task
+8. a migration, deployment, production data update, purchase, or other external state change needs explicit approval
+9. review findings change the task premise and the queue has not yet been updated
+10. the next planned task is no longer necessary or cannot form a coherent boundary
 
 ## Final Report
 
@@ -136,7 +140,7 @@ Report:
 
 1. TCA entry source and autonomous selection rationale when applicable
 2. completed, merged, removed, and deferred task units
-3. execution owner and worker evidence for each completed task
+3. execution carrier, identity when useful, and returned evidence for each completed task
 4. final commit hash for each completed task
 5. independently verified validation and skipped checks for each task
 6. CRA terminal state, accepted findings, and rejected findings for each task
