@@ -1,4 +1,3 @@
-\
 # Executable fixture
 
 Every carrier-routing case uses the same bounded code change from `task.md`.

@@ -1,4 +1,3 @@
-\
 # Durable-thread carrier evaluation controller
 
 Use a fresh run directory, Codex home, root session, and model context for every

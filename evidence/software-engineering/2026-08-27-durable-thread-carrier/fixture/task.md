@@ -1,4 +1,3 @@
-\
 # Fixture implementation task
 
 In the fixture repository, add `dedupe_labels(values: list[str]) -> list[str]`
