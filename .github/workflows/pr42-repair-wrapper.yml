@@ -58,6 +58,8 @@ jobs:
               '} 2>&1 | tee "$EVIDENCE_DIR/fixture-self-test.log"',
               1,
           )
+          normalize = '''python3 - <<'PYFIX'\nfrom pathlib import Path\n\nroot = Path("evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture")\nprefix = " " * 18\nfor path in sorted(root.iterdir()):\n    if not path.is_file():\n        continue\n    lines = path.read_text(encoding="utf-8").splitlines()\n    normalized = [line[18:] if line.startswith(prefix) else line for line in lines]\n    path.write_text("\\n".join(normalized) + "\\n", encoding="utf-8")\nPYFIX\n\n'''
+          script = script.replace('RUN_PARENT="$(mktemp -d)"', normalize + 'RUN_PARENT="$(mktemp -d)"', 1)
           target = Path("/tmp/pr42-safety-fixture-fixes.sh")
           target.write_text(script, encoding="utf-8")
           PY
