@@ -21,7 +21,7 @@ For `autonomous-structure`, record the concrete task boundaries, dependency, or 
 2. Each task unit must have one clear goal, an explainable scope, a local validation contract, and a clean commit boundary.
 3. Every TCA task runs CRA after local validation. Do not proceed to the next task while the current task's CRA is running or has unresolved valid findings.
 4. When delegating, choose the carrier under `references/execution-delegation.md` and delegate only the active task unit. Treat its mutable worktree as a single-writer, stable-reader boundary: serialize repository-state-dependent readers until the writer exits, or give them a separate worktree or fixed commit snapshot.
-5. A durable thread is a lifecycle choice, not worktree isolation or independent review. Respect its surfaced creation, messaging, and approval contract. Its first turn is read-only preflight; write authority begins only after a matched acknowledgement and a separate activation message.
+5. A durable thread is a lifecycle choice, not worktree isolation or independent review. Respect its surfaced creation, messaging, and approval contract. Establish a stable worktree view before its read-only preflight; write authority begins only after a matched acknowledgement and a separate activation message. After activation may have been delivered, communication loss is a stop condition until the original writer is terminal or explicitly stopped and the worktree is reconciled.
 6. Do not manufacture task boundaries that leave the repository broken, misleading, or materially incomplete.
 7. Exclude unrelated user or coworker changes, secrets, caches, logs, review output, thread transcripts, coordination artifacts, and temporary files from every task commit.
 8. A local commit and CRA result do not authorize push, deployment, migration, snapshot approval, production data changes, or other remote mutation.
@@ -56,8 +56,10 @@ Selection rationale: <concrete reason>
     - Expected validation:
     - Execution carrier: <primary|child-agent|durable-thread>
     - Carrier identity: <agent/task/thread id or not-applicable>
+    - Writer boundary: <quiescent|separate-worktree|fixed-snapshot|blocked>
     - Durable preflight: <not-applicable|pending|matched|blocked>
-    - Write activation: <not-applicable|pending|granted|failed>
+    - Write activation: <not-applicable|pending|granted|definitively-rejected|delivery-ambiguous>
+    - Post-activation transport: <not-applicable|healthy|blocked|terminal-and-reconciled>
     - Commit boundary:
     - CRA state: pending
     - Status notes:
@@ -81,16 +83,17 @@ For each task unit:
 
 1. Select the task and restate its goal, scope, dependency, validation, and completion condition.
 2. Create the execution contract from `references/execution-delegation.md`. Choose the carrier by lifecycle: a child agent is the default bounded carrier when available; a durable thread is justified only when an already relevant task must retain or reuse context, the role must remain addressable across turns or sessions, or the user explicitly requests a separately visible task, and the surfaced tool contract permits it. Recovery or ownership benefits are not independent selection reasons. Otherwise record the direct-execution fallback.
-3. If a durable thread is used, complete its read-only preflight first. Record the identity, contract ID, acknowledged starting revision, worktree or branch, requested post-ack authority, and planned validation; then record the separate activation that grants write authority before any implementation or state-changing validation begins.
-4. Wait for the active writer to return before starting any repository-state-dependent agent or thread in the same worktree. Parallel readers require a separate worktree or fixed commit snapshot.
-5. Inspect the actual changes, returned evidence, and repository state; do not accept a completion summary, thread status, or task title as proof.
-6. Independently verify every validation result required for completion by re-running it or inspecting independently accessible raw output, exit status, and artifacts. If only prose exists, re-run the validation.
-7. Check `git status --short` and the relevant diff; separate unrelated changes.
-8. Commit only the current task unit.
-9. Run CRA with entry source `tca-required`.
-10. Verify and process CRA findings, amend the same task commit, and revalidate from the changed point.
-11. Record the final commit and CRA terminal state in the queue.
-12. Reassess whether the next planned task is still necessary and correctly bounded.
+3. Before any repository-state-dependent carrier or durable preflight starts, establish a stable worktree view. Wait for the active writer to reach a terminal state and refresh the branch, revision, and worktree status, or give the new carrier a separate worktree or fixed commit snapshot. Record the boundary in the queue.
+4. If a durable thread is used, complete its read-only preflight against that stable view. Record the identity, contract ID, acknowledged starting revision, worktree or branch, requested post-ack authority, and planned validation; compare the acknowledgement with the still-current state, then record the separate activation that grants write authority before any implementation or state-changing validation begins.
+5. Wait for the delegated writer to return before starting any repository-state-dependent agent or thread in the same worktree. If activation may have been delivered and transport is lost, do not start a fallback writer; stop until the original thread is terminal or explicitly stopped, then inspect and reconcile the worktree and refresh the starting state.
+6. Inspect the actual changes, returned evidence, and repository state; do not accept a completion summary, thread status, or task title as proof.
+7. Independently verify every validation result required for completion by re-running it or inspecting independently accessible raw output, exit status, and artifacts. If only prose exists, re-run the validation.
+8. Check `git status --short` and the relevant diff; separate unrelated changes.
+9. Commit only the current task unit.
+10. Run CRA with entry source `tca-required`.
+11. Verify and process CRA findings, amend the same task commit, and revalidate from the changed point.
+12. Record the final commit and CRA terminal state in the queue.
+13. Reassess whether the next planned task is still necessary and correctly bounded.
 
 Do not start implementing the next task until the current task has a commit, an independently verified local validation record, a CRA terminal state, and an updated queue entry.
 
@@ -129,12 +132,13 @@ Stop instead of continuing when:
 2. the current task boundary becomes unclear
 3. unrelated changes cannot be separated safely
 4. required local validation or independently checkable evidence is unavailable, or its failure cannot be classified
-5. the execution handoff fails and no safer direct-execution fallback exists
-6. a durable thread cannot establish the current contract, starting revision, worktree, or authority
-7. CRA fails in a way that cannot be corrected inside the current task
-8. a migration, deployment, production data update, purchase, or other external state change needs explicit approval
-9. review findings change the task premise and the queue has not yet been updated
-10. the next planned task is no longer necessary or cannot form a coherent boundary
+5. the execution handoff fails before activation and no safer direct-execution fallback exists
+6. a durable thread cannot establish a stable worktree view, current contract, starting revision, or authority
+7. activation delivery is ambiguous or post-activation messaging, status, wait, or read transport is lost before the original thread is confirmed terminal or explicitly stopped and the worktree is reconciled
+8. CRA fails in a way that cannot be corrected inside the current task
+9. a migration, deployment, production data update, purchase, or other external state change needs explicit approval
+10. review findings change the task premise and the queue has not yet been updated
+11. the next planned task is no longer necessary or cannot form a coherent boundary
 
 ## Final Report
 
