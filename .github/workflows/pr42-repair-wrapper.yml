@@ -42,6 +42,7 @@ jobs:
               'echo "POLICY_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"',
               'export POLICY_SHA="$(git rev-parse HEAD)"',
           )
+          script = script.replace('dedent("""\\\n', 'dedent(r"""\\\n')
           script = script.replace(
               "rm .github/workflows/pr42-safety-fixture-fixes.yml\n",
               "rm .github/workflows/pr42-safety-fixture-fixes.yml\n"
