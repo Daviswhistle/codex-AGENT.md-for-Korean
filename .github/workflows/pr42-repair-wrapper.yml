@@ -53,6 +53,11 @@ jobs:
               "git add \\\n  .github/workflows/pr42-safety-fixture-fixes.yml \\\n  .github/workflows/pr42-repair-wrapper.yml \\\n",
               1,
           )
+          script = script.replace(
+              '} > "$EVIDENCE_DIR/fixture-self-test.log" 2>&1',
+              '} 2>&1 | tee "$EVIDENCE_DIR/fixture-self-test.log"',
+              1,
+          )
           target = Path("/tmp/pr42-safety-fixture-fixes.sh")
           target.write_text(script, encoding="utf-8")
           PY
