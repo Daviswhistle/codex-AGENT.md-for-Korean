@@ -1,16 +1,16 @@
 {
-  "evaluation_id": "software-engineering-durable-thread-v3",
-  "github_actions_run_id": "33092751533",
-  "github_actions_run_url": "https://github.com/Daviswhistle/davis-agent-kit/actions/runs/33092751533",
-  "runner_os": "Linux",
-  "runner_arch": "X64",
+  "evaluation_id": "software-engineering-durable-thread-v4",
+  "github_actions_run_id": "pending",
+  "github_actions_run_url": "pending",
+  "runner_os": "pending",
+  "runner_arch": "pending",
   "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
-  "candidate_policy_commit": "8b1e358a3142d2011a4c5ed6c8e735489d8d7f1a",
-  "codex_command_exit": 1,
+  "candidate_policy_commit": "4a87005223d235dc29873fbe602445617a52decb",
+  "codex_command_exit": "pending",
   "model": "unavailable",
   "reasoning_effort": "unavailable",
   "sandbox": "unavailable",
   "approval_policy": "unavailable",
-  "fixture_self_test_exit": 0,
-  "validate_kit_exit_in_evidence_run": 1
+  "fixture_self_test_exit": "pending",
+  "validate_kit_exit_in_v4_evidence_run": "pending"
 }

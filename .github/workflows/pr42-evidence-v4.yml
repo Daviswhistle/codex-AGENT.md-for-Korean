@@ -1,0 +1,191 @@
+name: Record PR 42 v4 evidence
+
+on:
+  push:
+    branches:
+      - refactor/thread-aware-execution-orchestration
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/thread-aware-execution-orchestration
+          fetch-depth: 0
+
+      - name: Run fixture v4 and record evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          EVIDENCE="evidence/software-engineering/2026-08-27-durable-thread-carrier"
+          FIXTURE="$EVIDENCE/fixture"
+          RUN_PARENT="$(mktemp -d)"
+          RUN_DIR="$RUN_PARENT/carrier-fixture"
+          LOG="$EVIDENCE/fixture-self-test.log"
+
+          {
+            echo '$ python3 fixture/setup.py'
+            python3 "$FIXTURE/setup.py" --root "$RUN_DIR"
+            echo
+            echo '$ baseline fixture/verify.py (expected nonzero)'
+            set +e
+            python3 "$FIXTURE/verify.py" --repo "$RUN_DIR/repo"
+            BASELINE_EXIT=$?
+            set -e
+            echo "exit=$BASELINE_EXIT"
+            test "$BASELINE_EXIT" -ne 0
+            echo
+            echo '$ python3 fixture/apply_reference.py'
+            python3 "$FIXTURE/apply_reference.py" --repo "$RUN_DIR/repo"
+            echo 'exit=0'
+            echo
+            echo '$ reference fixture/verify.py'
+            python3 "$FIXTURE/verify.py" --repo "$RUN_DIR/repo"
+            echo 'exit=0'
+            echo
+            echo '$ thread_barrier.py self-test'
+            python3 "$FIXTURE/thread_barrier.py" \
+              --state "$RUN_DIR/state" --name selftest --timeout-seconds 30 &
+            BARRIER_PID=$!
+            for _ in $(seq 1 600); do
+              test -f "$RUN_DIR/state/selftest-ready.json" && break
+              sleep 0.05
+            done
+            test -f "$RUN_DIR/state/selftest-ready.json"
+            test -d "/proc/$BARRIER_PID"
+            touch "$RUN_DIR/state/selftest-release"
+            wait "$BARRIER_PID"
+            test -f "$RUN_DIR/state/selftest-released.json"
+            echo 'exit=0'
+            echo
+            echo '$ python3 fixture/teardown.py'
+            python3 "$FIXTURE/teardown.py" --root "$RUN_DIR"
+            rmdir "$RUN_PARENT"
+            echo 'exit=0'
+          } > "$LOG" 2>&1
+
+          CODEX_PATH="$(command -v codex 2>/dev/null || true)"
+          if test -n "$CODEX_PATH"; then CODEX_EXIT=0; else CODEX_EXIT=1; fi
+          {
+            echo '$ command -v codex'
+            test -n "$CODEX_PATH" && echo "$CODEX_PATH"
+            echo "exit=$CODEX_EXIT"
+            echo
+            echo '$ python3 --version'
+            python3 --version
+            echo
+            echo '$ git rev-parse HEAD'
+            git rev-parse HEAD
+            echo
+            echo '$ git status --short --branch'
+            git status --short --branch
+            echo
+            echo "GitHub Actions run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "Runner OS: ${RUNNER_OS}"
+            echo "Runner architecture: ${RUNNER_ARCH}"
+            echo "No surfaced child-agent or durable-thread model/tool session exists in this workflow."
+          } > "$EVIDENCE/environment-probe.txt"
+
+          set +e
+          python3 scripts/validate_kit.py > "$EVIDENCE/validate-kit.log" 2>&1
+          VALIDATE_EXIT=$?
+          set -e
+
+          git diff aa2ae97856d7968e50511864c03f1babcd608d0d 4a87005223d235dc29873fbe602445617a52decb -- README.md skills/README.md skills/software-engineering/SKILL.md skills/software-engineering/agents/openai.yaml skills/software-engineering/references/README.md skills/software-engineering/references/execution-delegation.md skills/software-engineering/references/tca-loop.md skills/software-engineering/references/worker-delegation.md decisions/2026-08-27-durable-thread-execution-carrier.md > "$EVIDENCE/policy-diff.txt"
+
+          export EVIDENCE CODEX_EXIT VALIDATE_EXIT
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          evidence = Path(os.environ["EVIDENCE"])
+          codex_exit = int(os.environ["CODEX_EXIT"])
+          validate_exit = int(os.environ["VALIDATE_EXIT"])
+          run_id = os.environ["GITHUB_RUN_ID"]
+          run_url = (
+              f'{os.environ["GITHUB_SERVER_URL"]}/'
+              f'{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{run_id}'
+          )
+
+          grades_path = evidence / "manual-grades.json"
+          grades = json.loads(grades_path.read_text(encoding="utf-8"))
+          grades["summary"]["fixture_self_test"] = "passed"
+          grades["repository_validation"] = {
+              "validate_kit_exit_in_v4_evidence_run": validate_exit,
+              "fixture_self_test_exit": 0,
+          }
+          for case in grades["cases"]:
+              case["fixture"] = "defined and v4 self-tested"
+          grades_path.write_text(
+              json.dumps(grades, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+
+          metadata_path = evidence / "run-metadata.json"
+          metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+          metadata.update(
+              {
+                  "github_actions_run_id": run_id,
+                  "github_actions_run_url": run_url,
+                  "runner_os": os.environ["RUNNER_OS"],
+                  "runner_arch": os.environ["RUNNER_ARCH"],
+                  "codex_command_exit": codex_exit,
+                  "fixture_self_test_exit": 0,
+                  "validate_kit_exit_in_v4_evidence_run": validate_exit,
+              }
+          )
+          metadata_path.write_text(
+              json.dumps(metadata, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+
+          readme_path = evidence / "README.md"
+          readme = readme_path.read_text(encoding="utf-8")
+          readme = readme.replace(
+              "- 실행 환경과 v4 self-test run: pending one-shot GitHub Actions evidence workflow",
+              f"- 실행 환경과 v4 self-test run: GitHub Actions run `{run_id}`",
+          )
+          readme = readme.replace(
+              "- fixture v4 self-test: pending",
+              "- fixture v4 self-test: passed (exit `0`)",
+          )
+          readme = readme.replace(
+              "- evidence-run `python3 scripts/validate_kit.py`: pending",
+              f"- evidence-run `python3 scripts/validate_kit.py`: "
+              f"{'passed' if validate_exit == 0 else 'failed'} (exit `{validate_exit}`)",
+          )
+          readme_path.write_text(readme, encoding="utf-8")
+          PY
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path("evidence/software-engineering/2026-08-27-durable-thread-carrier")
+          for path in sorted(root.rglob("*")):
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8")
+              path.write_text(
+                  "\n".join(line.rstrip() for line in text.splitlines()) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+
+          rm .github/workflows/pr42-evidence-v4.yml
+          git add \
+            .github/workflows/pr42-evidence-v4.yml \
+            "$EVIDENCE"
+          git diff --cached --check
+          git commit -m "Record durable-thread evaluation v4 evidence"
+          git push origin HEAD:refactor/thread-aware-execution-orchestration
+
+          exit "$VALIDATE_EXIT"
