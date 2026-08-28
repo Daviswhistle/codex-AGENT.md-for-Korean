@@ -5,14 +5,16 @@ $ python3 --version
 Python 3.12.3
 
 $ git rev-parse HEAD
-432588cfb6cbf3e630789236c9025d6331de0bea
+4dfaf6642dcf828fa31a9b53df35f539edaa1188
 
 $ git status --short --branch
 ## refactor/thread-aware-execution-orchestration...origin/refactor/thread-aware-execution-orchestration
+ M evidence/software-engineering/2026-08-27-durable-thread-carrier/cases.json
  M evidence/software-engineering/2026-08-27-durable-thread-carrier/environment-probe.txt
  M evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture-self-test.log
+ M evidence/software-engineering/2026-08-27-durable-thread-carrier/manual-grades.json
 
-GitHub Actions run: https://github.com/Daviswhistle/davis-agent-kit/actions/runs/33133238362
+GitHub Actions run: https://github.com/Daviswhistle/davis-agent-kit/actions/runs/33135915211
 Runner OS: Linux
 Runner architecture: X64
 No surfaced child-agent or durable-thread model/tool session exists in this workflow.

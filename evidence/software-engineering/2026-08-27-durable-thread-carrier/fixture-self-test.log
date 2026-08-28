@@ -1,16 +1,175 @@
-$ python3 fixture/setup.py
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/setup.py --root /tmp/tmp.OfnKdKt3WL/carrier-fixture
 {
-  "root": "/tmp/tmp.B2HeXZpK9Z/carrier-fixture",
-  "repo": "/tmp/tmp.B2HeXZpK9Z/carrier-fixture/repo",
+  "root": "/tmp/tmp.OfnKdKt3WL/carrier-fixture",
+  "repo": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/repo",
   "primary_branch": "eval-base",
-  "primary_sha": "1a69ef0ba8f50ef493418805f766ee36754e3e28",
-  "wrong_worktree": "/tmp/tmp.B2HeXZpK9Z/carrier-fixture/wrong-worktree",
+  "primary_sha": "ed4ecf5a99ced61a6b7c706e642c661775ce095b",
+  "wrong_worktree": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/wrong-worktree",
   "wrong_branch": "wrong-start",
-  "wrong_sha": "d4e7a186a3f5f2b0579579f9dffe89047845082f",
-  "state": "/tmp/tmp.B2HeXZpK9Z/carrier-fixture/state"
+  "wrong_sha": "1bc0a0d0b1f4bb7a197dfdce6e2f977466a26090",
+  "state": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/state"
 }
-
-$ baseline fixture/verify.py (expected nonzero)
+exit=0
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/install_policy.py --source-repo /home/runner/work/davis-agent-kit/davis-agent-kit --policy-commit aa2ae97856d7968e50511864c03f1babcd608d0d --policy-side baseline --run-dir /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline
+{
+  "schema_version": 1,
+  "policy_side": "baseline",
+  "requested_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
+  "resolved_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
+  "actual_checkout_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
+  "source_repository": "/home/runner/work/davis-agent-kit/davis-agent-kit",
+  "policy_checkout": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout",
+  "codex_home": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home",
+  "checkout_status": "",
+  "installer_command": [
+    "/usr/bin/python3",
+    "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/scripts/install_codex.py",
+    "--root",
+    "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout",
+    "--codex-home",
+    "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home"
+  ],
+  "installer_output": "LINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/AGENTS.md -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit/AGENTS.md\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/translation-quality -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit/skills/translation-quality\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/handoff-agent-builder -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit/skills/handoff-agent-builder\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/outcome-owner -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit/skills/outcome-owner\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/software-engineering -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit/skills/software-engineering\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/writing-quality -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit/skills/writing-quality\n[PASS] manifest: kit 0.2.0, schema 1, 5 skills\n[PASS] python: Python 3.12 satisfies >= 3.11\n[PASS] git-root: git checkout: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout\n[INFO] git-head: HEAD aa2ae97856d7\n[INFO] git-branch: detached HEAD\n[PASS] git-clean: working tree is clean\n[INFO] git-origin: /home/runner/work/davis-agent-kit/davis-agent-kit\n[PASS] codex-home: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home\n[PASS] kit-link: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout\n[PASS] agents-link: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/AGENTS.md -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/AGENTS.md\n[PASS] skills-root: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills\n[PASS] skill-link:translation-quality: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/translation-quality -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/skills/translation-quality\n[PASS] skill-entrypoint:translation-quality: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/translation-quality/SKILL.md\n[PASS] skill-link:handoff-agent-builder: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/handoff-agent-builder -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/skills/handoff-agent-builder\n[PASS] skill-entrypoint:handoff-agent-builder: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/handoff-agent-builder/SKILL.md\n[PASS] skill-link:outcome-owner: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/outcome-owner -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/skills/outcome-owner\n[PASS] skill-entrypoint:outcome-owner: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/outcome-owner/SKILL.md\n[PASS] skill-link:software-engineering: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/software-engineering -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/skills/software-engineering\n[PASS] skill-entrypoint:software-engineering: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/software-engineering/SKILL.md\n[PASS] skill-link:writing-quality: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/writing-quality -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/skills/writing-quality\n[PASS] skill-entrypoint:writing-quality: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/writing-quality/SKILL.md\n[PASS] retired-skill:davis-operating-system: not installed: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/davis-operating-system\n[PASS] retired-skill:coding-workflow: not installed: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/coding-workflow\n[INFO] runtime-reload: filesystem load surfaces are correct; restart Codex or start a new session after changes\n\nDoctor summary: 20 pass, 0 warn, 0 fail, 4 info\nCodex installation is ready. Restart Codex or start a new session.",
+  "links": {
+    "kit": {
+      "path": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit",
+      "link_text": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout",
+      "resolved_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout",
+      "expected_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout"
+    },
+    "agents": {
+      "path": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/AGENTS.md",
+      "link_text": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit/AGENTS.md",
+      "resolved_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/AGENTS.md",
+      "expected_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/AGENTS.md"
+    },
+    "software_engineering": {
+      "path": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/skills/software-engineering",
+      "link_text": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home/davis-agent-kit/skills/software-engineering",
+      "resolved_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/skills/software-engineering",
+      "expected_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/policy-checkout/skills/software-engineering"
+    }
+  },
+  "identities": {
+    "root_agents": {
+      "git_blob_oid": "0a221557e59f09ee6e2d2948a5714c9966cd1ae6",
+      "sha256": "c2e1acb743431ebb6ea3a85943c978bc2ab94eb762991777746c12b4411eb8cf",
+      "installed_sha256": "c2e1acb743431ebb6ea3a85943c978bc2ab94eb762991777746c12b4411eb8cf"
+    },
+    "software_engineering_tree": {
+      "git_tree_oid": "3b6fe9aa6554fd676d06eae8394088515b244296",
+      "sha256": "714e7c0011dd1a6e0bf6b5cb03fd76a0d1caf7204374000e4fa7e4574798548c",
+      "installed_sha256": "714e7c0011dd1a6e0bf6b5cb03fd76a0d1caf7204374000e4fa7e4574798548c"
+    },
+    "software_engineering_entrypoint": {
+      "git_blob_oid": "e396ae5347e742c1dea161e58931f9cfa1a5fe66",
+      "sha256": "033ca6f102eea828c9ed3b470fc3546039aa2b53bc87affa525d2e6e0508ef5a",
+      "installed_sha256": "033ca6f102eea828c9ed3b470fc3546039aa2b53bc87affa525d2e6e0508ef5a"
+    },
+    "software_engineering_interface": {
+      "git_blob_oid": "d9e4f37490c822bb0926bfe9ec12b61526afa6bf",
+      "sha256": "1849fcd121f938628c715c6620dd68259634639c4e63f6885dea0c46dab6eef5",
+      "installed_sha256": "1849fcd121f938628c715c6620dd68259634639c4e63f6885dea0c46dab6eef5"
+    }
+  },
+  "session_launch_contract": {
+    "environment": {
+      "CODEX_HOME": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-baseline/codex-home"
+    },
+    "fresh_process_required": true,
+    "fresh_root_and_model_context_required": true,
+    "start_only_after_manifest_verification": true,
+    "boot_attestation": {
+      "checkout_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
+      "agents_sha256": "c2e1acb743431ebb6ea3a85943c978bc2ab94eb762991777746c12b4411eb8cf",
+      "skill_tree_sha256": "714e7c0011dd1a6e0bf6b5cb03fd76a0d1caf7204374000e4fa7e4574798548c",
+      "skill_entrypoint_sha256": "033ca6f102eea828c9ed3b470fc3546039aa2b53bc87affa525d2e6e0508ef5a",
+      "interface_sha256": "1849fcd121f938628c715c6620dd68259634639c4e63f6885dea0c46dab6eef5"
+    }
+  }
+}
+exit=0
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/install_policy.py --source-repo /home/runner/work/davis-agent-kit/davis-agent-kit --policy-commit 4a87005223d235dc29873fbe602445617a52decb --policy-side candidate --run-dir /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate
+{
+  "schema_version": 1,
+  "policy_side": "candidate",
+  "requested_commit": "4a87005223d235dc29873fbe602445617a52decb",
+  "resolved_commit": "4a87005223d235dc29873fbe602445617a52decb",
+  "actual_checkout_commit": "4a87005223d235dc29873fbe602445617a52decb",
+  "source_repository": "/home/runner/work/davis-agent-kit/davis-agent-kit",
+  "policy_checkout": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout",
+  "codex_home": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home",
+  "checkout_status": "",
+  "installer_command": [
+    "/usr/bin/python3",
+    "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/scripts/install_codex.py",
+    "--root",
+    "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout",
+    "--codex-home",
+    "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home"
+  ],
+  "installer_output": "LINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/AGENTS.md -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit/AGENTS.md\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/translation-quality -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit/skills/translation-quality\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/handoff-agent-builder -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit/skills/handoff-agent-builder\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/outcome-owner -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit/skills/outcome-owner\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/software-engineering -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit/skills/software-engineering\nLINK /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/writing-quality -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit/skills/writing-quality\n[PASS] manifest: kit 0.2.0, schema 1, 5 skills\n[PASS] python: Python 3.12 satisfies >= 3.11\n[PASS] git-root: git checkout: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout\n[INFO] git-head: HEAD 4a87005223d2\n[INFO] git-branch: detached HEAD\n[PASS] git-clean: working tree is clean\n[INFO] git-origin: /home/runner/work/davis-agent-kit/davis-agent-kit\n[PASS] codex-home: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home\n[PASS] kit-link: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout\n[PASS] agents-link: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/AGENTS.md -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/AGENTS.md\n[PASS] skills-root: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills\n[PASS] skill-link:translation-quality: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/translation-quality -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/skills/translation-quality\n[PASS] skill-entrypoint:translation-quality: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/translation-quality/SKILL.md\n[PASS] skill-link:handoff-agent-builder: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/handoff-agent-builder -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/skills/handoff-agent-builder\n[PASS] skill-entrypoint:handoff-agent-builder: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/handoff-agent-builder/SKILL.md\n[PASS] skill-link:outcome-owner: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/outcome-owner -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/skills/outcome-owner\n[PASS] skill-entrypoint:outcome-owner: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/outcome-owner/SKILL.md\n[PASS] skill-link:software-engineering: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/software-engineering -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/skills/software-engineering\n[PASS] skill-entrypoint:software-engineering: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/software-engineering/SKILL.md\n[PASS] skill-link:writing-quality: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/writing-quality -> /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/skills/writing-quality\n[PASS] skill-entrypoint:writing-quality: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/writing-quality/SKILL.md\n[PASS] retired-skill:davis-operating-system: not installed: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/davis-operating-system\n[PASS] retired-skill:coding-workflow: not installed: /tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/coding-workflow\n[INFO] runtime-reload: filesystem load surfaces are correct; restart Codex or start a new session after changes\n\nDoctor summary: 20 pass, 0 warn, 0 fail, 4 info\nCodex installation is ready. Restart Codex or start a new session.",
+  "links": {
+    "kit": {
+      "path": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit",
+      "link_text": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout",
+      "resolved_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout",
+      "expected_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout"
+    },
+    "agents": {
+      "path": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/AGENTS.md",
+      "link_text": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit/AGENTS.md",
+      "resolved_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/AGENTS.md",
+      "expected_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/AGENTS.md"
+    },
+    "software_engineering": {
+      "path": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/skills/software-engineering",
+      "link_text": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home/davis-agent-kit/skills/software-engineering",
+      "resolved_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/skills/software-engineering",
+      "expected_target": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/policy-checkout/skills/software-engineering"
+    }
+  },
+  "identities": {
+    "root_agents": {
+      "git_blob_oid": "0a221557e59f09ee6e2d2948a5714c9966cd1ae6",
+      "sha256": "c2e1acb743431ebb6ea3a85943c978bc2ab94eb762991777746c12b4411eb8cf",
+      "installed_sha256": "c2e1acb743431ebb6ea3a85943c978bc2ab94eb762991777746c12b4411eb8cf"
+    },
+    "software_engineering_tree": {
+      "git_tree_oid": "b8d993da1fa7cac4fd6fdfe24adf62ec35bfc44f",
+      "sha256": "cfe84057d4b7a419e1ccf1e82d31354593a56df7f6d18b18b43d435a38d89abb",
+      "installed_sha256": "cfe84057d4b7a419e1ccf1e82d31354593a56df7f6d18b18b43d435a38d89abb"
+    },
+    "software_engineering_entrypoint": {
+      "git_blob_oid": "b55f77b01acf216365980037ac4de79f94acb130",
+      "sha256": "5721825fee256afc000e41a0675d012b61d2b5cc52284623622eeb8202366ba9",
+      "installed_sha256": "5721825fee256afc000e41a0675d012b61d2b5cc52284623622eeb8202366ba9"
+    },
+    "software_engineering_interface": {
+      "git_blob_oid": "2ca87cd5f521b8f990779c22f1ea6917ff138936",
+      "sha256": "eea8824cd9c43153979804db1105a308a9d05f3f9936fe71db01186d3e5b1587",
+      "installed_sha256": "eea8824cd9c43153979804db1105a308a9d05f3f9936fe71db01186d3e5b1587"
+    }
+  },
+  "session_launch_contract": {
+    "environment": {
+      "CODEX_HOME": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/policy-candidate/codex-home"
+    },
+    "fresh_process_required": true,
+    "fresh_root_and_model_context_required": true,
+    "start_only_after_manifest_verification": true,
+    "boot_attestation": {
+      "checkout_commit": "4a87005223d235dc29873fbe602445617a52decb",
+      "agents_sha256": "c2e1acb743431ebb6ea3a85943c978bc2ab94eb762991777746c12b4411eb8cf",
+      "skill_tree_sha256": "cfe84057d4b7a419e1ccf1e82d31354593a56df7f6d18b18b43d435a38d89abb",
+      "skill_entrypoint_sha256": "5721825fee256afc000e41a0675d012b61d2b5cc52284623622eeb8202366ba9",
+      "interface_sha256": "eea8824cd9c43153979804db1105a308a9d05f3f9936fe71db01186d3e5b1587"
+    }
+  }
+}
+exit=0
+policy installation identity self-test passed
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/verify.py --repo /tmp/tmp.OfnKdKt3WL/carrier-fixture/repo
 test_collapses_whitespace (test_labels.NormalizeLabelTests.test_collapses_whitespace) ... ok
 
 ----------------------------------------------------------------------
@@ -19,11 +178,13 @@ Ran 1 test in 0.000s
 OK
 dedupe_labels is missing
 exit=1
-
-$ python3 fixture/apply_reference.py
+$ git worktree add -b integration-selftest /tmp/tmp.OfnKdKt3WL/carrier-fixture/isolated-writer ed4ecf5a99ced61a6b7c706e642c661775ce095b
+Preparing worktree (new branch 'integration-selftest')
+HEAD is now at ed4ecf5 fixture baseline
 exit=0
-
-$ reference fixture/verify.py
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/apply_reference.py --repo /tmp/tmp.OfnKdKt3WL/carrier-fixture/isolated-writer
+exit=0
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/verify.py --repo /tmp/tmp.OfnKdKt3WL/carrier-fixture/isolated-writer
 test_normalizes_drops_empty_and_preserves_first_spelling (test_labels.DedupeLabelsTests.test_normalizes_drops_empty_and_preserves_first_spelling) ... ok
 test_uses_casefold (test_labels.DedupeLabelsTests.test_uses_casefold) ... ok
 test_collapses_whitespace (test_labels.NormalizeLabelTests.test_collapses_whitespace) ... ok
@@ -34,10 +195,78 @@ Ran 3 tests in 0.000s
 OK
 fixture verification passed
 exit=0
-
-$ thread_barrier.py self-test
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/integrate_worktree.py --source /tmp/tmp.OfnKdKt3WL/carrier-fixture/isolated-writer --target /tmp/tmp.OfnKdKt3WL/carrier-fixture/repo --expected-base ed4ecf5a99ced61a6b7c706e642c661775ce095b --writer-stopped-marker /tmp/tmp.OfnKdKt3WL/carrier-fixture/state/writer-stopped.json --manifest /tmp/tmp.OfnKdKt3WL/carrier-fixture/premature-integration.json
+writer terminal marker is missing: /tmp/tmp.OfnKdKt3WL/carrier-fixture/state/writer-stopped.json
+exit=1
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/integrate_worktree.py --source /tmp/tmp.OfnKdKt3WL/carrier-fixture/isolated-writer --target /tmp/tmp.OfnKdKt3WL/carrier-fixture/repo --expected-base ed4ecf5a99ced61a6b7c706e642c661775ce095b --writer-stopped-marker /tmp/tmp.OfnKdKt3WL/carrier-fixture/state/writer-stopped.json --manifest /tmp/tmp.OfnKdKt3WL/carrier-fixture/integration-manifest.json
+{
+  "schema_version": 1,
+  "source_worktree": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/isolated-writer",
+  "target_worktree": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/repo",
+  "expected_base": "ed4ecf5a99ced61a6b7c706e642c661775ce095b",
+  "source_head": "ed4ecf5a99ced61a6b7c706e642c661775ce095b",
+  "target_head_before": "ed4ecf5a99ced61a6b7c706e642c661775ce095b",
+  "target_head_after": "ed4ecf5a99ced61a6b7c706e642c661775ce095b",
+  "writer_stopped_marker": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/state/writer-stopped.json",
+  "writer_marker": {
+    "pid": 2294,
+    "repo": "/tmp/tmp.OfnKdKt3WL/carrier-fixture/repo"
+  },
+  "allowed_paths": [
+    "src/labels.py",
+    "tests/test_labels.py"
+  ],
+  "source_changes": [
+    "src/labels.py",
+    "tests/test_labels.py"
+  ],
+  "target_changes_before": [],
+  "target_changes_after": [
+    "src/labels.py",
+    "tests/test_labels.py"
+  ],
+  "ignored_interpreter_caches": {
+    "source_before": [
+      "src/__pycache__/__init__.cpython-312.pyc",
+      "src/__pycache__/labels.cpython-312.pyc",
+      "tests/__pycache__/test_labels.cpython-312.pyc"
+    ],
+    "source_after": [
+      "src/__pycache__/__init__.cpython-312.pyc",
+      "src/__pycache__/labels.cpython-312.pyc",
+      "tests/__pycache__/test_labels.cpython-312.pyc"
+    ],
+    "target_before": [
+      "src/__pycache__/__init__.cpython-312.pyc",
+      "src/__pycache__/labels.cpython-312.pyc",
+      "tests/__pycache__/test_labels.cpython-312.pyc"
+    ],
+    "target_after": [
+      "src/__pycache__/__init__.cpython-312.pyc",
+      "src/__pycache__/labels.cpython-312.pyc",
+      "tests/__pycache__/test_labels.cpython-312.pyc"
+    ]
+  },
+  "patch_sha256": "40f8348dc662461cff2187e4d222bd3256849418b6b005fc8b3eadae48fab684",
+  "patch_size_bytes": 1676,
+  "commit_created": false,
+  "target_oracle_required_after_integration": true
+}
 exit=0
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/verify.py --repo /tmp/tmp.OfnKdKt3WL/carrier-fixture/repo
+test_normalizes_drops_empty_and_preserves_first_spelling (test_labels.DedupeLabelsTests.test_normalizes_drops_empty_and_preserves_first_spelling) ... ok
+test_uses_casefold (test_labels.DedupeLabelsTests.test_uses_casefold) ... ok
+test_collapses_whitespace (test_labels.NormalizeLabelTests.test_collapses_whitespace) ... ok
 
-$ python3 fixture/teardown.py
-removed /tmp/tmp.B2HeXZpK9Z/carrier-fixture
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK
+fixture verification passed
 exit=0
+isolated worktree integration self-test passed
+thread barrier self-test passed
+$ /usr/bin/python3 /home/runner/work/davis-agent-kit/davis-agent-kit/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/teardown.py --root /tmp/tmp.OfnKdKt3WL/carrier-fixture
+removed /tmp/tmp.OfnKdKt3WL/carrier-fixture
+exit=0
+durable-thread fixture v5 self-test passed

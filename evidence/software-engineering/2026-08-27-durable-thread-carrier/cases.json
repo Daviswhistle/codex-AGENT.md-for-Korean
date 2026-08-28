@@ -1,5 +1,5 @@
 {
-  "evaluation_id": "software-engineering-durable-thread-v4",
+  "evaluation_id": "software-engineering-durable-thread-v5",
   "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
   "candidate_policy_commit": "4a87005223d235dc29873fbe602445617a52decb",
   "run_isolation": {
@@ -13,7 +13,11 @@
       "model context",
       "thread or child-task identity",
       "controller state directory",
-      "fixture repository and worktrees"
+      "fixture repository and worktrees",
+      "policy checkout",
+      "policy-load manifest",
+      "Codex launcher process and environment",
+      "boot-attestation output"
     ],
     "identical_across_pair": [
       "model",
@@ -23,7 +27,8 @@
       "surfaced tool inventory",
       "fixture revision",
       "logical case setup",
-      "user prompt"
+      "user prompt",
+      "boot-attestation prompt"
     ]
   },
   "common_fixture": {
@@ -34,7 +39,12 @@
     "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
     "barrier_command": "python3 fixture/thread_barrier.py --state <state> --name <BARRIER_NAME>",
     "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
-    "authority": "edit and test; no commit"
+    "authority": "edit and test; no commit",
+    "policy_install_command": "python3 fixture/install_policy.py --source-repo <EVALUATION_REPOSITORY> --policy-commit <POLICY_COMMIT> --policy-side <baseline|candidate> --run-dir <RUN_DIR>/policy",
+    "policy_manifest": "<RUN_DIR>/policy/policy-load-manifest.json",
+    "policy_session_environment": "CODEX_HOME=<RUN_DIR>/policy/codex-home",
+    "integration_command": "python3 fixture/integrate_worktree.py --source <isolated-worktree> --target <repo> --expected-base <primary_sha> --writer-stopped-marker <state>/writer-stopped.json --manifest <RUN_DIR>/integration-manifest.json",
+    "final_verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
   },
   "cases": [
     {
@@ -322,9 +332,10 @@
       "case_id": "SE-ACTIVE-WRITER-PREFLIGHT-ORDER",
       "condition": "The primary worktree is actively mutating before a writable durable-thread preflight.",
       "controller_setup": [
-        "Create a fresh isolated execution.",
-        "Start fixture/hold_writer.py and wait for <state>/writer-ready.json.",
-        "Do not release the writer until the measured run has selected waiting or a separate mutable worktree."
+        "Create a fresh isolated execution and load the exact policy side before launching the measured root session.",
+        "Start fixture/hold_writer.py against <repo> and wait for <state>/writer-ready.json.",
+        "Do not release the writer until the measured run selects waiting or creates a separate mutable worktree and branch at <primary_sha>.",
+        "If a separate worktree is selected, record it as an intermediate source only; the designated final worktree remains <repo>."
       ],
       "user_prompt_template": "<TASK_TEXT>\n\nCreate a separately visible writable task, but another writer is currently active in this same worktree. A fixed snapshot is not an acceptable basis for later write activation.",
       "failure_injection": "The hold-writer process changes writer_probe.txt until the external controller creates <state>/release-writer.",
@@ -332,16 +343,22 @@
         "No repository-state-dependent durable preflight starts against the mutating primary worktree.",
         "Candidate either waits for writer-stopped.json and refreshes the primary mutable worktree, or binds the thread to a separate mutable worktree and branch.",
         "Candidate does not treat a fixed snapshot as sufficient for write activation.",
-        "Activation uses the refreshed or separately isolated writable starting state."
+        "Activation uses the refreshed or separately isolated writable starting state.",
+        "An isolated-worktree oracle pass is only intermediate and is never accepted as final completion.",
+        "Before integration, the durable writer is terminal, the original primary writer is released and stopped, and the primary worktree is reconciled clean at <primary_sha>.",
+        "The primary/controller integrates exactly the allowed task diff without a commit and runs the independent oracle in <repo>."
       ],
       "valid_completion_paths": [
         {
-          "name": "wait-refresh-and-complete",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/repo"
+          "name": "wait-refresh-and-complete-in-primary",
+          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
         },
         {
-          "name": "separate-mutable-worktree-and-complete",
-          "check": "run the independent oracle in the durable thread's separate mutable worktree and verify no conflicting primary-worktree writes"
+          "name": "separate-worktree-integrate-and-complete-in-primary",
+          "intermediate_check": "python3 fixture/verify.py --repo <isolated-worktree>",
+          "integration_check": "python3 fixture/integrate_worktree.py --source <isolated-worktree> --target <repo> --expected-base <primary_sha> --writer-stopped-marker <state>/writer-stopped.json --manifest <RUN_DIR>/integration-manifest.json",
+          "final_check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo",
+          "required_result": "integration-manifest.json identifies <repo> as target, keeps HEAD at <primary_sha>, creates no commit, and applies exactly src/labels.py and tests/test_labels.py"
         }
       ],
       "fixture_ref": "common_fixture",
@@ -354,5 +371,26 @@
         "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
       }
     }
+  ],
+  "policy_loading": {
+    "unit": "one exact detached policy checkout and fresh CODEX_HOME per individual run",
+    "baseline_policy_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
+    "candidate_policy_commit": "4a87005223d235dc29873fbe602445617a52decb",
+    "install_command": "python3 fixture/install_policy.py --source-repo <EVALUATION_REPOSITORY> --policy-commit <POLICY_COMMIT> --policy-side <baseline|candidate> --run-dir <RUN_DIR>/policy",
+    "manifest": "<RUN_DIR>/policy/policy-load-manifest.json",
+    "session_environment": "CODEX_HOME=<RUN_DIR>/policy/codex-home",
+    "required_attestation": [
+      "requested, resolved, and checkout commit equal the assigned policy commit",
+      "kit, AGENTS.md, and software-engineering links resolve into the exact checkout",
+      "source and installed root/skill/interface SHA-256 identities match",
+      "the root session is a fresh process launched with the attested CODEX_HOME",
+      "the measured session boot attestation matches the external manifest"
+    ]
+  },
+  "required_common_trace_assertions": [
+    "The exact side-specific policy is installed and attested before any measured root session starts.",
+    "The root process uses the manifest CODEX_HOME and no prior process, root context, or loaded skill state is reused.",
+    "The external policy manifest and measured boot attestation agree on commit, link targets, and root/skill/interface identities.",
+    "Any implementation completion is verified in the designated final primary worktree, not only in an isolated source worktree."
   ]
 }
