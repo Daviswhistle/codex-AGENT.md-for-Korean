@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 from typing import Any
 
@@ -42,11 +42,20 @@ def git_paths(repo: Path, *args: str) -> set[str]:
     }
 
 
-def clean_change_set(repo: Path) -> set[str]:
+def is_ignored_interpreter_cache(path: str) -> bool:
+    pure = PurePosixPath(path)
+    return "__pycache__" in pure.parts or pure.suffix in {".pyc", ".pyo"}
+
+
+def worktree_changes(repo: Path) -> tuple[set[str], set[str]]:
     staged = git_paths(repo, "diff", "--cached", "--name-only")
     unstaged = git_paths(repo, "diff", "--name-only")
-    untracked = git_paths(repo, "ls-files", "--others", "--exclude-standard")
-    return staged | unstaged | untracked
+    raw_untracked = git_paths(repo, "ls-files", "--others", "--exclude-standard")
+    ignored_runtime = {
+        path for path in raw_untracked if is_ignored_interpreter_cache(path)
+    }
+    untracked = raw_untracked - ignored_runtime
+    return staged | unstaged | untracked, ignored_runtime
 
 
 def ensure_worktree(path: Path, label: str) -> Path:
@@ -101,13 +110,13 @@ def main() -> int:
         )
 
     allowed = set(ALLOWED_PATHS)
-    source_changes = clean_change_set(source)
+    source_changes, source_ignored_runtime = worktree_changes(source)
     if source_changes != allowed:
         raise SystemExit(
             "isolated worktree must contain exactly the task files; "
             f"observed {sorted(source_changes)}"
         )
-    target_changes_before = clean_change_set(target)
+    target_changes_before, target_ignored_before = worktree_changes(target)
     if target_changes_before:
         raise SystemExit(
             "target worktree is not reconciled and clean before integration: "
@@ -140,7 +149,7 @@ def main() -> int:
     run(["git", "apply", "-"], cwd=target, input_bytes=patch)
     run(["git", "diff", "--check"], cwd=target)
 
-    target_changes_after = clean_change_set(target)
+    target_changes_after, target_ignored_after = worktree_changes(target)
     if target_changes_after != allowed:
         raise SystemExit(
             "integrated target must contain exactly the task files; "
@@ -148,7 +157,8 @@ def main() -> int:
         )
     if git_text(target, "rev-parse", "HEAD") != expected_base:
         raise SystemExit("integration unexpectedly created or moved a target commit")
-    if clean_change_set(source) != allowed:
+    source_changes_after, source_ignored_after = worktree_changes(source)
+    if source_changes_after != allowed:
         raise SystemExit("source worktree changed during integration")
 
     manifest_path = args.manifest.expanduser().resolve(strict=False)
@@ -170,6 +180,12 @@ def main() -> int:
         "source_changes": sorted(source_changes),
         "target_changes_before": sorted(target_changes_before),
         "target_changes_after": sorted(target_changes_after),
+        "ignored_interpreter_caches": {
+            "source_before": sorted(source_ignored_runtime),
+            "source_after": sorted(source_ignored_after),
+            "target_before": sorted(target_ignored_before),
+            "target_after": sorted(target_ignored_after),
+        },
         "patch_sha256": hashlib.sha256(patch).hexdigest(),
         "patch_size_bytes": len(patch),
         "commit_created": False,
