@@ -1,0 +1,113 @@
+name: Apply PR 42 policy v4 fixes
+
+on:
+  push:
+    branches:
+      - refactor/thread-aware-execution-orchestration
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/thread-aware-execution-orchestration
+          fetch-depth: 0
+
+      - name: Tighten writable worktree boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}")
+              file.write_text(text.replace(old, new), encoding="utf-8")
+
+          replace_once(
+              "skills/software-engineering/SKILL.md",
+              "5. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot. Establish that stable view before any durable-thread preflight reads the worktree, then refresh the branch, revision, and worktree status.",
+              "5. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree. A read-only reader may instead use a separate worktree or fixed commit snapshot, while any carrier that may write must use a separate mutable worktree. Establish the authority-compatible stable view before any durable-thread preflight reads repository state, then refresh the branch, revision, and worktree status.",
+          )
+          replace_once(
+              "skills/software-engineering/SKILL.md",
+              "For a durable thread, the general contract does not itself activate write authority. Before sending a repository-state-dependent preflight, the primary session must establish that the target worktree has no active writer or bind the thread to a separate worktree or fixed snapshot, then refresh the branch, revision, and worktree status. After a matched read-only preflight acknowledgement, the primary session sends a separate activation message before implementation or any validation that may change repository state.",
+              "For a durable thread, the general contract does not itself activate write authority. Classify the requested post-ack authority before preflight. A thread that will remain read-only may inspect a quiescent worktree, a separate worktree, or a fixed commit snapshot. A thread that may receive edit, state-changing test, or commit authority must either wait for the target writer to finish and then preflight the refreshed mutable worktree, or be bound to a separate mutable worktree and branch. A fixed snapshot never authorizes a later write activation; if write authority becomes necessary, establish a writable boundary and repeat the preflight from the new starting state. After a matched read-only preflight acknowledgement, the primary session sends a separate activation message before implementation or any validation that may change repository state.",
+          )
+
+          replace_once(
+              "skills/software-engineering/references/execution-delegation.md",
+              "2. Before creating, resuming, or messaging a thread that will inspect the target worktree, establish a stable view. Confirm that no carrier is writing there; otherwise wait for the writer to reach a terminal state and refresh the branch, revision, and worktree status, or bind the thread to a separate worktree or fixed snapshot. A preflight against a mutating worktree is invalid.",
+              "2. Before creating, resuming, or messaging a repository-state-dependent thread, classify the requested post-ack authority and establish a compatible stable view. A thread that will remain read-only may use a quiescent worktree, a separate worktree, or a fixed commit snapshot. A thread that may receive edit, state-changing test, or commit authority must either wait for the target writer to reach a terminal state and then refresh the actual mutable worktree, or be bound to a separate mutable worktree and branch. A fixed snapshot is never a writable boundary: if a preflight used one and write authority later becomes necessary, establish a writable boundary and repeat the preflight from the new starting state. Any preflight against a mutating worktree is invalid.",
+          )
+          replace_once(
+              "skills/software-engineering/references/execution-delegation.md",
+              "5. The primary session must compare the acknowledgement with the still-current repository state. If another writer appeared or any field changed, discard the acknowledgement and re-establish a stable view. Only after every field matches may it send a separate activation message with the same contract ID and the exact edit, test, or commit authority being granted. The original contract and acknowledgement never activate write authority by themselves.",
+              "5. The primary session must compare the acknowledgement with the still-current repository state and authority-compatible boundary. If another writer appeared, any field changed, or write authority is requested after a fixed-snapshot preflight, discard the acknowledgement and establish a new valid boundary and preflight. Only after every field matches may it send a separate activation message with the same contract ID and the exact edit, test, or commit authority being granted. The original contract and acknowledgement never activate write authority by themselves.",
+          )
+          replace_once(
+              "skills/software-engineering/references/execution-delegation.md",
+              "2. Wait for the writer to finish, or give each concurrent reader or writer a separate worktree or fixed commit snapshot.\n3. Read-only authority prevents writes; it does not prevent mixed-state observations.",
+              "2. Wait for the writer to finish. A concurrent read-only carrier may instead use a separate worktree or fixed commit snapshot; every concurrent writer requires a separate mutable worktree and branch.\n3. Read-only authority prevents writes; it does not prevent mixed-state observations. A fixed snapshot is only a read source and cannot be upgraded into write authority.",
+          )
+
+          replace_once(
+              "skills/software-engineering/references/tca-loop.md",
+              "4. When delegating, choose the carrier under `references/execution-delegation.md` and delegate only the active task unit. Treat its mutable worktree as a single-writer, stable-reader boundary: serialize repository-state-dependent readers until the writer exits, or give them a separate worktree or fixed commit snapshot.",
+              "4. When delegating, choose the carrier under `references/execution-delegation.md` and delegate only the active task unit. Treat its mutable worktree as a single-writer, stable-reader boundary: serialize repository-state-dependent readers until the writer exits. A read-only carrier may instead use a separate worktree or fixed commit snapshot; every potential writer requires a quiescent target worktree or a separate mutable worktree and branch.",
+          )
+          replace_once(
+              "skills/software-engineering/references/tca-loop.md",
+              "    - Writer boundary: <quiescent|separate-worktree|fixed-snapshot|blocked>\n    - Durable preflight:",
+              "    - Writer boundary: <quiescent|separate-worktree|blocked>\n    - Read source: <live-worktree|separate-worktree|fixed-snapshot|not-applicable>\n    - Durable preflight:",
+          )
+          replace_once(
+              "skills/software-engineering/references/tca-loop.md",
+              "3. Before any repository-state-dependent carrier or durable preflight starts, establish a stable worktree view. Wait for the active writer to reach a terminal state and refresh the branch, revision, and worktree status, or give the new carrier a separate worktree or fixed commit snapshot. Record the boundary in the queue.",
+              "3. Before any repository-state-dependent carrier or durable preflight starts, establish an authority-compatible view. If the carrier may write, wait for the active writer to reach a terminal state and refresh the branch, revision, and worktree status, or give the carrier a separate mutable worktree and branch. Use a fixed commit snapshot only for a carrier that will remain read-only. Record the writer boundary and read source in the queue.",
+          )
+          replace_once(
+              "skills/software-engineering/references/tca-loop.md",
+              "4. If a durable thread is used, complete its read-only preflight against that stable view. Record the identity, contract ID, acknowledged starting revision, worktree or branch, requested post-ack authority, and planned validation; compare the acknowledgement with the still-current state, then record the separate activation that grants write authority before any implementation or state-changing validation begins.",
+              "4. If a durable thread is used, complete its read-only preflight against that authority-compatible view. Record the identity, contract ID, acknowledged starting revision, worktree or branch, requested post-ack authority, and planned validation. A fixed-snapshot preflight may never receive write activation; establish a writable boundary and repeat the preflight if authority changes. Compare the acknowledgement with the still-current state, then record the separate activation that grants write authority before any implementation or state-changing validation begins.",
+          )
+          replace_once(
+              "skills/software-engineering/references/tca-loop.md",
+              "6. a durable thread cannot establish a stable worktree view, current contract, starting revision, or authority",
+              "6. a durable thread cannot establish a stable worktree view compatible with its requested authority, current contract, starting revision, or worktree boundary",
+          )
+
+          replace_once(
+              "decisions/2026-08-27-durable-thread-execution-carrier.md",
+              "3. durable thread를 재사용할 때도 먼저 대상 worktree의 writer가 종료됐는지 확인하거나 별도 worktree·고정 snapshot을 마련하고 branch·revision·상태를 새로 읽는다. 그 안정된 상태에서 첫 메시지를 read-only preflight로 제한해 contract ID, repository·worktree·branch, 시작 revision, 요청할 후속 권한과 검증 계획을 전달한다. acknowledgement를 현재 상태와 다시 대조한 뒤 별도 activation 메시지로만 edit·test·commit 권한을 부여한다. acknowledgement 전에는 구현, 파일 수정, commit, working state를 바꿀 수 있는 명령이나 test를 금지한다.",
+              "3. durable thread를 재사용할 때도 요청할 후속 권한에 맞는 worktree 경계를 먼저 만든다. 끝까지 read-only인 thread는 writer가 없는 worktree, 별도 worktree 또는 고정 snapshot을 읽을 수 있다. edit·상태 변경 test·commit 권한을 받을 수 있는 thread는 기존 writer가 종료된 뒤 새로 읽은 실제 mutable worktree나 별도 mutable worktree·branch에서만 preflight한다. 고정 snapshot에서 받은 acknowledgement는 write activation의 근거가 될 수 없으며, 쓰기가 필요해지면 writable boundary를 만든 뒤 preflight를 다시 수행한다. 첫 메시지는 read-only preflight로 제한해 contract ID, repository·worktree·branch, 시작 revision, 요청할 후속 권한과 검증 계획을 전달하고, acknowledgement를 현재 상태와 다시 대조한 뒤 별도 activation 메시지로만 권한을 부여한다.",
+          )
+          replace_once(
+              "decisions/2026-08-27-durable-thread-execution-carrier.md",
+              "5. 하나의 mutable worktree는 carrier 수와 무관하게 single-writer, stable-reader 경계다. durable thread는 worktree 격리를 제공하지 않으며, active writer가 있는 worktree를 읽는 preflight도 안정된 근거가 아니다.",
+              "5. 하나의 mutable worktree는 carrier 수와 무관하게 single-writer, stable-reader 경계다. durable thread는 worktree 격리를 제공하지 않으며, active writer가 있는 worktree를 읽는 preflight도 안정된 근거가 아니다. 고정 snapshot은 read isolation만 제공할 뿐 이후 쓰기를 위한 mutable worktree를 제공하지 않는다.",
+          )
+          PY
+
+          rm .github/workflows/pr42-policy-v4.yml
+          git add \
+            .github/workflows/pr42-policy-v4.yml \
+            skills/software-engineering/SKILL.md \
+            skills/software-engineering/references/execution-delegation.md \
+            skills/software-engineering/references/tca-loop.md \
+            decisions/2026-08-27-durable-thread-execution-carrier.md
+          git diff --cached --check
+          git commit -m "Tighten durable-thread writable boundaries"
+          git push origin HEAD:refactor/thread-aware-execution-orchestration
