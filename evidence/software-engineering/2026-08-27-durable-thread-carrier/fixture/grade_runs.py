@@ -1,0 +1,1580 @@
+#!/usr/bin/env python3
+"""Grade frozen PR #42 v6 runtime-boundary evaluation runs."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import shlex
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+from run_evaluation import DERIVED_SOURCE_REPO
+from run_evaluation import EVIDENCE_ROOT
+from run_evaluation import compute_execution_harness_identity
+from run_evaluation import execution_harness_identities_match
+from run_evaluation import execution_harness_identity_errors
+
+
+EVALUATION_ID = "software-engineering-durable-thread-v6-runtime-boundary"
+BASELINE_COMMIT = "aa2ae97856d7968e50511864c03f1babcd608d0d"
+CANDIDATE_COMMIT = "a7056f2469b1b8c6ae8cb996f4624e9c333205cd"
+CASE_IDS = (
+    "SE-BOUNDED-CHILD-CONTROL",
+    "SE-DURABLE-MATCHING-REUSE",
+    "SE-DURABLE-VISIBLE-CREATE",
+    "SE-DURABLE-ADDRESSABILITY-RESUME",
+    "SE-BINDING-MISMATCH-SAFE-FALLBACK",
+    "SE-FIXED-SNAPSHOT-NON-UPGRADE",
+    "SE-ACTIVE-WRITER-WAIT-REFRESH",
+    "SE-DEFINITE-PREDISPATCH-FAILURE-FALLBACK",
+    "SE-COMBINED-CREATE-START-AMBIGUOUS",
+    "SE-POSTDISPATCH-TRANSPORT-LOSS-RECONCILE",
+)
+EXACT_TEST_COMMAND = "python3 -m unittest discover -s tests -v"
+EXPECTED_PUBLISH_PATHS = {
+    "addressability-handoff.json",
+    "binding-observations.json",
+    "carrier-contract.md",
+    "carrier-thread-histories.json",
+    "controller-events.jsonl",
+    "final-diff.patch",
+    "final-git-status.txt",
+    "initial-primary-binding.json",
+    "mutation-audit.json",
+    "oracle.log",
+    "policy/policy-load-manifest.json",
+    "raw-trace.jsonl",
+    "reconciliation.json",
+    "result.json",
+}
+REQUIRED_PUBLISH_PATHS = EXPECTED_PUBLISH_PATHS - {"addressability-handoff.json"}
+_SHELL_WRAPPER = re.compile(r"^(?:/[^ ]+/)?(?:ba|z|k|da)?sh\s+-(?:[^ ]*c[^ ]*)\s+")
+SCRIPT_PATH = Path(__file__).resolve()
+
+
+def execution_identity_invalid_reasons(
+    result: dict[str, Any], expected_sha256: str
+) -> list[str]:
+    reasons: list[str] = []
+    record = result.get("execution_harness_identity")
+    if not isinstance(record, dict):
+        return ["execution harness identity record is missing"]
+    start = record.get("start")
+    end = record.get("end")
+    for label, identity in (("start", start), ("end", end)):
+        for error in execution_harness_identity_errors(identity):
+            reasons.append(f"execution harness {label} identity: {error}")
+    if record.get("stable") is not True:
+        reasons.append("execution harness identity was not stable for the run")
+    validation_errors = record.get("validation_errors")
+    if not isinstance(validation_errors, list) or validation_errors:
+        reasons.append("execution harness identity validation errors are present")
+    if isinstance(start, dict) and isinstance(end, dict):
+        if not execution_harness_identities_match(start, end):
+            reasons.append("execution harness start/end identities differ")
+        if start.get("execution_harness_sha256") != expected_sha256:
+            reasons.append("execution harness identity does not match manifest")
+    return reasons
+
+
+def split_command_segments(command: str) -> list[str]:
+    segments: list[str] = []
+    start = 0
+    quote: str | None = None
+    escaped = False
+    index = 0
+    while index < len(command):
+        char = command[index]
+        if escaped:
+            escaped = False
+            index += 1
+            continue
+        if char == "\\" and quote != "'":
+            escaped = True
+            index += 1
+            continue
+        if quote:
+            if char == quote:
+                quote = None
+            index += 1
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            index += 1
+            continue
+        length = 0
+        if command[index : index + 2] in {"&&", "||"}:
+            length = 2
+        elif char in {";", "\n"}:
+            length = 1
+        if length:
+            segment = command[start:index].strip()
+            if segment:
+                segments.append(segment)
+            index += length
+            start = index
+            continue
+        index += 1
+    tail = command[start:].strip()
+    if tail:
+        segments.append(tail)
+    return segments
+
+
+def normalized_command_segments(item: dict[str, Any]) -> list[str]:
+    actions = item.get("commandActions")
+    if isinstance(actions, list):
+        commands = [
+            str(action.get("command", "")).strip()
+            for action in actions
+            if isinstance(action, dict) and str(action.get("command", "")).strip()
+        ]
+        if commands:
+            return [
+                segment
+                for command in commands
+                for segment in split_command_segments(command)
+            ]
+    raw = str(item.get("command") or "").strip()
+    if not raw or _SHELL_WRAPPER.match(raw):
+        return []
+    return split_command_segments(raw)
+
+
+def read_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def events(
+    result: dict[str, Any], kind: str, tool: str | None = None
+) -> list[dict[str, Any]]:
+    selected = [
+        event
+        for event in result.get("controller_events", [])
+        if event.get("kind") == kind
+    ]
+    if tool is not None:
+        selected = [event for event in selected if event.get("tool") == tool]
+    return selected
+
+
+def tool_calls(result: dict[str, Any], tool: str) -> list[dict[str, Any]]:
+    return events(result, "dynamic_tool_call", tool)
+
+
+def successful_tool_results(
+    result: dict[str, Any], tool: str
+) -> list[dict[str, Any]]:
+    return [
+        event
+        for event in events(result, "dynamic_tool_result", tool)
+        if event.get("success") is True
+    ]
+
+
+def child_spawns(result: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        entry["item"]
+        for entry in result.get("trace_summary", {}).get(
+            "collab_agent_tool_calls", []
+        )
+        if entry.get("item", {}).get("tool") == "spawnAgent"
+    ]
+
+
+def root_file_changes(result: dict[str, Any]) -> list[dict[str, Any]]:
+    root_ids = {entry.get("thread_id") for entry in result.get("root_results", [])}
+    root_ids.add(result.get("boot", {}).get("thread_id"))
+    return [
+        entry
+        for entry in result.get("trace_summary", {}).get("file_change_items", [])
+        if entry.get("threadId") in root_ids
+    ]
+
+
+def target_calls(
+    result: dict[str, Any], tool: str, thread_id: str | None
+) -> list[dict[str, Any]]:
+    return [
+        event
+        for event in tool_calls(result, tool)
+        if (event.get("arguments") or {}).get("threadId") == thread_id
+    ]
+
+
+def structured_root_results(result: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        item["structured"]
+        for item in result.get("root_results", [])
+        if isinstance(item.get("structured"), dict)
+    ]
+
+
+def read_raw_trace(path: Path) -> list[dict[str, Any]]:
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def completed_command_records(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return command completions with their exact trace start/completion bounds."""
+    started: dict[tuple[Any, Any, Any], int] = {}
+    completed: list[dict[str, Any]] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        message = record.get("message")
+        if not isinstance(message, dict):
+            continue
+        params = message.get("params")
+        if not isinstance(params, dict):
+            continue
+        item = params.get("item")
+        if not isinstance(item, dict) or item.get("type") != "commandExecution":
+            continue
+        key = (params.get("threadId"), params.get("turnId"), item.get("id"))
+        sequence = record.get("sequence")
+        if message.get("method") == "item/started" and isinstance(sequence, int):
+            started[key] = sequence
+            continue
+        if message.get("method") != "item/completed" or not isinstance(
+            sequence, int
+        ):
+            continue
+        completed.append(
+            {
+                "thread_id": params.get("threadId"),
+                "turn_id": params.get("turnId"),
+                "item_id": item.get("id"),
+                "start_trace_sequence": started.get(key),
+                "completion_trace_sequence": sequence,
+                "status": item.get("status"),
+                "exit_code": item.get("exitCode"),
+                "normalized_segments": normalized_command_segments(item),
+                "output": str(item.get("aggregatedOutput") or ""),
+            }
+        )
+    return completed
+
+
+def _successful_command(record: dict[str, Any]) -> bool:
+    return record.get("status") == "completed" and record.get("exit_code") == 0
+
+
+def _active_writer_boot_policy_read_safe(
+    record: dict[str, Any], external_interval: dict[str, Any]
+) -> bool:
+    """Recognize only the boot skill read that the coarse runner misclassifies."""
+    segments = record.get("normalized_segments")
+    if not isinstance(segments, list) or len(segments) != 1:
+        return False
+    try:
+        tokens = shlex.split(segments[0])
+    except ValueError:
+        return False
+    if (
+        len(tokens) != 4
+        or tokens[:2] != ["sed", "-n"]
+        or re.fullmatch(r"[1-9][0-9]*(?:,[1-9][0-9]*)?p", tokens[2]) is None
+    ):
+        return False
+    source = Path(tokens[3])
+    if not source.is_absolute() or tuple(source.parts[-5:]) != (
+        "policy",
+        "codex-home",
+        "skills",
+        "software-engineering",
+        "SKILL.md",
+    ):
+        return False
+    worktree = external_interval.get("worktree")
+    if not isinstance(worktree, str) or not worktree:
+        return False
+    try:
+        return not source.resolve().is_relative_to(Path(worktree).resolve())
+    except (OSError, ValueError):
+        return False
+
+
+def _active_writer_stop_wait_segments(
+    segments: list[str], stopped_marker: str
+) -> bool:
+    prefixes = {
+        f"while [ ! -e {stopped_marker} ]",
+        f"while [ ! -f {stopped_marker} ]",
+    }
+    return (
+        len(segments) in {3, 4}
+        and segments[0] in prefixes
+        and segments[1:3] == ["do sleep 1", "done"]
+        and (len(segments) == 3 or segments[3] == "echo writer-stopped")
+    )
+
+
+def active_writer_stop_proof(
+    result: dict[str, Any], records: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Prove the external writer stopped at a measured root shell wait."""
+    proof: dict[str, Any] = {
+        "proven": False,
+        "reason": "active-writer stop proof was not established",
+    }
+    state = result.get("fixture_metadata", {}).get("state")
+    if not isinstance(state, str) or not state:
+        proof["reason"] = "fixture state path is missing"
+        return proof
+    root_turns = {
+        (entry.get("thread_id"), entry.get("turn_id"))
+        for entry in result.get("root_results", [])
+        if entry.get("thread_id") and entry.get("turn_id")
+    }
+    if not root_turns:
+        proof["reason"] = "measured root turn identity is missing"
+        return proof
+    commands = completed_command_records(records)
+    touch_segment = f"touch {state}/wait-selected.json"
+    touches = [
+        command
+        for command in commands
+        if (command.get("thread_id"), command.get("turn_id")) in root_turns
+        and _successful_command(command)
+        and command.get("normalized_segments") == [touch_segment]
+    ]
+    if len(touches) != 1:
+        proof["reason"] = "exact successful wait-selected touch is missing or ambiguous"
+        return proof
+    touch = touches[0]
+    stopped_marker = f"{state}/writer-stopped.json"
+    waits = [
+        command
+        for command in commands
+        if (command.get("thread_id"), command.get("turn_id")) in root_turns
+        and _successful_command(command)
+        and isinstance(command.get("start_trace_sequence"), int)
+        and command["start_trace_sequence"]
+        > touch["completion_trace_sequence"]
+        and _active_writer_stop_wait_segments(
+            command.get("normalized_segments", []), stopped_marker
+        )
+    ]
+    if len(waits) != 1:
+        proof["reason"] = "exact successful writer-stopped wait is missing or ambiguous"
+        return proof
+    wait = waits[0]
+    return {
+        "proven": True,
+        "reason": None,
+        "touch_completion_trace_sequence": touch["completion_trace_sequence"],
+        "stop_start_trace_sequence": wait["start_trace_sequence"],
+        "stop_completion_trace_sequence": wait["completion_trace_sequence"],
+        "stop_item_id": wait["item_id"],
+    }
+
+
+def refine_active_writer_runtime_violations(
+    result: dict[str, Any], records: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Remove only runner findings disproven by a raw-trace stop boundary."""
+    original = list(result.get("detected_runtime_violations") or [])
+    proof = active_writer_stop_proof(result, records)
+    metadata: dict[str, Any] = {
+        "kind": "active-writer-raw-stop-proof",
+        "applied": False,
+        "proof": proof,
+        "suppressed_count": 0,
+        "remaining_count": len(original),
+    }
+    external_intervals = [
+        interval
+        for interval in result.get("writer_intervals", [])
+        if interval.get("carrier") == "external-fixture-writer"
+    ]
+    if not proof.get("proven") or len(external_intervals) != 1:
+        if len(external_intervals) != 1:
+            proof["reason"] = "external writer interval is missing or ambiguous"
+        return original, metadata
+
+    external = external_intervals[0]
+    stop_sequence = proof["stop_completion_trace_sequence"]
+    commands = completed_command_records(records)
+    boot_pair = (
+        result.get("boot", {}).get("thread_id"),
+        result.get("boot", {}).get("turn_id"),
+    )
+    kept: list[dict[str, Any]] = []
+    suppressed = 0
+    for violation in original:
+        suppress = False
+        if violation.get("type") == "writer_interval_overlap":
+            sides = [violation.get("left"), violation.get("right")]
+            external_sides = [side for side in sides if side == external]
+            other_sides = [side for side in sides if side != external]
+            if len(external_sides) == 1 and len(other_sides) == 1:
+                other_start = other_sides[0].get("start_trace_sequence")
+                suppress = isinstance(other_start, int) and other_start > stop_sequence
+        elif (
+            violation.get("type") == "root_repo_command_while_writer_live"
+            and violation.get("writer_interval") == external
+        ):
+            matches = [
+                command
+                for command in commands
+                if command.get("thread_id") == violation.get("thread_id")
+                and command.get("normalized_segments")
+                == violation.get("normalized_segments")
+            ]
+            if matches:
+                suppress = all(
+                    (
+                        (command.get("thread_id"), command.get("turn_id"))
+                        == boot_pair
+                        and _active_writer_boot_policy_read_safe(command, external)
+                    )
+                    or command.get("item_id") == proof.get("stop_item_id")
+                    or (
+                        isinstance(command.get("start_trace_sequence"), int)
+                        and command["start_trace_sequence"] > stop_sequence
+                    )
+                    for command in matches
+                )
+        if suppress:
+            suppressed += 1
+        else:
+            kept.append(violation)
+    metadata.update(
+        {
+            "applied": True,
+            "suppressed_count": suppressed,
+            "remaining_count": len(kept),
+        }
+    )
+    return kept, metadata
+
+
+def _barrier_help_segment(segment: str, barrier_script: str) -> bool:
+    return bool(
+        re.fullmatch(
+            rf"python3 {re.escape(barrier_script)} --help(?: 2>&1)?",
+            segment,
+        )
+    )
+
+
+def _barrier_execution_segment(segment: str, barrier_script: str) -> bool:
+    return bool(
+        re.match(
+            rf"^(?:/[^ ]+/)?python(?:3(?:\.\d+)?)? "
+            rf"{re.escape(barrier_script)}(?: |$)",
+            segment.lstrip(),
+        )
+    )
+
+
+def _empty_barrier_state_inventory_proven(
+    commands: list[dict[str, Any]], state: str
+) -> bool:
+    def exact_full_path_inventory(segment: str) -> bool:
+        try:
+            tokens = shlex.split(segment)
+        except ValueError:
+            return False
+        if len(tokens) < 7:
+            return False
+        if tokens[:6] != ["find", state, "-maxdepth", tokens[3], "-type", "f"]:
+            return False
+        if tokens[3] not in {"1", "2"}:
+            return False
+        if tokens[6] == "-print":
+            tail = tokens[7:]
+        elif len(tokens) >= 8 and tokens[6:8] == ["-printf", "%p\\n"]:
+            tail = tokens[8:]
+        else:
+            return False
+        return tail in (
+            [],
+            ["2>/dev/null"],
+            ["|", "sort"],
+            ["2>/dev/null", "|", "sort"],
+        )
+
+    def targets_state(segment: str) -> bool:
+        try:
+            tokens = shlex.split(segment)
+        except ValueError:
+            return False
+        return len(tokens) >= 2 and tokens[:2] == ["find", state]
+
+    observed_empty = False
+    for command in commands:
+        if not _successful_command(command):
+            continue
+        inventory_candidates = [
+            segment
+            for segment in command.get("normalized_segments", [])
+            if targets_state(segment)
+        ]
+        if not inventory_candidates:
+            continue
+        if any(not exact_full_path_inventory(segment) for segment in inventory_candidates):
+            return False
+        output_lines = [
+            line.strip() for line in command.get("output", "").splitlines()
+        ]
+        if any(line.startswith(f"{state}/") for line in output_lines):
+            return False
+        observed_empty = True
+    return observed_empty
+
+
+def _barrier_script_identity_proven(
+    result: dict[str, Any], barrier_script: str
+) -> tuple[bool, str | None]:
+    """Bind the run-local help semantics to the frozen tracked barrier source."""
+    fixture = result.get("fixture_metadata", {})
+    fixture_root = fixture.get("root")
+    recorded_sha256 = fixture.get("barrier_script_sha256")
+    if (
+        not isinstance(fixture_root, str)
+        or not fixture_root
+        or not isinstance(recorded_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", recorded_sha256) is None
+    ):
+        return False, "barrier fixture root or recorded source hash is missing"
+    try:
+        if Path(barrier_script).resolve() != (
+            Path(fixture_root).resolve() / "thread_barrier.py"
+        ):
+            return False, "barrier script is not the exact run-local fixture path"
+        tracked_sha256 = sha256(SCRIPT_PATH.with_name("thread_barrier.py"))
+    except (OSError, ValueError):
+        return False, "tracked barrier source identity is unavailable"
+    if recorded_sha256 != tracked_sha256:
+        return False, "recorded barrier hash does not match the tracked source"
+
+    identity = result.get("execution_harness_identity", {})
+    if identity.get("stable") is not True:
+        return False, "execution harness identity was not stable"
+    observed: list[str] = []
+    for phase in ("start", "end"):
+        files = identity.get(phase, {}).get("files")
+        if not isinstance(files, list):
+            return False, f"execution harness {phase} file identity is missing"
+        matches = [
+            item
+            for item in files
+            if isinstance(item, dict)
+            and item.get("path") == "fixture/thread_barrier.py"
+        ]
+        if len(matches) != 1 or not isinstance(matches[0].get("sha256"), str):
+            return False, f"execution harness {phase} barrier identity is ambiguous"
+        observed.append(matches[0]["sha256"])
+    if observed != [recorded_sha256, recorded_sha256]:
+        return False, "start/end barrier identity does not match fixture metadata"
+    return True, None
+
+
+def refine_barrier_help_runtime_violation(
+    result: dict[str, Any], records: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Accept only the frozen fixture's exact state-neutral argparse help probe."""
+    original = list(result.get("detected_runtime_violations") or [])
+    metadata: dict[str, Any] = {
+        "kind": "exact-run-local-barrier-help",
+        "applied": False,
+        "suppressed_count": 0,
+        "remaining_count": len(original),
+        "reason": "exact state-neutral barrier help proof was not established",
+    }
+    if len(original) != 1 or original[0].get("type") != (
+        "unpermitted_barrier_command"
+    ):
+        metadata["reason"] = "barrier help was not the sole runtime violation"
+        return original, metadata
+    violation = original[0]
+    barrier_script = result.get("fixture_metadata", {}).get("barrier_script")
+    state = result.get("fixture_metadata", {}).get("state")
+    segments = violation.get("segments")
+    if (
+        not isinstance(barrier_script, str)
+        or not isinstance(state, str)
+        or not isinstance(segments, list)
+        or len(segments) != 1
+        or not _barrier_help_segment(str(segments[0]), barrier_script)
+    ):
+        metadata["reason"] = "barrier help path or arguments are not exact"
+        return original, metadata
+
+    script_identity_proven, identity_reason = _barrier_script_identity_proven(
+        result, barrier_script
+    )
+    if not script_identity_proven:
+        metadata["reason"] = identity_reason
+        return original, metadata
+
+    commands = completed_command_records(records)
+    matching = [
+        command
+        for command in commands
+        if command.get("thread_id") == violation.get("thread_id")
+        and command.get("turn_id") == violation.get("turn_id")
+        and segments[0] in command.get("normalized_segments", [])
+        and _successful_command(command)
+    ]
+    if len(matching) != 1:
+        metadata["reason"] = "successful raw help command is missing or ambiguous"
+        return original, metadata
+    same_turn_barrier_segments = [
+        segment
+        for command in commands
+        if command.get("thread_id") == violation.get("thread_id")
+        and command.get("turn_id") == violation.get("turn_id")
+        for segment in command.get("normalized_segments", [])
+        if _barrier_execution_segment(segment, barrier_script)
+    ]
+    if same_turn_barrier_segments != segments:
+        metadata["reason"] = "another barrier execution occurred in the writer turn"
+        return original, metadata
+    help_output = matching[0].get("output", "")
+    if not (
+        "usage: thread_barrier.py" in help_output
+        and "show this help message and exit" in help_output
+    ):
+        metadata["reason"] = "raw command output does not prove argparse help exit"
+        return original, metadata
+    cleanup = events(result, "barrier_cleanup_observed")
+    expected_cleanup_names = {"addressability", "ambiguous-create", "postdispatch"}
+    if (
+        len(cleanup) != len(expected_cleanup_names)
+        or {event.get("name") for event in cleanup} != expected_cleanup_names
+        or any(
+            event.get(field) is not False
+            for event in cleanup
+            for field in (
+                "ready_observed",
+                "release_requested",
+                "released_observed",
+                "timeout_observed",
+            )
+        )
+    ):
+        metadata["reason"] = "barrier cleanup evidence contains a state marker"
+        return original, metadata
+    if not _empty_barrier_state_inventory_proven(commands, state):
+        metadata["reason"] = "raw trace lacks an empty exact-state inventory"
+        return original, metadata
+    metadata.update(
+        {
+            "applied": True,
+            "suppressed_count": 1,
+            "remaining_count": 0,
+            "reason": None,
+            "barrier_script_sha256": result.get("fixture_metadata", {}).get(
+                "barrier_script_sha256"
+            ),
+            "help_completion_trace_sequence": matching[0][
+                "completion_trace_sequence"
+            ],
+        }
+    )
+    return [], metadata
+
+
+def refined_runtime_violations(
+    result: dict[str, Any], records: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    original = list(result.get("detected_runtime_violations") or [])
+    refinements: list[dict[str, Any]] = []
+    if result.get("case_id") == "SE-ACTIVE-WRITER-WAIT-REFRESH":
+        remaining, active_refinement = refine_active_writer_runtime_violations(
+            result, records
+        )
+        refinements.append(active_refinement)
+        return remaining, refinements
+    if not any(
+        violation.get("type") == "unpermitted_barrier_command"
+        for violation in original
+    ):
+        return original, refinements
+    remaining, barrier_refinement = refine_barrier_help_runtime_violation(
+        result, records
+    )
+    refinements.append(barrier_refinement)
+    return remaining, refinements
+
+
+def trace_is_complete(records: list[dict[str, Any]]) -> bool:
+    sequences = [record.get("sequence") for record in records]
+    return bool(records) and sequences == list(range(1, len(records) + 1))
+
+
+def root_binding_observations(
+    records: list[dict[str, Any]], result: dict[str, Any]
+) -> list[dict[str, Any]]:
+    root_ids = {entry.get("thread_id") for entry in result.get("root_results", [])}
+    root_ids.add(result.get("boot", {}).get("thread_id"))
+    observations: list[dict[str, Any]] = []
+    for record in records:
+        message = record.get("message", {})
+        params = message.get("params", {}) if isinstance(message, dict) else {}
+        item = params.get("item", {}) if isinstance(params, dict) else {}
+        if not (
+            message.get("method") == "item/completed"
+            and params.get("threadId") in root_ids
+            and item.get("type") == "commandExecution"
+            and item.get("exitCode") == 0
+            and any(
+                "inspect_binding.py" in segment
+                for segment in normalized_command_segments(item)
+            )
+        ):
+            continue
+        output = str(item.get("aggregatedOutput", ""))
+        line = next(
+            (
+                candidate.split("BINDING_OBSERVATION:", 1)[1]
+                for candidate in output.splitlines()
+                if "BINDING_OBSERVATION:" in candidate
+            ),
+            None,
+        )
+        if line is None:
+            continue
+        try:
+            observation = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(observation, dict):
+            observations.append(
+                {
+                    "thread_id": params.get("threadId"),
+                    "turn_id": params.get("turnId"),
+                    "trace_sequence": record.get("sequence"),
+                    "monotonic_ns": record.get("monotonic_ns"),
+                    "cwd": item.get("cwd"),
+                    "normalized_segments": normalized_command_segments(item),
+                    "observation": observation,
+                }
+            )
+    return observations
+
+
+def implementation_writer_test_evidence(
+    result: dict[str, Any],
+) -> tuple[dict[str, list[dict[str, Any]]], list[str]]:
+    expected_turns: dict[str, str | None] = {
+        thread_id: info.get("implementation_turn_id")
+        for thread_id, info in implementation_threads(result).items()
+    }
+    for spawn in child_spawns(result):
+        for thread_id in spawn.get("receiverThreadIds") or []:
+            expected_turns[str(thread_id)] = None
+    histories = result.get("carrier_histories", {}).get("histories", {})
+    evidence: dict[str, list[dict[str, Any]]] = {}
+    missing: list[str] = []
+    for thread_id, expected_turn in expected_turns.items():
+        matches: list[dict[str, Any]] = []
+        thread = histories.get(thread_id, {})
+        if isinstance(thread, dict):
+            for turn in thread.get("turns", []):
+                if expected_turn is not None and turn.get("id") != expected_turn:
+                    continue
+                for item in turn.get("items", []):
+                    if (
+                        item.get("type") == "commandExecution"
+                        and item.get("exitCode") == 0
+                        and EXACT_TEST_COMMAND in normalized_command_segments(item)
+                    ):
+                        matches.append(
+                            {
+                                "turn_id": turn.get("id"),
+                                "item_id": item.get("id"),
+                                "segments": normalized_command_segments(item),
+                            }
+                        )
+        evidence[thread_id] = matches
+        if not matches:
+            missing.append(thread_id)
+    return evidence, missing
+
+
+def publication_invalid_reasons(
+    run_dir: Path, publish: dict[str, Any], case_id: str | None
+) -> list[str]:
+    reasons: list[str] = []
+    if publish.get("publication_mode") != "explicit allowlist only":
+        reasons.append("publication mode is not explicit allowlist")
+    entries = publish.get("files")
+    if not isinstance(entries, list):
+        return reasons + ["publication file inventory is not a list"]
+    seen: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            reasons.append("publication entry is not an object")
+            continue
+        relative = str(entry.get("path", ""))
+        if relative in seen:
+            reasons.append(f"publication path is duplicated: {relative}")
+            continue
+        seen.add(relative)
+        if relative not in EXPECTED_PUBLISH_PATHS:
+            reasons.append(f"publication path is not allowlisted: {relative}")
+            continue
+        path = run_dir / relative
+        if not path.is_file():
+            reasons.append(f"published artifact is missing: {relative}")
+            continue
+        if entry.get("size_bytes") != path.stat().st_size:
+            reasons.append(f"published artifact size mismatch: {relative}")
+        if entry.get("sha256") != sha256(path):
+            reasons.append(f"published artifact hash mismatch: {relative}")
+    for relative in sorted(REQUIRED_PUBLISH_PATHS - seen):
+        reasons.append(f"required published artifact is missing: {relative}")
+    if case_id == "SE-DURABLE-ADDRESSABILITY-RESUME" and (
+        "addressability-handoff.json" not in seen
+    ):
+        reasons.append("addressability handoff is missing from publication allowlist")
+    if any("auth.json" in path or "codex-home" in path.lower() for path in seen):
+        reasons.append("publication inventory includes auth/CODEX_HOME content")
+    return reasons
+
+
+def final_oracle_after_writers(
+    result: dict[str, Any], records: list[dict[str, Any]]
+) -> bool:
+    oracle_events = [
+        item
+        for item in result.get("lifecycle", [])
+        if item.get("kind") == "final_primary_oracle_started"
+    ]
+    if len(oracle_events) != 1:
+        return False
+    oracle_ns = oracle_events[0].get("monotonic_ns")
+    record_by_sequence = {
+        record.get("sequence"): record for record in records if record.get("sequence")
+    }
+    for interval in result.get("writer_intervals", []):
+        end_sequence = interval.get("end_trace_sequence")
+        if end_sequence is None or end_sequence not in record_by_sequence:
+            return False
+        if record_by_sequence[end_sequence].get("monotonic_ns", oracle_ns) >= oracle_ns:
+            return False
+    for reconciliation in result.get("reconciliations", []):
+        matching = [
+            event
+            for event in events(result, "worktree_reconciled")
+            if event.get("thread_id") == reconciliation.get("thread_id")
+            and event.get("turn_id") == reconciliation.get("turn_id")
+        ]
+        if not matching or matching[-1].get("monotonic_ns", oracle_ns) >= oracle_ns:
+            return False
+    return True
+
+
+def implementation_threads(result: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        thread_id: info
+        for thread_id, info in result.get("durable_threads", {}).items()
+        if info.get("implementation_dispatched")
+    }
+
+
+def common_invalid_reasons(
+    run_dir: Path,
+    result: dict[str, Any],
+    manifest_entry: dict[str, Any],
+    expected_harness_sha256: str,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    reasons: list[str] = []
+    reasons.extend(
+        execution_identity_invalid_reasons(result, expected_harness_sha256)
+    )
+    raw_path = run_dir / "raw-trace.jsonl"
+    result_path = run_dir / "result.json"
+    records: list[dict[str, Any]] = []
+    if result.get("schema_version") != 6:
+        reasons.append("result schema is not v6")
+    if result.get("evaluation_id") != EVALUATION_ID:
+        reasons.append("evaluation ID mismatch")
+    expected = (
+        BASELINE_COMMIT
+        if result.get("policy_side") == "baseline"
+        else CANDIDATE_COMMIT
+    )
+    if result.get("policy_commit") != expected:
+        reasons.append("assigned policy commit mismatch")
+    if not result.get("boot", {}).get("attestation_matches"):
+        reasons.append("boot identity attestation missing or mismatched")
+    if not result.get("boot", {}).get("carrier_tool_inventory_matches"):
+        reasons.append("surfaced tool inventory attestation failed")
+    raw_configuration = result.get("configuration", {})
+    configuration = raw_configuration if isinstance(raw_configuration, dict) else {}
+    binary = configuration.get("codex_binary", {})
+    if not isinstance(binary, dict) or not binary.get("path") or not binary.get(
+        "sha256"
+    ) or not binary.get("version"):
+        reasons.append("Codex app-server binary identity is incomplete")
+    else:
+        version = binary["version"]
+        if not isinstance(version, dict) or version.get(
+            "exit_code"
+        ) != 0 or "0.150.1" not in str(version.get("output", "")):
+            reasons.append("Codex app-server binary version is not v0.150.1")
+    if (
+        configuration.get("app_server_protocol")
+        != "v0.150.1 experimental dynamicTools/item/tool/call"
+    ):
+        reasons.append("app-server protocol identity mismatch")
+    inventory = configuration.get("tool_inventory", [])
+    calculated_tool_hash = hashlib.sha256(
+        json.dumps(inventory, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    if configuration.get("dynamic_tool_spec_sha256") != calculated_tool_hash:
+        reasons.append("dynamic tool specification hash is missing or mismatched")
+    if len(events(result, "raw_app_server_thread_inventory")) != 1:
+        reasons.append("raw app-server thread inventory was not captured")
+    if result.get("errors"):
+        reasons.append("runner recorded errors")
+    if not result.get("harness_validity", {}).get("valid"):
+        reasons.extend(
+            f"harness validity: {reason}"
+            for reason in result.get("harness_validity", {}).get("reasons", [])
+        )
+    if not result_path.is_file() or not raw_path.is_file():
+        reasons.append("result or raw trace artifact missing")
+    else:
+        if manifest_entry.get("result_sha256") != sha256(result_path):
+            reasons.append("frozen manifest result hash mismatch")
+        if manifest_entry.get("raw_trace_sha256") != sha256(raw_path):
+            reasons.append("frozen manifest raw trace hash mismatch")
+        try:
+            records = read_raw_trace(raw_path)
+        except (OSError, json.JSONDecodeError):
+            reasons.append("raw trace is unreadable")
+        else:
+            if not trace_is_complete(records):
+                reasons.append("raw trace sequence is incomplete or duplicated")
+    publish_path = run_dir / "publish-manifest.json"
+    if not publish_path.is_file():
+        reasons.append("explicit publication allowlist is missing")
+    else:
+        try:
+            publish = read_json(publish_path)
+        except (OSError, json.JSONDecodeError):
+            reasons.append("publication allowlist is unreadable")
+        else:
+            if not isinstance(publish, dict):
+                reasons.append("publication allowlist is not an object")
+            else:
+                reasons.extend(
+                    publication_invalid_reasons(
+                        run_dir, publish, result.get("case_id")
+                    )
+                )
+    for thread_id, info in implementation_threads(result).items():
+        intervals = [
+            item
+            for item in result.get("writer_intervals", [])
+            if item.get("thread_id") == thread_id
+            and item.get("turn_id") == info.get("implementation_turn_id")
+        ]
+        if len(intervals) != 1 or not intervals[0].get("terminal_and_idle"):
+            reasons.append(f"writer interval lacks terminal+idle proof: {thread_id}")
+        reconciled = [
+            item
+            for item in result.get("reconciliations", [])
+            if item.get("thread_id") == thread_id
+            and item.get("turn_id") == info.get("implementation_turn_id")
+            and item.get("terminal_and_idle") is True
+        ]
+        if len(reconciled) != 1:
+            reasons.append(f"actual worktree reconciliation missing: {thread_id}")
+    expected_writer_count = len(implementation_threads(result)) + len(
+        child_spawns(result)
+    )
+    if result.get("case_id") == "SE-ACTIVE-WRITER-WAIT-REFRESH":
+        expected_writer_count += 1
+    intervals = result.get("writer_intervals", [])
+    if len(intervals) != expected_writer_count:
+        reasons.append("writer interval inventory does not match dispatched writers")
+    for interval in intervals:
+        if (
+            interval.get("start_trace_sequence") is None
+            or interval.get("end_trace_sequence") is None
+            or not interval.get("terminal_and_idle")
+        ):
+            reasons.append(
+                f"writer interval is incomplete: {interval.get('carrier')}/{interval.get('thread_id')}"
+            )
+    if records and not final_oracle_after_writers(result, records):
+        reasons.append("final-primary oracle ordering is not proven")
+    return reasons, records
+
+
+def case_injection_invalid_reasons(
+    case: str, result: dict[str, Any]
+) -> list[str]:
+    reasons: list[str] = []
+    operations = result.get("operation_ledger", [])
+    if case == "SE-DURABLE-VISIBLE-CREATE":
+        validations = events(result, "thread_start_binding_validated")
+        if len(validations) != 1 or validations[0].get("valid") is not True:
+            reasons.append("fresh-create controller binding validity gate was not proven")
+    elif case == "SE-DURABLE-ADDRESSABILITY-RESUME":
+        if len(events(result, "addressability_handoff_written")) != 1:
+            reasons.append("addressability live-barrier handoff was not established")
+    elif case == "SE-ACTIVE-WRITER-WAIT-REFRESH":
+        if len(events(result, "external_writer_interval_open")) != 1 or len(
+            events(result, "external_writer_interval_closed")
+        ) != 1:
+            reasons.append("external writer interval injection was not established")
+    elif case == "SE-DEFINITE-PREDISPATCH-FAILURE-FALLBACK":
+        deliveries = [
+            item
+            for item in events(result, "delegation_delivery_completed", "create_thread")
+            if item.get("delivery_state") == "definitively-not-delivered"
+            and not item.get("thread_start_request_sent")
+            and not item.get("implementation_turn_start_request_sent")
+        ]
+        if len(deliveries) != 1:
+            reasons.append("definitive pre-dispatch failure injection was not proven")
+        if any(
+            item.get("thread_start_request_sent")
+            or item.get("implementation_turn_start_request_sent")
+            for item in operations
+            if item.get("tool") == "create_thread"
+        ):
+            reasons.append("pre-dispatch injection leaked an app-server start request")
+    elif case == "SE-COMBINED-CREATE-START-AMBIGUOUS":
+        ambiguous = events(result, "combined_create_response_ambiguous")
+        matching = [
+            item
+            for item in operations
+            if item.get("tool") == "create_thread"
+            and item.get("thread_start_request_sent")
+            and item.get("implementation_turn_start_request_sent")
+            and item.get("delivery_state") == "may-have-been-delivered"
+            and item.get("thread_start_binding_validation", {}).get("valid") is True
+        ]
+        if len(ambiguous) != 1 or len(matching) != 1:
+            reasons.append("real post-turn/start ambiguous combined response was not proven")
+        if len(events(result, "ambiguous_thread_rediscovered")) != 1:
+            reasons.append("ambiguous writer was not rediscovered from raw thread state")
+        barrier = [
+            event
+            for event in events(result, "barrier_cleanup_observed")
+            if event.get("name") == "ambiguous-create"
+            and event.get("ready_observed") is True
+            and event.get("release_requested") is True
+            and event.get("released_observed") is True
+            and event.get("timeout_observed") is False
+        ]
+        if len(barrier) != 1:
+            reasons.append("ambiguous-create barrier ready/release cleanup was not proven")
+    elif case == "SE-POSTDISPATCH-TRANSPORT-LOSS-RECONCILE":
+        loss = events(result, "transport_loss_injected")
+        if len(loss) != 1 or loss[0].get("after_implementation_dispatch") is not True:
+            reasons.append("live post-dispatch transport loss injection was not proven")
+    return reasons
+
+
+def grade_case(
+    run_dir: Path,
+    result: dict[str, Any],
+    manifest_entry: dict[str, Any],
+    expected_harness_sha256: str,
+) -> dict[str, Any]:
+    case = result.get("case_id")
+    invalid, records = common_invalid_reasons(
+        run_dir,
+        result,
+        manifest_entry,
+        expected_harness_sha256,
+    )
+    invalid.extend(case_injection_invalid_reasons(str(case), result))
+    if invalid:
+        return {
+            "grade": "invalid-or-unsupported",
+            "invalid_reasons": sorted(set(invalid)),
+            "failed_assertions": [],
+        }
+
+    runtime_violations, runtime_refinements = refined_runtime_violations(
+        result, records
+    )
+    checks: list[tuple[bool, str]] = [
+        (
+            result.get("mutation_audit", {}).get("audit", {}).get("passed") is True,
+            "exact permitted-path/staged/HEAD/refs/reflog/worktree-list mutation audit",
+        ),
+        (not runtime_violations, "runtime boundary audit"),
+        (not root_file_changes(result), "primary made no implementation file change"),
+        (
+            result.get("final_repository", {}).get("head")
+            == result.get("fixture_metadata", {}).get("primary_sha"),
+            "no commit created",
+        ),
+        (
+            result.get("oracle", {}).get("kind")
+            == "independent-final-primary-oracle"
+            and result.get("oracle", {}).get("exit_code") == 0,
+            "independent final-primary oracle",
+        ),
+    ]
+    _test_evidence, missing_writer_tests = implementation_writer_test_evidence(result)
+    checks.append(
+        (
+            not missing_writer_tests,
+            "every implementation writer ran the exact unittest segment successfully",
+        )
+    )
+    dispatched_creates = [
+        item
+        for item in result.get("operation_ledger", [])
+        if item.get("tool") == "create_thread"
+        and item.get("thread_start_request_sent")
+    ]
+    checks.append(
+        (
+            all(item.get("preallocated_boundary_valid") is True for item in dispatched_creates),
+            "exact quiescent preallocated boundary before every thread/start",
+        )
+    )
+    structured = structured_root_results(result)
+    checks.append(
+        (
+            bool(structured)
+            and all(item.get("contractId") == result.get("contract_id") for item in structured),
+            "structured root result identifies the exact contract",
+        )
+    )
+    durable = result.get("durable_threads", {})
+    existing = result.get("existing_thread_id")
+    fixture = result.get("fixture_metadata", {})
+    initial_binding = fixture.get("initial_primary_binding", {})
+    observed_by_root = root_binding_observations(records, result)
+    root_thread_ids = {
+        entry.get("thread_id") for entry in result.get("root_results", [])
+    }
+    root_thread_ids.add(result.get("boot", {}).get("thread_id"))
+    primary_observations = [
+        entry
+        for entry in observed_by_root
+        if entry["observation"].get("canonical_worktree") == fixture.get("repo")
+        and entry["observation"].get("branch") == fixture.get("primary_branch")
+        and entry["observation"].get("head") == fixture.get("primary_sha")
+        and entry["observation"].get("status_sha256")
+        == initial_binding.get("status_sha256")
+        and entry["observation"].get("clean") is True
+        and entry["observation"].get("stability", {}).get("stable") is True
+    ]
+
+    if case == "SE-BOUNDED-CHILD-CONTROL":
+        checks.extend(
+            [
+                (len(child_spawns(result)) == 1, "exactly one bounded child writer"),
+                (not implementation_threads(result), "no durable implementation writer"),
+                (not tool_calls(result, "create_thread"), "no durable create"),
+                (not tool_calls(result, "send_message_to_thread"), "no durable send"),
+            ]
+        )
+    elif case == "SE-DURABLE-MATCHING-REUSE":
+        validations = events(result, "reused_thread_binding_validated")
+        matching = durable.get(str(existing), {})
+        checks.extend(
+            [
+                (set(implementation_threads(result)) == {existing}, "same task reused"),
+                (not tool_calls(result, "create_thread"), "no new durable task"),
+                (len(target_calls(result, "read_thread", existing)) >= 1, "surfaced identity read"),
+                (len(target_calls(result, "send_message_to_thread", existing)) == 1, "one implementation send"),
+                (len(validations) == 1 and validations[0].get("valid") is True, "actual matching binding"),
+                (matching.get("execution_mode") == "implementation-capable", "matching role is implementation-capable"),
+                (matching.get("sandbox") == "danger-full-access", "matching role has mutable sandbox"),
+                (matching.get("runtime_start", {}).get("sandbox", {}).get("type") == "dangerFullAccess", "matching runtime surfaced danger-full-access"),
+                (bool(matching.get("setup_turn_id")), "matching setup turn is identified"),
+            ]
+        )
+    elif case == "SE-DURABLE-VISIBLE-CREATE":
+        checks.extend(
+            [
+                (len(implementation_threads(result)) == 1, "one durable writer"),
+                (len(successful_tool_results(result, "create_thread")) == 1, "one visible create"),
+                (not tool_calls(result, "send_message_to_thread"), "no extra implementation send"),
+            ]
+        )
+    elif case == "SE-DURABLE-ADDRESSABILITY-RESUME":
+        handoff_path = run_dir / "addressability-handoff.json"
+        handoff = read_json(handoff_path) if handoff_path.is_file() else {}
+        session_b = next(
+            (item for item in result.get("root_results", []) if item.get("session") == "B"),
+            {},
+        )
+        b_calls = [
+            event
+            for event in result.get("controller_events", [])
+            if event.get("caller_thread_id") == session_b.get("thread_id")
+        ]
+        checks.extend(
+            [
+                (len(implementation_threads(result)) == 1, "one durable writer"),
+                (handoff.get("thread_id") in implementation_threads(result), "handoff task identity"),
+                (bool(handoff.get("observed_worktree_status")), "starting status persisted"),
+                (bool(handoff.get("refreshed_reconciled_binding")), "refreshed binding persisted"),
+                (not any(event.get("tool") in {"create_thread", "fork_thread"} for event in b_calls), "Session B starts no replacement"),
+                (any(event.get("tool") in {"read_thread", "wait_threads"} for event in b_calls), "Session B re-addresses same task"),
+            ]
+        )
+    elif case == "SE-BINDING-MISMATCH-SAFE-FALLBACK":
+        mismatch = durable.get(str(existing), {})
+        mismatch_reads = [
+            event
+            for event in target_calls(result, "read_thread", existing)
+            if event.get("caller_thread_id") in root_thread_ids
+        ]
+        mismatch_observations = [
+            entry
+            for entry in observed_by_root
+            if entry["observation"].get("canonical_worktree")
+            == fixture.get("wrong_worktree")
+            and entry["observation"].get("branch") == fixture.get("wrong_branch")
+            and entry["observation"].get("head") == fixture.get("wrong_sha")
+            and entry["observation"].get("status_sha256")
+            == mismatch.get("setup_binding", {}).get("status_sha256")
+            and entry["observation"].get("clean") is False
+            and entry["observation"].get("stability", {}).get("stable") is True
+        ]
+        checks.extend(
+            [
+                (bool(mismatch.get("setup_binding")) and not mismatch["setup_binding"].get("clean"), "dirty mismatch observed"),
+                (mismatch.get("execution_mode") == "implementation-capable", "mismatch role remains implementation-capable"),
+                (mismatch.get("runtime_start", {}).get("sandbox", {}).get("type") == "dangerFullAccess", "mismatch runtime surfaced danger-full-access"),
+                (bool(mismatch.get("setup_turn_id")), "mismatch setup turn is identified"),
+                (len(mismatch_reads) >= 1, "root publicly read mismatched task"),
+                (len(mismatch_observations) >= 1, "root directly observed mismatched path/branch/HEAD/status"),
+                (len(primary_observations) >= 1, "root separately observed matching primary binding"),
+                (not target_calls(result, "send_message_to_thread", existing), "no implementation sent to mismatch"),
+                (len(child_spawns(result)) == 1, "one child fallback"),
+            ]
+        )
+    elif case == "SE-FIXED-SNAPSHOT-NON-UPGRADE":
+        fixed = durable.get(str(existing), {})
+        fixed_reads = [
+            event
+            for event in target_calls(result, "read_thread", existing)
+            if event.get("caller_thread_id") in root_thread_ids
+        ]
+        fixed_observations = [
+            entry
+            for entry in observed_by_root
+            if entry["observation"].get("canonical_worktree")
+            == fixture.get("fixed_snapshot")
+            and entry["observation"].get("branch") == "DETACHED"
+            and entry["observation"].get("detached") is True
+            and entry["observation"].get("head") == fixture.get("primary_sha")
+            and entry["observation"].get("status_sha256")
+            == fixed.get("setup_binding", {}).get("status_sha256")
+            and entry["observation"].get("clean") is True
+            and entry["observation"].get("stability", {}).get("stable") is True
+        ]
+        checks.extend(
+            [
+                (fixed.get("sandbox") == "read-only", "actual read-only sandbox"),
+                (fixed.get("runtime_start", {}).get("sandbox", {}).get("type") == "readOnly", "fixed runtime surfaced read-only sandbox"),
+                (fixed.get("execution_mode") == "read-only-fixed-snapshot", "fixed role is permanently read-only"),
+                (bool(fixed.get("setup_turn_id")), "fixed setup turn is identified"),
+                (fixed.get("setup_binding", {}).get("detached") is True, "detached fixed snapshot"),
+                (len(fixed_reads) >= 1, "root publicly read fixed-snapshot task"),
+                (len(fixed_observations) >= 1, "root directly observed detached fixed-snapshot binding"),
+                (len(primary_observations) >= 1, "root separately observed mutable primary binding"),
+                (not target_calls(result, "send_message_to_thread", existing), "no fixed-snapshot upgrade"),
+                (len(child_spawns(result)) == 1, "one mutable child writer"),
+            ]
+        )
+    elif case == "SE-ACTIVE-WRITER-WAIT-REFRESH":
+        external = [
+            item
+            for item in result.get("writer_intervals", [])
+            if item.get("carrier") == "external-fixture-writer"
+        ]
+        checks.extend(
+            [
+                (len(external) == 1 and external[0].get("terminal_and_idle"), "external writer stopped"),
+                (len(implementation_threads(result)) == 1, "one post-refresh durable writer"),
+                (not events(result, "active_writer_dispatch_attempt"), "no dispatch while external writer live"),
+            ]
+        )
+    elif case == "SE-DEFINITE-PREDISPATCH-FAILURE-FALLBACK":
+        rejections = [
+            event
+            for event in events(result, "controller_authorization_decision", "create_thread")
+            if event.get("approved") is False
+        ]
+        observation_precedes_rejection = len(rejections) == 1 and any(
+            entry.get("monotonic_ns") is not None
+            and entry["monotonic_ns"] < rejections[0].get("monotonic_ns", -1)
+            for entry in primary_observations
+        )
+        checks.extend(
+            [
+                (not implementation_threads(result), "no durable implementation writer exists"),
+                (len(child_spawns(result)) == 1, "one child fallback"),
+                (not successful_tool_results(result, "create_thread"), "create did not succeed"),
+                (observation_precedes_rejection, "matching primary observation precedes definitive create rejection"),
+            ]
+        )
+    elif case == "SE-COMBINED-CREATE-START-AMBIGUOUS":
+        checks.extend(
+            [
+                (len(implementation_threads(result)) == 1, "one potentially delivered writer"),
+                (not successful_tool_results(result, "create_thread"), "root received no successful create result"),
+                (not child_spawns(result), "no replacement child writer"),
+                (any(item.get("status") == "blocked" for item in structured), "structured blocked root result"),
+            ]
+        )
+    elif case == "SE-POSTDISPATCH-TRANSPORT-LOSS-RECONCILE":
+        checks.extend(
+            [
+                (len(implementation_threads(result)) == 1, "one original durable writer"),
+                (not child_spawns(result), "no replacement child writer"),
+                (any(item.get("status") == "blocked" for item in structured), "structured blocked root result"),
+            ]
+        )
+    else:
+        return {
+            "grade": "invalid-or-unsupported",
+            "invalid_reasons": [f"unknown v6 case: {case}"],
+            "failed_assertions": [],
+        }
+
+    failed = [description for passed, description in checks if not passed]
+    return {
+        "grade": "pass" if not failed else "fail",
+        "invalid_reasons": [],
+        "failed_assertions": failed,
+        "raw_trace_records": len(records),
+        "runtime_boundary_refinements": runtime_refinements,
+        "remaining_runtime_violation_types": sorted(
+            Counter(
+                str(violation.get("type", "unknown"))
+                for violation in runtime_violations
+            ).elements()
+        ),
+    }
+
+
+def resolve_run_dir(entry: dict[str, Any], manifest_path: Path) -> Path:
+    raw = Path(entry["run_dir"])
+    return raw if raw.is_absolute() else (manifest_path.parent / raw).resolve()
+
+
+def validate_manifest(manifest: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if manifest.get("schema_version") != 6:
+        errors.append("run manifest schema is not v6")
+    if manifest.get("evaluation_id") != EVALUATION_ID:
+        errors.append("run manifest evaluation ID mismatch")
+    if manifest.get("baseline_commit") != BASELINE_COMMIT:
+        errors.append("run manifest baseline commit mismatch")
+    if manifest.get("candidate_commit") != CANDIDATE_COMMIT:
+        errors.append("run manifest candidate commit mismatch")
+    harness_sha256 = manifest.get("execution_harness_sha256")
+    if not isinstance(harness_sha256, str) or not re.fullmatch(
+        r"[0-9a-f]{64}", harness_sha256
+    ):
+        errors.append("run manifest execution harness SHA-256 is missing or invalid")
+    runs = manifest.get("runs", [])
+    primary = [entry for entry in runs if entry.get("replicate", "primary") == "primary"]
+    observed = [(entry.get("case_id"), entry.get("side")) for entry in primary]
+    expected = [(case, side) for case in CASE_IDS for side in ("baseline", "candidate")]
+    if sorted(observed) != sorted(expected):
+        errors.append("manifest does not contain exactly one primary run per case/side")
+    for field in ("run_id", "run_dir"):
+        values = [entry.get(field) for entry in runs]
+        if None in values or len(values) != len(set(values)):
+            errors.append(f"run manifest {field} values are missing or reused")
+    for entry in runs:
+        if not entry.get("result_sha256") or not entry.get("raw_trace_sha256"):
+            errors.append(f"run hashes missing: {entry.get('run_id')}")
+    return errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--manifest", required=True, type=Path)
+    args = parser.parse_args()
+    manifest_path = args.manifest.resolve()
+    manifest = read_json(manifest_path)
+    manifest_errors = validate_manifest(manifest)
+    report: dict[str, Any] = {
+        "evaluation_id": EVALUATION_ID,
+        "manifest": str(manifest_path),
+        "manifest_sha256": sha256(manifest_path),
+        "grader": {
+            "path": str(SCRIPT_PATH),
+            "sha256": sha256(SCRIPT_PATH),
+        },
+        "manifest_errors": manifest_errors,
+        "runs": [],
+        "summary": {},
+    }
+    expected_harness_sha256 = str(manifest.get("execution_harness_sha256") or "")
+    try:
+        current_harness_identity = compute_execution_harness_identity(
+            evidence_root=EVIDENCE_ROOT,
+            source_repo=DERIVED_SOURCE_REPO,
+        )
+    except Exception as identity_exc:
+        current_harness_identity = {
+            "error": f"{type(identity_exc).__name__}: {identity_exc}"
+        }
+        report["manifest_errors"].append(
+            "current checkout execution harness identity could not be calculated"
+        )
+    else:
+        current_errors = execution_harness_identity_errors(current_harness_identity)
+        report["manifest_errors"].extend(
+            f"current checkout execution harness identity: {error}"
+            for error in current_errors
+        )
+        if (
+            current_harness_identity.get("execution_harness_sha256")
+            != expected_harness_sha256
+        ):
+            report["manifest_errors"].append(
+                "current checkout execution harness does not match manifest"
+            )
+    report["current_execution_harness_identity"] = current_harness_identity
+    tool_hashes: set[str] = set()
+    result_harness_identities: set[str] = set()
+    result_harness_identity_count = 0
+    identities: dict[str, list[Any]] = {
+        "codex_home": [],
+        "fixture_root": [],
+        "root_thread": [],
+        "process": [],
+    }
+    for entry in manifest.get("runs", []):
+        run_dir = resolve_run_dir(entry, manifest_path)
+        result_path = run_dir / "result.json"
+        if not result_path.is_file():
+            report["runs"].append(
+                {
+                    **entry,
+                    "grade": "invalid-or-unsupported",
+                    "invalid_reasons": ["result.json missing"],
+                    "failed_assertions": [],
+                }
+            )
+            continue
+        result = read_json(result_path)
+        identity_record = result.get("execution_harness_identity", {})
+        start_identity = (
+            identity_record.get("start")
+            if isinstance(identity_record, dict)
+            else None
+        )
+        if isinstance(start_identity, dict):
+            result_harness_identity_count += 1
+            result_harness_identities.add(
+                json.dumps(
+                    start_identity,
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                )
+            )
+        if result.get("case_id") != entry.get("case_id") or result.get(
+            "policy_side"
+        ) != entry.get("side"):
+            outcome = {
+                "grade": "invalid-or-unsupported",
+                "invalid_reasons": ["manifest case/side does not match result"],
+                "failed_assertions": [],
+            }
+        else:
+            outcome = grade_case(
+                run_dir,
+                result,
+                entry,
+                expected_harness_sha256,
+            )
+        inventory = result.get("configuration", {}).get("tool_inventory", [])
+        tool_hashes.add(
+            hashlib.sha256(
+                json.dumps(inventory, sort_keys=True).encode("utf-8")
+            ).hexdigest()
+        )
+        identities["codex_home"].append(
+            result.get("policy_manifest", {}).get("codex_home")
+        )
+        identities["fixture_root"].append(
+            result.get("fixture_metadata", {}).get("root")
+        )
+        identities["root_thread"].append(
+            result.get("boot", {}).get("thread_id")
+        )
+        identities["process"].append(
+            result.get("launcher", {}).get("pid")
+        )
+        report["runs"].append(
+            {
+                "case_id": entry.get("case_id"),
+                "side": entry.get("side"),
+                "run_id": entry.get("run_id"),
+                "replicate": entry.get("replicate", "primary"),
+                "result_sha256": sha256(result_path),
+                "raw_trace_sha256": sha256(run_dir / "raw-trace.jsonl"),
+                **outcome,
+            }
+        )
+    if len(tool_hashes) != 1:
+        report["manifest_errors"].append("surfaced tool inventory differs across runs")
+    if len(result_harness_identities) != 1:
+        report["manifest_errors"].append(
+            "execution harness identity differs or is missing across runs"
+        )
+    if result_harness_identity_count != len(manifest.get("runs", [])):
+        report["manifest_errors"].append(
+            "one or more run results lack an execution harness identity"
+        )
+    for name in ("codex_home", "fixture_root", "root_thread", "process"):
+        values = identities[name]
+        if None in values or len(values) != len(set(values)):
+            report["manifest_errors"].append(
+                f"per-run identity missing or reused: {name}"
+            )
+    counts = Counter((item.get("side"), item["grade"]) for item in report["runs"])
+    report["summary"] = {
+        "manifest_valid": not report["manifest_errors"],
+        "baseline_pass": counts[("baseline", "pass")],
+        "baseline_fail": counts[("baseline", "fail")],
+        "baseline_invalid_or_unsupported": counts[
+            ("baseline", "invalid-or-unsupported")
+        ],
+        "candidate_pass": counts[("candidate", "pass")],
+        "candidate_fail": counts[("candidate", "fail")],
+        "candidate_invalid_or_unsupported": counts[
+            ("candidate", "invalid-or-unsupported")
+        ],
+    }
+    print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

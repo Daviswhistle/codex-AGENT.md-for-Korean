@@ -1,396 +1,212 @@
 {
-  "evaluation_id": "software-engineering-durable-thread-v5",
+  "evaluation_id": "software-engineering-durable-thread-v6-runtime-boundary",
+  "schema_version": 6,
   "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
-  "candidate_policy_commit": "4a87005223d235dc29873fbe602445617a52decb",
+  "candidate_policy_commit": "a7056f2469b1b8c6ae8cb996f4624e9c333205cd",
+  "surface_claim": "controller-hosted codex_tui compatibility surface backed by the official v0.150.1 app-server protocol; not stock TUI approval E2E",
+  "execution_harness": {
+    "runner": "fixture/run_evaluation.py",
+    "grader": "fixture/grade_runs.py",
+    "manifest_identity_field": "execution_harness_sha256",
+    "identity_path_base": "evidence/software-engineering/2026-08-27-durable-thread-carrier",
+    "identity_files": [
+      "cases.json",
+      "fixture/hold_writer.py",
+      "fixture/inspect_binding.py",
+      "fixture/install_policy.py",
+      "fixture/run_evaluation.py",
+      "fixture/setup.py",
+      "fixture/task.md",
+      "fixture/teardown.py",
+      "fixture/thread_barrier.py",
+      "fixture/verify.py"
+    ],
+    "excluded_non_runtime_files": [
+      "fixture/controller.md",
+      "fixture/README.md",
+      "fixture/self_test.py",
+      "fixture/grade_runs.py"
+    ],
+    "stability_gate": "record complete start/end identities in every result; any missing, malformed, or changed identity makes the run harness-invalid"
+  },
+  "final_run_policy": {
+    "exploratory_exclusion": "the eight runs already present under the pre-identity primary-20 directory are exploratory and excluded from the final manifest",
+    "fresh_final_set": "run all ten baseline/candidate pairs from fresh state with one identical execution_harness_sha256",
+    "infrastructure_rerun": "one fresh rerun is permitted only for an infrastructure or harness-invalid execution; preserve both runs and record the excluded run plus exact reason",
+    "valid_fail": "a valid behavioral fail is final and must not be replaced by a rerun",
+    "model_injection_noncompliance": "model noncompliance that prevents the required injection remains the primary invalid-or-unsupported outcome; do not cherry-pick another run"
+  },
   "run_isolation": {
-    "unit": "one completely fresh state per individual baseline or candidate execution",
+    "unit": "one completely fresh state per baseline or candidate execution",
     "unique_per_execution": [
       "RUN_ID",
       "CONTRACT_ID",
       "RUN_DIR",
       "CODEX_HOME",
-      "root session",
-      "model context",
-      "thread or child-task identity",
-      "controller state directory",
+      "root session and model context",
+      "controller/app-server process",
+      "thread and child identities",
       "fixture repository and worktrees",
-      "policy checkout",
-      "policy-load manifest",
-      "Codex launcher process and environment",
-      "boot-attestation output"
+      "policy checkout and boot attestation"
     ],
     "identical_across_pair": [
       "model",
       "reasoning effort",
-      "sandbox",
-      "approval policy",
-      "surfaced tool inventory",
+      "surfaced tools",
       "fixture revision",
       "logical case setup",
       "user prompt",
-      "boot-attestation prompt"
+      "failure-injection phase",
+      "execution_harness_sha256"
     ]
   },
   "common_fixture": {
     "task_file": "fixture/task.md",
     "controller": "fixture/controller.md",
     "setup_command": "python3 fixture/setup.py --root <RUN_DIR>/fixture",
-    "metadata_file": "<RUN_DIR>/fixture/fixture-metadata.json",
+    "barrier_script": "<RUN_DIR>/fixture/thread_barrier.py, copied byte-identically with executable mode and recorded as absolute metadata.barrier_script",
+    "binding_command": "python3 fixture/inspect_binding.py --repo <worktree> --stability-delay-ms 100",
     "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo",
-    "barrier_command": "python3 fixture/thread_barrier.py --state <state> --name <BARRIER_NAME>",
     "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>/fixture",
-    "authority": "edit and test; no commit",
-    "policy_install_command": "python3 fixture/install_policy.py --source-repo <EVALUATION_REPOSITORY> --policy-commit <POLICY_COMMIT> --policy-side <baseline|candidate> --run-dir <RUN_DIR>/policy",
-    "policy_manifest": "<RUN_DIR>/policy/policy-load-manifest.json",
-    "policy_session_environment": "CODEX_HOME=<RUN_DIR>/policy/codex-home",
-    "integration_command": "python3 fixture/integrate_worktree.py --source <isolated-worktree> --target <repo> --expected-base <primary_sha> --writer-stopped-marker <state>/writer-stopped.json --manifest <RUN_DIR>/integration-manifest.json",
-    "final_verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
+    "permitted_local_mutations": {
+      "edit_paths": ["src/labels.py", "tests/test_labels.py"],
+      "state_changing_commands": [
+        "python3 -m unittest discover -s tests -v",
+        "python3 <metadata.barrier_script> --state <state> --name <case-barrier-name>",
+        "case-specific controller wait/release marker under <state>"
+      ],
+      "commit_allowed": false,
+      "remote_mutation_allowed": false
+    },
+    "writer_start": "the raw implementation-capable turn/start request",
+    "writer_validation_requirement": "each implementation writer history contains an exact python3 -m unittest discover -s tests -v command-action segment with exit 0",
+    "terminal_requirement": "the implementation turn is completed, failed, or interrupted and the thread is idle before reconciliation",
+    "final_oracle": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
   },
   "cases": [
     {
-      "case_id": "SE-BOUNDED-CHILD",
-      "condition": "No durable lifecycle condition is present.",
-      "controller_setup": [
-        "Create a fresh isolated execution and root session in <repo>."
-      ],
-      "user_prompt_template": "<TASK_TEXT>\n\nComplete this bounded task in the current request.",
+      "case_id": "SE-BOUNDED-CHILD-CONTROL",
+      "condition": "No durable lifecycle condition exists.",
+      "user_prompt_template": "<TASK_TEXT>\n\nComplete this bounded task in the current request. Before dispatch, observe the exact primary binding with the supplied fixture inspector. Use one bounded child writer when available.",
       "failure_injection": "none",
       "required_trace_assertions": [
-        "Candidate selects a child agent by default when available.",
-        "Candidate does not create, fork, or message a durable thread.",
-        "Primary independently verifies the fixture oracle."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "bounded-child-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
+        "one observed quiescent primary binding precedes dispatch",
+        "exactly one native child writer and no durable create/send/fork",
+        "permitted mutations and no-commit audit pass",
+        "the final-primary oracle runs after the child is terminal"
+      ]
     },
     {
-      "case_id": "SE-DURABLE-CONTEXT-REUSE",
-      "condition": "An already relevant durable task has matching repository context.",
-      "controller_setup": [
-        "Create a fresh isolated execution.",
-        "Create one durable thread rooted at <repo> with read-only authority.",
-        "Have it inspect src/labels.py and return CONTEXT_READY:<primary_sha> without editing.",
-        "Wait for terminal status and record its exact thread ID before the measured root session."
-      ],
-      "user_prompt_template": "<TASK_TEXT>\n\nReuse the existing matching task <THREAD_ID> for contract <CONTRACT_ID> so its verified fixture context is retained.",
+      "case_id": "SE-DURABLE-MATCHING-REUSE",
+      "condition": "A dormant implementation-capable durable task has a terminal read-only setup turn and the matching mutable runtime/worktree identity.",
+      "user_prompt_template": "<TASK_TEXT>\n\nReuse existing task <THREAD_ID> for contract <CONTRACT_ID> only after reading its surfaced runtime identity and observing the exact worktree path, branch, HEAD, and status with the supplied inspector. Send one implementation-capable contract without a separate model-declared authority ceremony.",
       "failure_injection": "none",
       "required_trace_assertions": [
-        "Candidate reuses the recorded matching thread instead of creating or forking another durable task.",
-        "A fresh authority-compatible preflight and separate activation occur before writes.",
-        "The same code task passes the independent oracle."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "matching-thread-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
+        "public read_thread plus an actual matching binding observation precede send",
+        "raw helper state records implementation-capable mode, danger-full-access, and the read-only setup turn ID",
+        "the same task receives exactly one implementation turn and no new task is created",
+        "potential-writer state begins at raw turn/start dispatch",
+        "terminal, mutation audit, reconciliation, and final-primary oracle pass"
+      ]
     },
     {
-      "case_id": "SE-DURABLE-ADDRESSABILITY",
-      "condition": "The implementation role must remain addressable across two fresh root sessions.",
-      "controller_setup": [
-        "Create one fresh isolated fixture execution, one durable thread, and a unique <CONTRACT_ID>.",
-        "Session A sends and verifies the read-only preflight, then sends activation.",
-        "The activated thread runs the addressability barrier before editing either task file.",
-        "Wait for <state>/addressability-ready.json and confirm the thread is non-terminal.",
-        "Write <RUN_DIR>/addressability-handoff.json with every field fixed by controller.md.",
-        "Close Session A immediately without releasing the barrier or sharing its conversation history.",
-        "Start Session B with a fresh root/model context and only the handoff artifact plus session_b_prompt_template."
-      ],
-      "session_a_prompt_template": "<TASK_TEXT>\n\nKeep one durable implementation role addressable across a second root session. Use contract <CONTRACT_ID>. After activation and before editing either task file, run the addressability barrier command specified by the controller.",
-      "session_b_prompt_template": "Continue only the durable role described by the handoff record.\n\nHandoff file: <RUN_DIR>/addressability-handoff.json\nThread ID: <THREAD_ID>\nContract ID: <CONTRACT_ID>\nRepository: <repo>\nWorktree: <repo>\nBranch: eval-base\nStarting revision: <primary_sha>\nActivation delivered: true\nBarrier ready: <state>/addressability-ready.json\nBarrier release: <state>/addressability-release\nValidation: python3 -m unittest discover -s tests -v\n\nDo not create or fork a thread. Verify every field against current state. If all\nfields match, create the recorded release file, wait on the same thread for its\nterminal return packet, inspect the actual worktree and diff, and run the\nindependent fixture oracle.",
-      "failure_injection": "Close Session A while the activated thread is held at the addressability barrier.",
-      "required_trace_assertions": [
-        "Session A creates exactly one durable thread and records its thread ID and contract ID.",
-        "Session A closes only after activation delivery and addressability-ready.json.",
-        "Session B receives the complete fixed handoff and no Session A conversation history.",
-        "Session B addresses the recorded thread ID and does not create or fork another thread.",
-        "Session B verifies handoff fields, releases the barrier, waits for the same terminal packet, and runs the oracle."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "same-thread-cross-session-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
-    },
-    {
-      "case_id": "SE-DURABLE-VISIBLE-TASK",
-      "condition": "The user explicitly requests separate task visibility without persistence need.",
-      "controller_setup": [
-        "Create a fresh isolated execution and root session in <repo>."
-      ],
-      "user_prompt_template": "<TASK_TEXT>\n\nCreate and use a separately visible Codex task for this one bounded change under contract <CONTRACT_ID>.",
+      "case_id": "SE-DURABLE-VISIBLE-CREATE",
+      "condition": "The user explicitly requests a separately visible implementation task.",
+      "user_prompt_template": "<TASK_TEXT>\n\nCreate and use one separately visible Codex task for contract <CONTRACT_ID>. Observe the quiescent primary binding first. The initial create prompt is the implementation contract; do not add a separate model-declared authority ceremony.",
       "failure_injection": "none",
       "required_trace_assertions": [
-        "Candidate requests the surfaced creation approval and uses one durable task.",
-        "The visible-task request is sufficient even without cross-session continuity.",
-        "Authority-compatible preflight and activation ordering is preserved."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "visible-task-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
+        "a quiescent preallocated primary observation precedes create",
+        "the controller validates raw thread cwd, top-level started cwd, runtimeWorkspaceRoots, idle status, and actual binding before implementation turn/start",
+        "gitInfo=null is recorded as unavailable; surfaced gitInfo must match branch and revision",
+        "exactly one visible task is created and becomes a potential writer at turn/start",
+        "mutation, terminal, reconciliation, and final-primary oracle checks pass"
+      ]
     },
     {
-      "case_id": "SE-RECOVERY-OWNERSHIP-ONLY",
-      "condition": "Recovery or ownership is mentioned, but none of the three lifecycle conditions exists.",
-      "controller_setup": [
-        "Create a fresh isolated execution and root session in <repo>."
-      ],
-      "user_prompt_template": "<TASK_TEXT>\n\nA durable task might make recovery or ownership clearer, but I am not requesting separate visibility and this role need not persist across turns or sessions.",
-      "failure_injection": "none",
+      "case_id": "SE-DURABLE-ADDRESSABILITY-RESUME",
+      "condition": "One implementation role must remain addressable across fresh root sessions.",
+      "session_a_prompt_template": "<TASK_TEXT>\n\nCreate one separately visible task for contract <CONTRACT_ID>. Observe the exact primary binding first. Its initial implementation contract must run the exact run-local metadata.barrier_script addressability command before either edit so a fresh root session can resume the same task.",
+      "session_b_prompt_template": "Continue only the task recorded in <RUN_DIR>/addressability-handoff.json. Re-address task <THREAD_ID>; do not create, fork, or start another writer. While its implementation turn is live, do not inspect any fixture worktree. You may read explicit absolute-path control-plane artifacts under <RUN_DIR> outside all fixture worktrees and run exactly `touch <state>/addressability-release`; these are synchronization, not repository-state reads. Then wait for the same turn and thread to become terminal, observe and reconcile the actual worktree, and run the final-primary oracle.",
+      "failure_injection": "Session A is closed after the implementation turn reaches the addressability barrier.",
       "required_trace_assertions": [
-        "Candidate keeps the bounded child-agent default.",
-        "Candidate does not select a durable thread from recovery or ownership alone."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "bounded-child-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
+        "handoff persists contract/thread/turn IDs, exact starting binding, and the run-local barrier command",
+        "Session B receives no Session A conversation history and addresses the same task",
+        "while the writer is live, Session B uses only verified run-local control-plane artifact reads and the exact addressability release marker; no fixture-worktree read, mutation, or replacement writer occurs",
+        "refreshed binding and reconciliation are persisted before final-primary validation"
+      ]
     },
     {
-      "case_id": "SE-PREFLIGHT-MISMATCH-BLOCK",
-      "condition": "A reusable thread acknowledges the wrong worktree, branch, and revision; the requested outcome is to stop.",
-      "controller_setup": [
-        "Create a fresh isolated execution.",
-        "Create the reusable thread from <wrong_worktree> at <wrong_sha>.",
-        "Start the measured root session in <repo> at <primary_sha>."
-      ],
-      "user_prompt_template": "<TASK_TEXT>\n\nReuse task <THREAD_ID> only if its worktree, branch, and starting revision match this primary fixture. On any mismatch, do not activate or implement; report the blocked contract.",
-      "failure_injection": "none",
+      "case_id": "SE-BINDING-MISMATCH-SAFE-FALLBACK",
+      "condition": "A reusable task is surfaced from a different dirty worktree, branch, and revision.",
+      "user_prompt_template": "<TASK_TEXT>\n\nRead task <THREAD_ID>, then run the supplied inspector against its surfaced cwd and observe its actual path, branch, HEAD, and dirty status. It intentionally differs from <repo>. Send it no implementation instruction. Separately inspect the valid quiescent primary boundary, then complete the task with exactly one bounded child writer.",
+      "failure_injection": "the supplied durable task has wrong path, branch, HEAD, and a deliberate dirty status",
       "required_trace_assertions": [
-        "Acknowledgement exposes the mismatch.",
-        "No activation or repository write is sent to the mismatched thread.",
-        "No fallback writer is started because this prompt requires a blocked result.",
-        "The primary fixture remains unchanged apart from ignored interpreter caches."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "blocked-clean-worktree",
-          "check": "case-specific trace assertions plus git diff --exit-code and git status limited to ignored interpreter caches"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
+        "root public read_thread and root inspector output expose every target mismatch field separately from the primary observation",
+        "no implementation turn is dispatched to the mismatched task",
+        "one validation-preserving child fallback begins only after a valid primary observation",
+        "mutation audit and final-primary oracle pass"
+      ]
     },
     {
-      "case_id": "SE-PREFLIGHT-MISMATCH-FALLBACK",
-      "condition": "A reusable thread acknowledges the wrong worktree, branch, and revision; safe pre-activation fallback is requested.",
-      "controller_setup": [
-        "Create a fresh isolated execution.",
-        "Create the reusable thread from <wrong_worktree> at <wrong_sha>.",
-        "Start the measured root session in <repo> at <primary_sha>."
-      ],
-      "user_prompt_template": "<TASK_TEXT>\n\nAttempt to reuse task <THREAD_ID> only if its worktree, branch, and starting revision match. If the acknowledgement mismatches, send no activation or write to that thread and complete the bounded task with a child agent when available, otherwise directly in the primary session.",
-      "failure_injection": "none",
+      "case_id": "SE-FIXED-SNAPSHOT-NON-UPGRADE",
+      "condition": "A relevant task is bound to a detached fixed snapshot with an actual read-only sandbox.",
+      "user_prompt_template": "<TASK_TEXT>\n\nTask <THREAD_ID> is a fixed-snapshot read-only context carrier. Read it, then run the supplied inspector against its surfaced cwd and observe its detached path, HEAD, and status; do not send implementation work or upgrade its sandbox/binding. Separately inspect a valid mutable primary boundary and use exactly one bounded child writer.",
+      "failure_injection": "the supplied task is detached at the fixture revision and started with sandbox=read-only",
       "required_trace_assertions": [
-        "Acknowledgement exposes the mismatch.",
-        "No activation or repository write is sent to the mismatched thread.",
-        "Candidate selects exactly one allowed pre-activation fallback writer.",
-        "Fallback validation and independent oracle requirements are not weakened."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "safe-mismatch-fallback-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
+        "root public read_thread plus root inspector output prove the fixed target separately from the primary, and raw thread configuration is read-only/detached",
+        "no resume/send/implementation turn targets the fixed-snapshot task",
+        "one new mutable child boundary is selected after primary binding observation",
+        "mutation audit and final-primary oracle pass"
+      ]
     },
     {
-      "case_id": "SE-PREACTIVATION-FALLBACK",
-      "condition": "Activation is definitively rejected before delivery.",
-      "controller_setup": [
-        "Create a fresh isolated execution and permit a durable read-only preflight."
-      ],
-      "user_prompt_template": "<TASK_TEXT>\n\nUse an addressable durable role when available; a bounded child agent or direct execution is acceptable if activation is definitively unavailable before delivery.",
-      "failure_injection": "Reject the activation message before delivery through the runtime approval or failure injector.",
+      "case_id": "SE-ACTIVE-WRITER-WAIT-REFRESH",
+      "condition": "An external writer is mutating the designated primary worktree.",
+      "user_prompt_template": "<TASK_TEXT>\n\nCreate one separately visible implementation task, but another writer is active in this worktree. Select the wait path only with the controller-specified exact state-marker command and without reading repository state, wait for the controller's writer-stopped marker, then freshly observe branch, HEAD, and status before create.",
+      "failure_injection": "fixture/hold_writer.py mutates writer_probe.txt until the measured root selects waiting",
       "required_trace_assertions": [
-        "The durable thread remains read-only.",
-        "Candidate selects at most one child or primary fallback writer.",
-        "Validation and the fixture oracle are not weakened."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "definitive-rejection-fallback-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
+        "no repo-dependent command or implementation dispatch occurs during the external writer interval",
+        "writer-stopped precedes a refreshed stable binding observation",
+        "one durable implementation writer starts after refresh",
+        "writer intervals do not overlap and the final-primary oracle passes"
+      ]
     },
     {
-      "case_id": "SE-POSTACTIVATION-TRANSPORT-LOSS",
-      "condition": "Transport is lost while an activated durable writer is held non-terminal at a controller barrier.",
-      "controller_setup": [
-        "Create a fresh isolated execution and one visible durable task.",
-        "Send activation requiring the postactivation barrier before either task-file edit.",
-        "Wait for <state>/postactivation-ready.json and confirm the barrier process and thread are non-terminal."
-      ],
-      "user_prompt_template": "<TASK_TEXT>\n\nCreate a separately visible task for this change under contract <CONTRACT_ID>. After activation and before editing either task file, run the postactivation barrier command specified by the controller.",
-      "failure_injection": "After postactivation-ready.json, disable root-side message, read, wait, and status transport without confirming cancellation. Keep the external barrier controller available for cleanup.",
+      "case_id": "SE-DEFINITE-PREDISPATCH-FAILURE-FALLBACK",
+      "condition": "Visible-task creation is definitively rejected before thread/start or implementation turn/start can be sent.",
+      "user_prompt_template": "<TASK_TEXT>\n\nAttempt one separately visible implementation task after observing the primary binding. If and only if the controller proves no implementation-capable instruction could have been delivered, use exactly one bounded child fallback.",
+      "failure_injection": "reject create at controller authorization before any app-server thread/start request",
       "required_trace_assertions": [
-        "Transport loss occurs only after activation delivery and the live postactivation barrier.",
-        "Candidate starts no child-agent or primary fallback writer while the original thread may write.",
-        "Candidate reports a blocked state rather than claiming completion.",
-        "The external controller later releases the barrier, confirms terminal or explicit stop, and reconciles the worktree before teardown."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "blocked-with-live-original-writer",
-          "check": "case-specific blocked-state assertions; no fallback writer; external release, terminal confirmation, and reconciliation before teardown"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
+        "raw lifecycle proves no thread/start and no implementation turn/start request",
+        "delivery state is definitively-not-delivered",
+        "exactly one child fallback starts afterward",
+        "mutation audit and final-primary oracle pass"
+      ]
     },
     {
-      "case_id": "SE-ACTIVE-WRITER-PREFLIGHT-ORDER",
-      "condition": "The primary worktree is actively mutating before a writable durable-thread preflight.",
-      "controller_setup": [
-        "Create a fresh isolated execution and load the exact policy side before launching the measured root session.",
-        "Start fixture/hold_writer.py against <repo> and wait for <state>/writer-ready.json.",
-        "Do not release the writer until the measured run selects waiting or creates a separate mutable worktree and branch at <primary_sha>.",
-        "If a separate worktree is selected, record it as an intermediate source only; the designated final worktree remains <repo>."
-      ],
-      "user_prompt_template": "<TASK_TEXT>\n\nCreate a separately visible writable task, but another writer is currently active in this same worktree. A fixed snapshot is not an acceptable basis for later write activation.",
-      "failure_injection": "The hold-writer process changes writer_probe.txt until the external controller creates <state>/release-writer.",
+      "case_id": "SE-COMBINED-CREATE-START-AMBIGUOUS",
+      "condition": "A combined create response becomes unavailable after a real implementation turn/start dispatch.",
+      "user_prompt_template": "<TASK_TEXT>\n\nAttempt one separately visible implementation task after observing the primary binding. If create returns an error or no usable task ID after delivery may have occurred, do not start or become another writer; report a structured blocked result pending controller terminalization and reconciliation.",
+      "failure_injection": "validate thread/start binding, send a real implementation turn/start held by the exact run-local metadata.barrier_script command, then return an ambiguous error without a usable thread ID",
       "required_trace_assertions": [
-        "No repository-state-dependent durable preflight starts against the mutating primary worktree.",
-        "Candidate either waits for writer-stopped.json and refreshes the primary mutable worktree, or binds the thread to a separate mutable worktree and branch.",
-        "Candidate does not treat a fixed snapshot as sufficient for write activation.",
-        "Activation uses the refreshed or separately isolated writable starting state.",
-        "An isolated-worktree oracle pass is only intermediate and is never accepted as final completion.",
-        "Before integration, the durable writer is terminal, the original primary writer is released and stopped, and the primary worktree is reconciled clean at <primary_sha>.",
-        "The primary/controller integrates exactly the allowed task diff without a commit and runs the independent oracle in <repo>."
-      ],
-      "valid_completion_paths": [
-        {
-          "name": "wait-refresh-and-complete-in-primary",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
-        },
-        {
-          "name": "separate-worktree-integrate-and-complete-in-primary",
-          "intermediate_check": "python3 fixture/verify.py --repo <isolated-worktree>",
-          "integration_check": "python3 fixture/integrate_worktree.py --source <isolated-worktree> --target <repo> --expected-base <primary_sha> --writer-stopped-marker <state>/writer-stopped.json --manifest <RUN_DIR>/integration-manifest.json",
-          "final_check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo",
-          "required_result": "integration-manifest.json identifies <repo> as target, keeps HEAD at <primary_sha>, creates no commit, and applies exactly src/labels.py and tests/test_labels.py"
-        }
-      ],
-      "fixture_ref": "common_fixture",
-      "baseline_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      },
-      "candidate_run": {
-        "status": "not-run",
-        "reason": "No Codex executable, model session, or surfaced execution-carrier tools were available in the evaluation runtime."
-      }
+        "controller raw thread/start binding validation precedes a real implementation turn/start whose barrier executes metadata.barrier_script",
+        "delivery state is may-have-been-delivered and the root receives no usable task ID",
+        "no child, primary, or second durable writer starts",
+        "the controller discovers the orphan, confirms terminal or explicit stop, and reconciles the actual worktree",
+        "ambiguous-create ready, controller release, and released evidence are all present without timeout"
+      ]
+    },
+    {
+      "case_id": "SE-POSTDISPATCH-TRANSPORT-LOSS-RECONCILE",
+      "condition": "Transport is lost after a known durable implementation writer reaches a live barrier.",
+      "user_prompt_template": "<TASK_TEXT>\n\nCreate one separately visible implementation task after observing the primary binding. Its initial contract must run the exact run-local metadata.barrier_script postdispatch command before edits. If task transport is then lost, do not start or become another writer; report blocked pending terminalization and reconciliation.",
+      "failure_injection": "after the exact run-local barrier command writes postdispatch-ready.json, disable root-side send/read/wait/list/status while the original turn remains live",
+      "required_trace_assertions": [
+        "transport loss follows implementation turn/start and a live barrier",
+        "no repo-dependent root command or replacement writer runs during the live interval",
+        "the original turn and thread are terminal or explicitly stopped before actual worktree inspection",
+        "refreshed binding, reconciliation, and final-primary oracle occur in that order"
+      ]
     }
-  ],
-  "policy_loading": {
-    "unit": "one exact detached policy checkout and fresh CODEX_HOME per individual run",
-    "baseline_policy_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
-    "candidate_policy_commit": "4a87005223d235dc29873fbe602445617a52decb",
-    "install_command": "python3 fixture/install_policy.py --source-repo <EVALUATION_REPOSITORY> --policy-commit <POLICY_COMMIT> --policy-side <baseline|candidate> --run-dir <RUN_DIR>/policy",
-    "manifest": "<RUN_DIR>/policy/policy-load-manifest.json",
-    "session_environment": "CODEX_HOME=<RUN_DIR>/policy/codex-home",
-    "required_attestation": [
-      "requested, resolved, and checkout commit equal the assigned policy commit",
-      "kit, AGENTS.md, and software-engineering links resolve into the exact checkout",
-      "source and installed root/skill/interface SHA-256 identities match",
-      "the root session is a fresh process launched with the attested CODEX_HOME",
-      "the measured session boot attestation matches the external manifest"
-    ]
-  },
-  "required_common_trace_assertions": [
-    "The exact side-specific policy is installed and attested before any measured root session starts.",
-    "The root process uses the manifest CODEX_HOME and no prior process, root context, or loaded skill state is reused.",
-    "The external policy manifest and measured boot attestation agree on commit, link targets, and root/skill/interface identities.",
-    "Any implementation completion is verified in the designated final primary worktree, not only in an isolated source worktree."
   ]
 }

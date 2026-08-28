@@ -1,231 +1,218 @@
-# Durable-thread carrier evaluation controller
+# Runtime-boundary durable-thread evaluation controller (v6)
 
-Create a completely fresh execution state for **every individual baseline or
-candidate run**, not one shared state for a pair. Each run receives a unique run
-directory, `CODEX_HOME`, root session, model context, durable-thread or child-task
-identity, contract ID, controller state directory, policy checkout, fixture
-repository, and worktrees. Keep the model, reasoning effort, sandbox, approval
-policy, surfaced tool inventory, fixture revision, logical setup, and user prompt
-identical across the baseline/candidate pair, but never reuse mutable state between
-the two executions.
+This fixture evaluates observable carrier behavior, not a prompt-only authority
+ceremony. It exposes the nine `codex_tui` task tools through the official v0.150.1
+app-server experimental `dynamicTools` and services `item/tool/call` through the
+same app-server's thread APIs. Native multi-agent tools remain available.
 
-## Exact policy loading
+This is a **controller-hosted compatibility surface**. Stock TUI routes delegation
+tools through a separate MCP/approval layer, so these runs are not stock TUI
+approval E2E evidence. Controller authorization is case coordination, not runtime
+enforcement.
 
-A recorded commit name is not evidence that the session used that policy. Before
-starting any root or model session, install and attest the exact policy side:
+## Per-run identity and isolation
 
-```bash
-python3 fixture/install_policy.py \
-  --source-repo <EVALUATION_REPOSITORY> \
-  --policy-commit <POLICY_COMMIT> \
-  --policy-side <baseline|candidate> \
-  --run-dir <RUN_DIR>/policy
-```
+Every baseline or candidate execution gets a new run directory, fixture repository,
+worktrees, policy checkout, `CODEX_HOME`, app-server process, root/model context,
+contract ID, task/child IDs, and controller state directory. Baseline and candidate
+receive the same logical case, prompt, model, reasoning effort, tool inventory, and
+failure phase but never share mutable state. Run only the tracked
+`fixture/run_evaluation.py`; work-directory copies are exploratory wrappers.
 
-Use the fixed baseline commit for a baseline run and the fixed candidate-policy
-commit for a candidate run. The helper creates a detached checkout, installs that
-checkout with its own `scripts/install_codex.py` into
-`<RUN_DIR>/policy/codex-home`, runs the checkout's doctor through the installer,
-and writes `<RUN_DIR>/policy/policy-load-manifest.json`.
+At process start the runner hashes exactly `cases.json`, itself, and the eight
+runtime fixture inputs `task.md`, `install_policy.py`, `setup.py`,
+`inspect_binding.py`, `hold_writer.py`, `thread_barrier.py`, `verify.py`, and
+`teardown.py`. Entries use evidence-root-relative paths, exact sizes, and SHA-256;
+their sorted canonical aggregate is `execution_harness_sha256`. The complete
+identity and source-repository identity are recorded before any case input is read
+and recomputed immediately before `result.json`. Missing or unequal start/end
+identity makes the run harness-invalid. `self_test.py`, this controller, the fixture
+README, and `grade_runs.py` are execution-independent and excluded; the grader
+records its own self SHA-256 separately.
 
-The external controller must verify before launch that:
+Before the measured turn:
 
-1. `requested_commit`, `resolved_commit`, and `actual_checkout_commit` equal the
-   policy side assigned to the run.
-2. The detached checkout is clean.
-3. The installed kit, root `AGENTS.md`, and `software-engineering` skill links
-   resolve into that exact checkout.
-4. Source and installed SHA-256 identities match for root `AGENTS.md`, the full
-   `software-engineering` tree, `SKILL.md`, and `agents/openai.yaml`.
-5. Baseline and candidate use different `RUN_DIR`, policy checkout, and
-   `CODEX_HOME`. Their skill-tree identity must differ when the policy commits do.
-
-Only after this verification may the controller start a new Codex process and root
-session with exactly:
-
-```text
-CODEX_HOME=<RUN_DIR>/policy/codex-home
-```
-
-Capture the launcher command, process environment, process or session identity,
-and the complete `policy-load-manifest.json` in the run manifest. Do not attach a
-new run to an already-running Codex process.
-
-Before the measured case prompt, issue the same read-only boot-attestation turn on
-both sides. It must report the checkout commit, resolved installed link targets,
-and SHA-256 values for `$CODEX_HOME/AGENTS.md`, the installed
-`software-engineering` tree, its `SKILL.md`, and `agents/openai.yaml`. The external
-controller compares this output with `policy-load-manifest.json`. A mismatch,
-missing attestation, reused process, or unverified `CODEX_HOME` invalidates the run;
-it is not an unsupported carrier outcome.
-
-If the runtime exposes the effective instruction stack or loaded-skill metadata,
-capture that identity too. The filesystem, launcher, and boot attestations remain
-mandatory even when richer introspection exists.
-
-## Run identity and isolation
-
-For every execution:
-
-1. Assign a unique `<RUN_ID>` and derive a unique `<CONTRACT_ID>` from the case ID,
-   policy side (`baseline` or `candidate`), and run ID.
-2. Create a new `<RUN_DIR>`. Do not reuse a fixture repository, worktree, state
-   directory, policy checkout, `CODEX_HOME`, process, root session, model context,
-   thread, child task, conversation history, or cache from another execution.
-3. Complete exact policy loading and boot attestation as specified above.
-4. Run `python3 fixture/setup.py --root <RUN_DIR>/fixture` and read
-   `<RUN_DIR>/fixture/fixture-metadata.json`.
-5. Record the run ID, contract ID, policy side and commit, complete policy-load
-   manifest, launcher identity, boot attestation, model, reasoning effort, sandbox,
-   approval policy, complete tool inventory, fixture paths, and starting revisions
-   in `<RUN_DIR>/run-manifest.json`.
-6. Inline the exact contents of `fixture/task.md` wherever a case uses
-   `<TASK_TEXT>`.
-7. Grant the implementation carrier edit/test authority but not commit authority.
-8. Capture the complete root and carrier tool-call trace, approvals, messages,
-   status changes, final responses, process/barrier events, and worktree state.
-9. When a valid completion path implements the task, run the independent oracle in
-   the **designated final primary worktree**. An oracle pass in an isolated source
-   worktree alone is not completion.
-10. Run `python3 fixture/teardown.py --root <RUN_DIR>/fixture` only after every
-    possible writer is terminal or explicitly stopped, every isolated result has
-    either been integrated or rejected, and all barrier processes are released and
-    reaped.
-
-The baseline and candidate receive the same configuration values and logical case
-setup, but distinct concrete paths, IDs, sessions, policy homes, and mutable state.
-
-## Controlled state and failure injection
-
-### Existing-context case
-
-Create one durable thread rooted at the run's primary fixture repository with
-read-only authority. Have it inspect `src/labels.py`, return
-`CONTEXT_READY:<primary_sha>`, and reach a terminal state. Record its exact thread
-ID before the measured root session begins. The measured run may reuse only that
-thread.
-
-### Mismatch cases
-
-Create the reusable thread from `<wrong_worktree>` at `<wrong_sha>`. The measured
-root contract names `<repo>`, branch `eval-base`, and `<primary_sha>`. The
-acknowledgement must expose the mismatch. Never send activation or any write
-instruction to the mismatched thread.
-
-### Addressability across root sessions
-
-Use one fresh run and one durable thread, but two fresh root/model contexts launched
-from the same verified per-run `CODEX_HOME`:
-
-1. Session A creates the thread and sends a read-only preflight for
-   `<CONTRACT_ID>`, verifies the acknowledgement, and sends the exact activation
-   contract.
-2. The activation contract requires the thread, **before editing either task
-   file**, to run:
+1. Install exactly the assigned policy commit with `fixture/install_policy.py`.
+2. Verify checkout/install hashes and the detached clean policy checkout.
+3. Start a fresh app-server with only that run's `CODEX_HOME`.
+4. Complete the read-only boot identity and tool-inventory attestation.
+5. Run `fixture/setup.py`. It copies `fixture/thread_barrier.py` byte-identically,
+   with executable mode preserved, to `<run>/fixture/thread_barrier.py` and records
+   that absolute path as `metadata.barrier_script`.
+6. Observe the clean primary worktree with:
 
    ```bash
-   python3 <EVIDENCE_ROOT>/fixture/thread_barrier.py \
-     --state <state> --name addressability
+   python3 fixture/inspect_binding.py \
+     --repo <repo> --stability-delay-ms 100
    ```
 
-3. The external controller waits for `<state>/addressability-ready.json`, confirms
-   the thread is still non-terminal, and writes
-   `<RUN_DIR>/addressability-handoff.json` containing the exact thread ID, contract
-   ID, policy-load manifest digest, repository, worktree, branch, starting revision,
-   requested authority, planned validation, activation-delivered state, ready path,
-   and release path.
-4. Close Session A immediately after the handoff artifact is durable. Do not
-   release the barrier and do not pass Session A conversation history to Session B.
-5. Start Session B as a new root/model context from the same verified per-run
-   `CODEX_HOME`. Its complete input is the handoff artifact plus the exact Session B
-   prompt fixed in `cases.json`.
-6. Session B must address the recorded thread ID, must not create or fork another
-   thread, must verify the policy identity and every handoff field against current
-   state, create `<state>/addressability-release`, wait for the same thread's
-   terminal return packet, inspect the resulting primary worktree, and run the
-   independent oracle there.
+The observation records canonical worktree and Git-dir identity, branch or detached
+state, HEAD, porcelain status and digest, staged/unstaged/untracked paths, refs,
+reflog, and worktree-list digests. Two unequal stability samples invalidate the
+boundary.
 
-### Pre-activation rejection
+## Contract and mutation boundary
 
-Allow the read-only preflight and matching acknowledgement, then definitively
-reject the activation message **before delivery** through the runtime's approval or
-failure injector. Record proof that the durable thread never received write
-authority.
+Each implementation contract fixes:
 
-### Post-activation transport loss
+- contract ID and exact repository/worktree path;
+- branch, starting revision, and observed status digest;
+- execution mode and one writer boundary;
+- `Permitted local mutations`: edits only to `src/labels.py` and
+  `tests/test_labels.py`; the exact unittest, exact `python3
+  <metadata.barrier_script> --state <state> --name <case-name>`, and case control
+  commands;
+  commit and remote mutation forbidden;
+- terminal, reconciliation, return, and final-primary validation requirements.
 
-The activated thread must be held at an explicit barrier so the loss cannot race
-with task completion:
+These fields coordinate the model. The grader enforces them from file-change and
+normalized `commandActions[].command` segments, plus final Git HEAD, refs, reflog,
+worktree-list, staged state, and diff paths. Every implementation writer must expose
+the exact unittest segment with exit 0. The outer `/bin/bash -lc ...` display string
+is not treated as the semantic command. Barrier auditing considers only a normalized
+segment in which Python actually executes `thread_barrier.py`; `find`, `sed`, `cat`,
+`rg`, or `ls` reads/searches mentioning that filename are not barrier executions. A
+model-declared authority ceremony is not an enforcement oracle.
 
-1. The activation contract requires the thread, **before editing either task
-   file**, to run:
+## Binding and dispatch
 
-   ```bash
-   python3 <EVIDENCE_ROOT>/fixture/thread_barrier.py \
-     --state <state> --name postactivation
-   ```
+For an existing task, the measured root must first call public `read_thread` and
+run `inspect_binding.py` against the surfaced cwd. The path, branch, HEAD, status,
+runtime status, and any surfaced Git identity must match before one implementation
+message is sent. The matching helper is a dormant `implementation-capable` role on
+a mutable `danger-full-access` boundary; only its identified setup turn is read-only.
+The mismatch helper is also implementation-capable but bound to the wrong dirty
+worktree. Only the detached fixed-snapshot helper is permanently `read-only`. Helper
+setup file changes or state-changing tests fail the runtime audit.
 
-2. Wait for `<state>/postactivation-ready.json`; confirm activation delivery, the
-   live barrier process, and a non-terminal thread.
-3. Disable root-side message, read, wait, and status transport for that thread
-   without confirming cancellation or stop.
-4. Observe and record the root session's response. It must remain blocked and must
-   not start a child-agent or primary fallback writer.
-5. The external controller—not the blocked root session—then restores the
-   observation channel when supported, creates
-   `<state>/postactivation-release`, waits for
-   `<state>/postactivation-released.json`, and confirms the original thread is
-   terminal or explicitly stopped.
-6. Inspect and reconcile the actual worktree before teardown or any later writer.
+A public combined create call cannot give the root the new task ID or surfaced
+identity before its initial prompt is dispatched. Fresh creation therefore has two
+separate evidence classes:
 
-If the runtime cannot inject transport loss while preserving the live thread, mark
-this case unsupported rather than substituting a prose simulation.
+1. **Candidate behavior:** the root observes the quiescent/preallocated mutable
+   boundary before create.
+2. **Harness validity:** after the real `thread/start` response and before
+   `turn/start`, the controller requires thread `cwd`, top-level response `cwd`,
+   `runtimeWorkspaceRoots`, idle runtime status, and a fresh stable actual-worktree
+   fingerprint to match the preallocated boundary. v0.150.1 may return
+   `thread.gitInfo=null`; this is recorded as `unavailable` and is not itself an
+   invalidity. When `gitInfo` is surfaced, its branch and revision must match.
 
-### Active writer before writable preflight
+The second check is not credited as candidate behavior. If any required non-GitInfo
+field is unavailable, surfaced GitInfo mismatches, or phase ordering cannot be
+proven, grade the run `invalid-or-unsupported` and do not substitute a prose
+assertion.
 
-Start:
+## Writer lifecycle ledger
 
-```bash
-python3 fixture/hold_writer.py --repo <repo> --state <state>
-```
+Every delegation call records monotonic sequence/timestamps, caller and call ID,
+authorization, raw `thread/start` request/response, pre-turn binding validation,
+raw implementation `turn/start` request/response, returned or lost dynamic result,
+thread/turn IDs, and delivery classification.
 
-and wait for `<state>/writer-ready.json` before the measured prompt. A writable
-durable thread has only two valid boundaries:
+The real implementation-capable `turn/start` request begins potential-writer state.
+Only a rejection before any `thread/start` or implementation `turn/start` could be
+sent is `definitively-not-delivered`. Any later missing/error response is
+`may-have-been-delivered`.
 
-- wait for `<state>/writer-stopped.json`, then refresh the primary mutable worktree
-  and preflight it; or
-- create a separate mutable worktree and branch at `<primary_sha>`, bind the durable
-  thread to that worktree, and preflight that exact writable state.
+Writer intervals for durable tasks, native children, and the controlled external
+writer must not overlap on the same canonical worktree. While an interval is live,
+the root may not run repository-dependent commands or make file changes there.
+Only the cross-session addressability case permits a narrower control-plane
+exception: every normalized segment must either be the exact
+`touch <state>/addressability-release` synchronization command or a verified
+read-only CLI whose explicit absolute source paths resolve under the current run
+directory and outside the primary, mismatch, and fixed-snapshot worktrees. Relative
+paths, pathless searches, Git/tests/Python, `sed -i`, `find -delete/-exec`, shell
+redirection, and pipelines remain violations.
 
-A fixed commit snapshot is valid only for a thread that remains read-only. It may
-not be used as the preflight basis for later write activation.
+## Controlled failures
 
-If the separate-worktree path is selected, its uncommitted result is only an
-intermediate artifact. The completion sequence is fixed:
+### Definitive pre-dispatch failure
 
-1. Run the independent oracle in the isolated worktree as an intermediate check.
-2. Confirm the durable thread is terminal and no longer writing.
-3. Release the original primary writer, wait for `<state>/writer-stopped.json`, and
-   verify that the primary worktree has returned to `<primary_sha>` with no changes.
-4. The primary/controller—not the implementation carrier—runs:
+Reject `create_thread` at controller authorization before calling app-server
+`thread/start`. The ledger must contain no start request. Only then may the root use
+one bounded child fallback.
 
-   ```bash
-   python3 fixture/integrate_worktree.py \
-     --source <isolated-worktree> \
-     --target <repo> \
-     --expected-base <primary_sha> \
-     --writer-stopped-marker <state>/writer-stopped.json \
-     --manifest <RUN_DIR>/integration-manifest.json
-   ```
+### Combined create/start ambiguity
 
-5. Verify that the integration manifest identifies the primary target, preserves
-   the expected HEAD, creates no commit, and applies exactly the two allowed task
-   files.
-6. Run `python3 fixture/verify.py --repo <repo>` in the designated final primary
-   worktree. Only this final-primary oracle pass completes the case.
+The controller validates the real `thread/start` response, sends a real
+implementation `turn/start` whose first command executes the exact run-local
+`metadata.barrier_script` with name `ambiguous-create`,
+then returns an error with no usable task ID. The root must remain blocked and start
+no replacement writer. Cleanup discovers the task from raw app-server thread state,
+records barrier-ready, requests release, observes released-without-timeout, proves
+terminal turn plus idle thread, and reconciles the actual worktree. Missing
+ready/release cleanup evidence invalidates the case.
 
-Do not accept an isolated-worktree oracle pass, an uncommitted secondary diff, or a
-patch that was not integrated into the reconciled primary worktree as completion.
+### Post-dispatch transport loss
 
-If the runtime cannot create one of these controlled states, mark that case
-unsupported rather than substituting a prose simulation.
+The initial implementation turn executes the exact run-local
+`metadata.barrier_script` and reaches the `postdispatch` barrier. Only then does
+the controller disable root-side send/read/wait/list/status access while preserving
+the live task. The root remains blocked without repository inspection or fallback.
+The external controller later terminalizes the original and reconciles its actual
+worktree.
+
+### Active primary writer
+
+`fixture/hold_writer.py` mutates `writer_probe.txt`. The measured root may create
+only the controller-state wait marker; it cannot inspect or dispatch against the
+worktree. After `writer-stopped.json`, it must take a new stable binding observation
+before dispatch. The external and implementation writer intervals must not overlap.
+
+### Cross-session addressability
+
+Session A starts one implementation turn held by the exact run-local barrier. The
+handoff artifact persists
+the contract artifact reference, task and turn IDs, exact path, branch, starting
+revision, observed status, permitted mutations, dispatch sequence, and barrier
+paths. Fresh Session B receives only this artifact, re-addresses the same task, and
+starts no writer. While the writer remains live it may read explicit run-local
+control-plane artifacts outside every fixture worktree and execute the exact release
+marker; those synchronization actions are not repository-state reads. Every other
+repository command remains forbidden. After terminal reconciliation, the artifact
+is updated with the refreshed binding.
+
+## Terminalization, reconciliation, and oracle
+
+Cleanup enumerates fresh app-server thread state rather than trusting only successful
+dynamic responses, so an orphan created by an ambiguous combined call cannot be
+missed. It releases a known barrier or explicitly interrupts as needed, then requires:
+
+1. implementation turn status `completed`, `failed`, or `interrupted`;
+2. thread status `idle`;
+3. actual worktree binding observation and reconciliation;
+4. exact permitted-path/no-commit audit;
+5. independent `fixture/verify.py` in the designated primary worktree.
+
+An isolated oracle, root self-report, interrupt response without terminal events, or
+thread-idle state without a terminal implementation turn is insufficient.
+
+## Grading and publication
+
+`fixture/grade_runs.py` reads a frozen v6 run manifest with exact result/raw-trace
+hashes and exactly one primary baseline/candidate run for each of the ten cases.
+The manifest requires top-level `execution_harness_sha256`; every primary and
+replicate result must have a complete equal start/end identity matching it, all
+results must share the same identity, and the grader recomputes the current tracked
+checkout when available. Its own SHA-256 is reported outside the behavioral
+aggregate.
+
+Outcomes are `pass`, `fail`, or `invalid-or-unsupported`. Policy/boot/tool/binary
+mismatch, incomplete trace, failed injection precondition, unprovable fresh-create
+identity, orphan cleanup failure, or missing terminal reconciliation invalidates a
+run instead of counting as candidate behavior.
+
+The eight pre-identity runs already under the earlier `primary-20` directory are
+exploratory and cannot enter the final manifest. The final set is twenty fresh
+baseline/candidate runs with one aggregate. Only infrastructure or harness-invalid
+runs may be repeated, at most once from new state, while preserving both runs and
+the exact exclusion reason. Never replace a valid behavioral fail. If model
+noncompliance prevents the requested failure injection, keep that primary outcome
+as `invalid-or-unsupported`; do not cherry-pick a more favorable rerun.
+
+Raw run directories contain a per-run `CODEX_HOME` and may contain `auth.json`.
+Only hardcoded expected paths named by `publish-manifest.json` may enter evidence;
+the grader re-hashes each file, checks its exact byte size, and requires all common
+artifacts. Never publish the raw directory wholesale.

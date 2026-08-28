@@ -1,18 +1,50 @@
 {
-  "evaluation_id": "software-engineering-durable-thread-v5",
-  "github_actions_run_id": "33135915211",
-  "github_actions_run_url": "https://github.com/Daviswhistle/davis-agent-kit/actions/runs/33135915211",
-  "runner_os": "Linux",
-  "runner_arch": "X64",
+  "schema_version": 6,
+  "evaluation_id": "software-engineering-durable-thread-v6-runtime-boundary",
+  "behavioral_run_source": {
+    "executed_at": "2026-08-28",
+    "host": "local Codex Desktop Linux environment",
+    "codex_version": "codex-cli 0.150.1",
+    "app_server_transport": "stdio://",
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "high",
+    "sandbox": "danger-full-access",
+    "approval_policy": "never",
+    "child_agent_surface": "native multi_agent_v1 app-server items",
+    "durable_task_surface": "official app-server based controller-hosted dynamic-tool compatibility surface; not stock TUI E2E",
+    "fresh_process_codex_home_fixture_and_root_per_run": true,
+    "primary_runs": 20,
+    "raw_artifacts_published": false
+  },
   "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
-  "candidate_policy_commit": "4a87005223d235dc29873fbe602445617a52decb",
-  "codex_command_exit": 1,
-  "model": "unavailable",
-  "reasoning_effort": "unavailable",
-  "sandbox": "unavailable",
-  "approval_policy": "unavailable",
-  "fixture_v5_self_test_exit": 0,
-  "policy_install_identity_self_test": "passed",
-  "isolated_worktree_integration_self_test": "passed",
-  "validate_kit_exit_in_v5_evidence_run": 1
+  "candidate_policy_commit": "a7056f2469b1b8c6ae8cb996f4624e9c333205cd",
+  "remote_pr_head_observed_before_local_evidence_commit": "1e9144447de3cc8c5b433470a3a88eec550b96ca",
+  "execution_harness_sha256": "2c5910b7870d8befe33d205dbab19a0434c211e614766034cbc15f433906417b",
+  "grader_sha256": "924d9ac42a95fbe3c86ecd0397ae8b55c13cb15aae0fbba79708935fa43b02da",
+  "behavior_run_manifest_sha256": "fded79e1ab82e775ebb9c8be6eb7b16d6f799bd4c871848806edaed8471c48cb",
+  "corrected_grade_report_sha256": "4b9bfe8921b4a58a8476327a5da09d08b1ebe1b5dd53618c4d21a2a0df495cdf",
+  "primary_matrix": {
+    "baseline_passed": 4,
+    "baseline_failed": 5,
+    "baseline_invalid_or_unsupported": 1,
+    "candidate_passed": 10,
+    "candidate_failed": 0,
+    "candidate_invalid_or_unsupported": 0,
+    "manifest_errors": 0
+  },
+  "behavioral_verdict": "passed",
+  "evaluated_local_candidate_readiness": "ready",
+  "current_remote_head_readiness": "not-ready-because-it-does-not-contain-the-evaluated-local-candidate",
+  "excluded_execution_counts": {
+    "pre_identity_exploratory": 8,
+    "targeted_harness_pilots": 4
+  },
+  "repository_validation_after_evidence_update": {
+    "validate_kit_exit": 0,
+    "validate_kit_summary": "8 passed, 0 failed, 8 total",
+    "fixture_v6_self_test_exit": 0,
+    "fixture_v6_self_test_summary": "durable-thread fixture v6 self-test passed",
+    "grade_runs_exit": 0,
+    "grade_runs_summary": "candidate 10 pass / 0 fail / 0 invalid; baseline 4 pass / 5 fail / 1 invalid; manifest errors 0"
+  }
 }

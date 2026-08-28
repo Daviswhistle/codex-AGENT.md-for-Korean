@@ -1,0 +1,191 @@
+{
+  "schema_version": 6,
+  "evaluation_id": "software-engineering-durable-thread-v6-runtime-boundary",
+  "artifact_scope": "local raw evidence; publish only per-run explicit allowlists",
+  "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
+  "candidate_commit": "a7056f2469b1b8c6ae8cb996f4624e9c333205cd",
+  "execution_harness_sha256": "2c5910b7870d8befe33d205dbab19a0434c211e614766034cbc15f433906417b",
+  "primary_run_policy": "one fresh run per case/side; valid fail and model noncompliance are not rerun",
+  "runs": [
+    {
+      "case_id": "SE-BOUNDED-CHILD-CONTROL",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-af18d-c4ca2cd",
+      "run_dir": "b-af18d-c4ca2cd",
+      "result_sha256": "86c2fcd9c1346cf82664ca6f30cdb3c9f8a4242eaab199a1ba0dbe017d1407ae",
+      "raw_trace_sha256": "f8fe8f77cf3fedca75748ba2a543d1089252a625cf9429665cde0c09a65f197d"
+    },
+    {
+      "case_id": "SE-BOUNDED-CHILD-CONTROL",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-af18d-a587cb3",
+      "run_dir": "c-af18d-a587cb3",
+      "result_sha256": "c301a827027945d2d0bb30805e7d58768622f1da5ad93f551b6cd16360985623",
+      "raw_trace_sha256": "9e79c5fb7163cd58dc01f84eed79a7fc699a912ffab374aba0e1a12403344e0c"
+    },
+    {
+      "case_id": "SE-DURABLE-MATCHING-REUSE",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-8c6b4-8732507",
+      "run_dir": "b-8c6b4-8732507",
+      "result_sha256": "7724514eab16364d27476a676f7fd8bc5c2b149263299e63636ce96d29361511",
+      "raw_trace_sha256": "949e75744193d74499c29652491d306d49c65327c8f7061669763ffc8ad0625c"
+    },
+    {
+      "case_id": "SE-DURABLE-MATCHING-REUSE",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-8c6b4-88f808b",
+      "run_dir": "c-8c6b4-88f808b",
+      "result_sha256": "4a8905a9953655b91392dcca37a5c551be4e9756c584ae06bc6cd625590f3f91",
+      "raw_trace_sha256": "a3294fdaab50842920e8fd6459412f1483bacec104e78ce47122fe2571bc7efe"
+    },
+    {
+      "case_id": "SE-DURABLE-VISIBLE-CREATE",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-98afd-f311684",
+      "run_dir": "b-98afd-f311684",
+      "result_sha256": "2fc7a92db400eb9bd3edff15811ea9034d73b2cb19d72cf5704e753ede913cb3",
+      "raw_trace_sha256": "8059ce676d89b85b37b5260cbe6c85a60f5cd2afe45cdecf237aa4dbe6b19976"
+    },
+    {
+      "case_id": "SE-DURABLE-VISIBLE-CREATE",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-98afd-96564ef",
+      "run_dir": "c-98afd-96564ef",
+      "result_sha256": "be1d3a858316d1d0d0891a8fbb0d1ecc5c4ff773669132005dfed86d4e111b45",
+      "raw_trace_sha256": "8382a60c60f001944db4dc9f21f73491718121e10b0e1bdb9469f44b59015d40"
+    },
+    {
+      "case_id": "SE-DURABLE-ADDRESSABILITY-RESUME",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-2df65-35161c0",
+      "run_dir": "b-2df65-35161c0",
+      "result_sha256": "0ed8bc74b915c18e5aa8bd1ff45c1be19d9e7ff26312f34731a5b79b0cb41a64",
+      "raw_trace_sha256": "40daa23fe0efadd2fbdde0507e024c94e21be69bbfcee19ba3c0c844c3e06cde"
+    },
+    {
+      "case_id": "SE-DURABLE-ADDRESSABILITY-RESUME",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-2df65-1664840",
+      "run_dir": "c-2df65-1664840",
+      "result_sha256": "928c11b3a0b6506b141a57b1aafd45e661fcb50245364808d4f6c288d2768697",
+      "raw_trace_sha256": "774148dd21317b9768bc86a6f6f14aaa99137b6ddaa93545e63ae24b7671607d"
+    },
+    {
+      "case_id": "SE-BINDING-MISMATCH-SAFE-FALLBACK",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-40197-5253a18",
+      "run_dir": "b-40197-5253a18",
+      "result_sha256": "139fa0c847988b939f6fff3fbb01b90f1860a1c7636a6b754792adc26ad37632",
+      "raw_trace_sha256": "75e3833e96cf60cd286757bf5351e06d12b2fc538b5d9e2d65dbdf2b27407030"
+    },
+    {
+      "case_id": "SE-BINDING-MISMATCH-SAFE-FALLBACK",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-40197-df49d56",
+      "run_dir": "c-40197-df49d56",
+      "result_sha256": "53ac5129448dadfe3e74995110d313eb6c572ae3582c3411c900cec84aa08da5",
+      "raw_trace_sha256": "16dee2bca8d515e64beaa0454f54f97296637d3439f522e679ddaf66f03c69b2"
+    },
+    {
+      "case_id": "SE-FIXED-SNAPSHOT-NON-UPGRADE",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-f095b-5a0c36a",
+      "run_dir": "b-f095b-5a0c36a",
+      "result_sha256": "c7150eb99befe735996ff8c68208e465a842e3b91309401681975893a2881aae",
+      "raw_trace_sha256": "f1d5a76423a998db09d9265770794abbde12050cc849db468d87e49483a81461"
+    },
+    {
+      "case_id": "SE-FIXED-SNAPSHOT-NON-UPGRADE",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-f095b-8e3789a",
+      "run_dir": "c-f095b-8e3789a",
+      "result_sha256": "6c16dd713d2e0030b728cf4bcfef280e80a7660b82103f825cb3704f789c5405",
+      "raw_trace_sha256": "fb3df49fdea3adff3e2d4d8ef4f855dcca4ab4bf79c7d32d672d96e8f51771c4"
+    },
+    {
+      "case_id": "SE-ACTIVE-WRITER-WAIT-REFRESH",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-bd2a4-adb5059",
+      "run_dir": "b-bd2a4-adb5059",
+      "result_sha256": "5aefde8aac6cbd10e69f957e3a6cf7a1eccbeaafa5a2183fe2f9bd2bc2d72b22",
+      "raw_trace_sha256": "12e203098a4015acc4cae2c46a453d44380c2f768696d82d267ee4a8794e0cb3"
+    },
+    {
+      "case_id": "SE-ACTIVE-WRITER-WAIT-REFRESH",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-bd2a4-534de35",
+      "run_dir": "c-bd2a4-534de35",
+      "result_sha256": "170810dcd2b4d6e48628a6e4e6bac73a22d13e063dd6a2e0da26af5554917e82",
+      "raw_trace_sha256": "86e4a4668e4010a14c5540fb7392fce11fa5e7d78a818954f3c8248ad5888a15"
+    },
+    {
+      "case_id": "SE-DEFINITE-PREDISPATCH-FAILURE-FALLBACK",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-9e720-fd827d2",
+      "run_dir": "b-9e720-fd827d2",
+      "result_sha256": "ae19562f29b9eefe37b905f6a83751ccc43afe94b9ee3ca27db378a420aeaedf",
+      "raw_trace_sha256": "64c5b48b0795a1f0afb53dff288699c0486098f9c21a6665f6ad2371866ffdb5"
+    },
+    {
+      "case_id": "SE-DEFINITE-PREDISPATCH-FAILURE-FALLBACK",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-9e720-f44a617",
+      "run_dir": "c-9e720-f44a617",
+      "result_sha256": "3b0f71507e27b5a9fd602be34389272714d187597e37c6cbdfa744f1c72cfca1",
+      "raw_trace_sha256": "8cd23ea30fd1aeada3eee8977cfa9e50b03a4b46da8e50715317b732ab09d56a"
+    },
+    {
+      "case_id": "SE-COMBINED-CREATE-START-AMBIGUOUS",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-bf220-e4dd0d0",
+      "run_dir": "b-bf220-e4dd0d0",
+      "result_sha256": "f51300be30f9ea6a19fc0ed2100fa30351d06ce6d4e3f0be6b43d364b0552121",
+      "raw_trace_sha256": "6fc389c6e9c7f5d83d2b94af0e1ce28a1513a210a8a65aba3d9f7e57e4a88525"
+    },
+    {
+      "case_id": "SE-COMBINED-CREATE-START-AMBIGUOUS",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-bf220-8033797",
+      "run_dir": "c-bf220-8033797",
+      "result_sha256": "6bccf0961826cc0ae998818e18aa8f7fd2e6f1286c2a4c75aa1a18f8e9c90b63",
+      "raw_trace_sha256": "5be232c8790b361b789d334601dc682ff73cfe6ad34c483ec8eb524e9dc8802b"
+    },
+    {
+      "case_id": "SE-POSTDISPATCH-TRANSPORT-LOSS-RECONCILE",
+      "side": "baseline",
+      "replicate": "primary",
+      "run_id": "b-951fa-442a45f",
+      "run_dir": "b-951fa-442a45f",
+      "result_sha256": "bb8c3f800ee2d86802db59b373ae5996e0071a45864b2a36dffb849d15c00f8e",
+      "raw_trace_sha256": "32082f8de82fa1772afcbdc5013aa123727617906821da2a29e05b7d8e3c7b52"
+    },
+    {
+      "case_id": "SE-POSTDISPATCH-TRANSPORT-LOSS-RECONCILE",
+      "side": "candidate",
+      "replicate": "primary",
+      "run_id": "c-951fa-2bd3700",
+      "run_dir": "c-951fa-2bd3700",
+      "result_sha256": "ec6baf54172ebcd8be8c3cf8178595ce3be1d66ccee218948a4d84da23651564",
+      "raw_trace_sha256": "e7ce280586bd5b5db2fb40d3ad224e964acbb766127a266e7944f3c0b701def1"
+    }
+  ]
+}

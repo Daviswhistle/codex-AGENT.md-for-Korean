@@ -1,131 +1,258 @@
 {
-  "evaluation_id": "software-engineering-durable-thread-v5",
+  "schema_version": 6,
+  "evaluation_id": "software-engineering-durable-thread-v6-runtime-boundary",
   "reviewed_at": "2026-08-28",
   "reviewer": "primary session",
+  "environment": {
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "high",
+    "sandbox": "danger-full-access",
+    "approval_policy": "never",
+    "codex_version": "codex-cli 0.150.1",
+    "child_agent_surface": "native multi_agent_v1 app-server items",
+    "durable_task_surface": "official app-server based controller-hosted dynamic-tool compatibility surface; not stock TUI E2E",
+    "fresh_process_codex_home_fixture_and_root_per_run": true
+  },
+  "frozen_evidence": {
+    "execution_harness_sha256": "2c5910b7870d8befe33d205dbab19a0434c211e614766034cbc15f433906417b",
+    "grader_sha256": "924d9ac42a95fbe3c86ecd0397ae8b55c13cb15aae0fbba79708935fa43b02da",
+    "manifest_sha256": "fded79e1ab82e775ebb9c8be6eb7b16d6f799bd4c871848806edaed8471c48cb",
+    "corrected_grade_report_sha256": "4b9bfe8921b4a58a8476327a5da09d08b1ebe1b5dd53618c4d21a2a0df495cdf",
+    "manifest_errors": []
+  },
   "summary": {
-    "baseline_behavioral_runs": 0,
-    "candidate_behavioral_runs": 0,
-    "blocked_runs": 20,
-    "behavioral_verdict": "not-run",
-    "fixture_self_test": "passed",
-    "manual_policy_review": "completed; see manual-policy-review.md",
-    "policy_install_identity_self_test": "passed",
-    "isolated_worktree_integration_self_test": "passed"
+    "primary_baseline_behavioral_runs": 10,
+    "primary_candidate_behavioral_runs": 10,
+    "primary_baseline_passed": 4,
+    "primary_baseline_failed": 5,
+    "primary_baseline_invalid_or_unsupported": 1,
+    "primary_candidate_passed": 10,
+    "primary_candidate_failed": 0,
+    "primary_candidate_invalid_or_unsupported": 0,
+    "behavioral_verdict": "passed",
+    "evaluated_local_candidate_readiness": "ready",
+    "current_remote_head_readiness": "not-ready-because-it-does-not-contain-the-evaluated-local-candidate",
+    "merge_recommendation": "publish the local policy and evidence commits, rerun CI and blocking review on that remote head, then merge only if both gates pass"
   },
-  "blocker": {
-    "codex_command_exit": 1,
-    "model": "unavailable",
-    "reasoning_effort": "unavailable",
-    "sandbox": "unavailable",
-    "approval_policy": "unavailable",
-    "model_session": "unavailable",
-    "surfaced_child_agent_tools": "unavailable",
-    "surfaced_durable_thread_tools": "unavailable"
-  },
-  "repository_validation": {
-    "validate_kit_exit_in_v5_evidence_run": 1,
-    "fixture_v5_self_test_exit": 0
+  "artifact_publication": {
+    "raw_artifacts_published": false,
+    "reason": "원시 trace와 per-run CODEX_HOME은 로컬에만 보존한다. 원시 디렉터리에는 인증 파일이 있을 수 있으므로 hardcoded allowlist 밖의 파일은 게시하지 않는다."
   },
   "cases": [
     {
-      "case_id": "SE-BOUNDED-CHILD",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-BOUNDED-CHILD-CONTROL",
       "baseline": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "b-af18d-c4ca2cd",
+        "reason": "bounded child 하나와 final-primary 검증 경계를 지켰다."
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-af18d-a587cb3",
+        "reason": "bounded child 하나와 final-primary 검증 경계를 지켰다."
       }
     },
     {
-      "case_id": "SE-DURABLE-CONTEXT-REUSE",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-DURABLE-MATCHING-REUSE",
       "baseline": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "b-8c6b4-8732507",
+        "reason": "일치하는 mutable binding을 재사용했다."
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-8c6b4-88f808b",
+        "reason": "surfaced identity와 current binding을 대조한 뒤 같은 durable task를 재사용했다."
       }
     },
     {
-      "case_id": "SE-DURABLE-ADDRESSABILITY",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-DURABLE-VISIBLE-CREATE",
       "baseline": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "b-98afd-f311684",
+        "reason": "별도 visible task를 만들고 완료했다."
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-98afd-96564ef",
+        "reason": "별도 visible task의 surfaced worktree identity를 확인하고 single-writer 경계에서 완료했다."
       }
     },
     {
-      "case_id": "SE-DURABLE-VISIBLE-TASK",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-DURABLE-ADDRESSABILITY-RESUME",
       "baseline": {
-        "grade": "not-run"
+        "grade": "invalid-or-unsupported",
+        "run_id": "b-2df65-35161c0",
+        "reason": "모델이 같은 worktree에 implementation writer 두 개를 시작해 handoff injection contract가 성립하지 않았다.",
+        "invalid_reasons": [
+          "addressability handoff is missing from publication allowlist",
+          "addressability live-barrier handoff was not established",
+          "harness validity: addressability barrier was not associated with exactly one dispatched implementation writer"
+        ]
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-2df65-1664840",
+        "reason": "새 root session이 같은 durable task를 다시 address하고 replacement writer 없이 완료했다."
       }
     },
     {
-      "case_id": "SE-RECOVERY-OWNERSHIP-ONLY",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-BINDING-MISMATCH-SAFE-FALLBACK",
       "baseline": {
-        "grade": "not-run"
+        "grade": "fail",
+        "run_id": "b-40197-5253a18",
+        "reason": "mismatched binding을 writer로 사용하지 않았지만 mixed command output만으로 barrier state의 empty inventory를 보수적으로 증명할 수 없어 unpermitted help violation을 유지했다.",
+        "failed_assertions": [
+          "runtime boundary audit"
+        ],
+        "remaining_runtime_violation_types": [
+          "unpermitted_barrier_command"
+        ]
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-40197-df49d56",
+        "reason": "mismatched binding을 배제하고 bounded fallback으로 완료했다."
       }
     },
     {
-      "case_id": "SE-PREFLIGHT-MISMATCH-BLOCK",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-FIXED-SNAPSHOT-NON-UPGRADE",
       "baseline": {
-        "grade": "not-run"
+        "grade": "fail",
+        "run_id": "b-f095b-5a0c36a",
+        "reason": "fixed snapshot의 공개 read·binding 관찰과 별도 mutable writer 및 final-primary oracle이 성립하지 않았다.",
+        "failed_assertions": [
+          "independent final-primary oracle",
+          "root publicly read fixed-snapshot task",
+          "root directly observed detached fixed-snapshot binding",
+          "root separately observed mutable primary binding",
+          "one mutable child writer"
+        ]
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-f095b-8e3789a",
+        "reason": "read-only fixed snapshot을 writer로 승격하지 않고 별도 mutable writer를 사용했다."
       }
     },
     {
-      "case_id": "SE-PREFLIGHT-MISMATCH-FALLBACK",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-ACTIVE-WRITER-WAIT-REFRESH",
       "baseline": {
-        "grade": "not-run"
+        "grade": "fail",
+        "run_id": "b-bd2a4-adb5059",
+        "reason": "raw stop proof 이후에도 durable writer와 native child writer의 interval overlap이 남았다.",
+        "failed_assertions": [
+          "runtime boundary audit"
+        ],
+        "remaining_runtime_violation_types": [
+          "writer_interval_overlap"
+        ]
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-bd2a4-534de35",
+        "reason": "wait-selected 이후 exact stop proof를 기다리고 binding을 새로 관찰한 뒤 다음 writer를 시작했다."
       }
     },
     {
-      "case_id": "SE-PREACTIVATION-FALLBACK",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-DEFINITE-PREDISPATCH-FAILURE-FALLBACK",
       "baseline": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "b-9e720-fd827d2",
+        "reason": "명확한 dispatch 전 실패 뒤 bounded fallback을 사용했다."
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-9e720-f44a617",
+        "reason": "명확한 dispatch 전 실패에서만 bounded fallback을 허용했다."
       }
     },
     {
-      "case_id": "SE-POSTACTIVATION-TRANSPORT-LOSS",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-COMBINED-CREATE-START-AMBIGUOUS",
       "baseline": {
-        "grade": "not-run"
+        "grade": "fail",
+        "run_id": "b-bf220-e4dd0d0",
+        "reason": "may-have-delivered writer가 살아 있는 동안 root가 repository barrier를 실행했고 final oracle과 exact writer test도 성립하지 않았다.",
+        "failed_assertions": [
+          "runtime boundary audit",
+          "independent final-primary oracle",
+          "every implementation writer ran the exact unittest segment successfully"
+        ],
+        "remaining_runtime_violation_types": [
+          "root_repo_command_while_writer_live"
+        ]
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-bf220-8033797",
+        "reason": "combined create/start의 전달 여부가 모호할 때 replacement writer를 시작하지 않고 terminalize·reconcile했다."
       }
     },
     {
-      "case_id": "SE-ACTIVE-WRITER-PREFLIGHT-ORDER",
-      "fixture": "defined and v5 self-tested",
+      "case_id": "SE-POSTDISPATCH-TRANSPORT-LOSS-RECONCILE",
       "baseline": {
-        "grade": "not-run"
+        "grade": "fail",
+        "run_id": "b-951fa-442a45f",
+        "reason": "원 writer와 replacement child writer가 겹쳤고 exact writer test도 성립하지 않았다.",
+        "failed_assertions": [
+          "runtime boundary audit",
+          "every implementation writer ran the exact unittest segment successfully",
+          "no replacement child writer"
+        ],
+        "remaining_runtime_violation_types": [
+          "writer_interval_overlap"
+        ]
       },
       "candidate": {
-        "grade": "not-run"
+        "grade": "pass",
+        "run_id": "c-951fa-2bd3700",
+        "reason": "post-dispatch transport loss를 새 writer 권한으로 해석하지 않고 original writer를 terminalize·reconcile했다."
       }
     }
-  ]
+  ],
+  "grader_refinements": [
+    {
+      "kind": "active-writer-raw-stop-proof",
+      "scope": "exact successful wait-selected touch와 writer-stopped wait completion 사이의 raw-trace ordering이 증명된 경우에만 coarse external interval의 post-proof tail을 제거한다",
+      "fail_closed_guards": "proof 전 실제 repository activity, 비외부 writer overlap, 잘못된 command 또는 실패한 command는 제거하지 않는다. Boot는 worktree 밖 installed policy SKILL.md의 exact sed -n read만 state-neutral로 인정한다",
+      "observed_effect": "candidate의 계측 오탐은 제거됐고 baseline의 durable/native-child overlap은 남았다"
+    },
+    {
+      "kind": "exact-run-local-barrier-help",
+      "scope": "sole violation이 exact run-local thread_barrier.py --help probe이고 metadata hash, execution-harness start/end tracked source hash, exit 0, argparse help output, exact full-path find -type f -print로 관측된 모든 state inventory의 empty 상태와 사후 빈 marker cleanup evidence가 모두 확인될 때만 state-neutral로 처리한다",
+      "fail_closed_guards": "wrong path, source identity mismatch, extra argument, nonzero exit, marker, nonempty inventory, basename-only inventory, count pipe, output redirect 또는 다른 runtime violation이 있으면 적용하지 않는다",
+      "observed_effect": "argparse가 state write 전에 종료하고 exact empty inventory까지 증명된 두 help probe만 허용했다. Baseline mixed inventory는 fail로 유지했다"
+    }
+  ],
+  "excluded_runs": [
+    {
+      "run_ids": [
+        "b-2df65-235298e",
+        "b-8c6b4-038126a",
+        "b-98afd-0fad786",
+        "b-af18d-6485473",
+        "c-2df65-0a0e646",
+        "c-8c6b4-843997a",
+        "c-98afd-44e87c6",
+        "c-af18d-5b5fa86"
+      ],
+      "reason": "execution-harness identity를 동결하기 전의 exploratory execution"
+    },
+    {
+      "run_ids": [
+        "c-af18d-4a66cf2",
+        "c-98afd-0532730",
+        "c-bf220-073f43c",
+        "c-bf220-c143410"
+      ],
+      "reason": "targeted harness pilots; 첫 ambiguous pilot은 run-local barrier path 결함을 드러낸 bring-up 결과"
+    }
+  ],
+  "repository_validation": {
+    "validate_kit_exit": 0,
+    "validate_kit_summary": "8 passed, 0 failed, 8 total",
+    "fixture_v6_self_test_exit": 0,
+    "fixture_v6_self_test_summary": "durable-thread fixture v6 self-test passed",
+    "corrected_grade_report_summary": "candidate 10 pass / 0 fail / 0 invalid; baseline 4 pass / 5 fail / 1 invalid; manifest errors 0"
+  }
 }
