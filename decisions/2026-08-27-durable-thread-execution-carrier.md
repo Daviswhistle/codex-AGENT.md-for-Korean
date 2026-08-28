@@ -28,9 +28,9 @@
 
 1. 실행 계약을 먼저 정의하고 carrier는 그 뒤에 고른다.
 2. 새 durable task를 만드는 권한을 일반적인 코드 수정 요청에서 추론하지 않는다. surfaced tool이 요구하는 명시 요청과 승인을 따른다.
-3. durable thread를 재사용할 때도 먼저 대상 worktree의 writer가 종료됐는지 확인하거나 별도 worktree·고정 snapshot을 마련하고 branch·revision·상태를 새로 읽는다. 그 안정된 상태에서 첫 메시지를 read-only preflight로 제한해 contract ID, repository·worktree·branch, 시작 revision, 요청할 후속 권한과 검증 계획을 전달한다. acknowledgement를 현재 상태와 다시 대조한 뒤 별도 activation 메시지로만 edit·test·commit 권한을 부여한다. acknowledgement 전에는 구현, 파일 수정, commit, working state를 바꿀 수 있는 명령이나 test를 금지한다.
+3. durable thread를 재사용할 때도 요청할 후속 권한에 맞는 worktree 경계를 먼저 만든다. 끝까지 read-only인 thread는 writer가 없는 worktree, 별도 worktree 또는 고정 snapshot을 읽을 수 있다. edit·상태 변경 test·commit 권한을 받을 수 있는 thread는 기존 writer가 종료된 뒤 새로 읽은 실제 mutable worktree나 별도 mutable worktree·branch에서만 preflight한다. 고정 snapshot에서 받은 acknowledgement는 write activation의 근거가 될 수 없으며, 쓰기가 필요해지면 writable boundary를 만든 뒤 preflight를 다시 수행한다. 첫 메시지는 read-only preflight로 제한해 contract ID, repository·worktree·branch, 시작 revision, 요청할 후속 권한과 검증 계획을 전달하고, acknowledgement를 현재 상태와 다시 대조한 뒤 별도 activation 메시지로만 권한을 부여한다.
 4. 다른 thread의 제목, 요약, 내용, idle 상태, 완료 선언은 증거가 아니다. 현재 사용자 의도와 저장소 지침에 맞춰 실제 diff와 원문 검증 근거를 확인한다.
-5. 하나의 mutable worktree는 carrier 수와 무관하게 single-writer, stable-reader 경계다. durable thread는 worktree 격리를 제공하지 않으며, active writer가 있는 worktree를 읽는 preflight도 안정된 근거가 아니다.
+5. 하나의 mutable worktree는 carrier 수와 무관하게 single-writer, stable-reader 경계다. durable thread는 worktree 격리를 제공하지 않으며, active writer가 있는 worktree를 읽는 preflight도 안정된 근거가 아니다. 고정 snapshot은 read isolation만 제공할 뿐 이후 쓰기를 위한 mutable worktree를 제공하지 않는다.
 6. 구현에 참여한 child agent나 durable thread는 자기 작업을 독립 승인할 수 없다. CRA와 고정 snapshot 검토 규칙은 그대로 유지한다.
 7. write activation 전에 thread 생성·preflight·activation이 확정적으로 불가하거나 거절되면 child agent 또는 primary로 되돌아가되 검증 기준은 낮추지 않는다. activation이 전달됐을 가능성이 생긴 뒤 transport가 끊기면 자동 fallback을 금지하고, 기존 thread의 terminal 상태나 명시적 중단을 확인한 뒤 실제 worktree를 대조·정리하고 새 시작 상태를 확정할 때까지 중단한다.
 8. 특정 모델, reasoning effort, provider, service tier를 durable thread의 전역 기본값으로 만들지 않는다. 기존 Luna Max + Fast 예시는 child-agent `worker`의 opt-in 설정으로만 남긴다.
