@@ -34,11 +34,11 @@
   "common_fixture": {
     "task_file": "fixture/task.md",
     "controller": "fixture/controller.md",
-    "setup_command": "python3 fixture/setup.py --root <RUN_DIR>",
-    "metadata_file": "<RUN_DIR>/fixture-metadata.json",
-    "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/repo",
+    "setup_command": "python3 fixture/setup.py --root <RUN_DIR>/fixture",
+    "metadata_file": "<RUN_DIR>/fixture/fixture-metadata.json",
+    "verification_command": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo",
     "barrier_command": "python3 fixture/thread_barrier.py --state <state> --name <BARRIER_NAME>",
-    "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>",
+    "teardown_command": "python3 fixture/teardown.py --root <RUN_DIR>/fixture",
     "authority": "edit and test; no commit",
     "policy_install_command": "python3 fixture/install_policy.py --source-repo <EVALUATION_REPOSITORY> --policy-commit <POLICY_COMMIT> --policy-side <baseline|candidate> --run-dir <RUN_DIR>/policy",
     "policy_manifest": "<RUN_DIR>/policy/policy-load-manifest.json",
@@ -63,7 +63,7 @@
       "valid_completion_paths": [
         {
           "name": "bounded-child-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/repo"
+          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
         }
       ],
       "fixture_ref": "common_fixture",
@@ -95,7 +95,7 @@
       "valid_completion_paths": [
         {
           "name": "matching-thread-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/repo"
+          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
         }
       ],
       "fixture_ref": "common_fixture",
@@ -133,7 +133,7 @@
       "valid_completion_paths": [
         {
           "name": "same-thread-cross-session-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/repo"
+          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
         }
       ],
       "fixture_ref": "common_fixture",
@@ -162,7 +162,7 @@
       "valid_completion_paths": [
         {
           "name": "visible-task-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/repo"
+          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
         }
       ],
       "fixture_ref": "common_fixture",
@@ -190,7 +190,7 @@
       "valid_completion_paths": [
         {
           "name": "bounded-child-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/repo"
+          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
         }
       ],
       "fixture_ref": "common_fixture",
@@ -254,7 +254,7 @@
       "valid_completion_paths": [
         {
           "name": "safe-mismatch-fallback-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/repo"
+          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
         }
       ],
       "fixture_ref": "common_fixture",
@@ -283,7 +283,7 @@
       "valid_completion_paths": [
         {
           "name": "definitive-rejection-fallback-completion",
-          "check": "python3 fixture/verify.py --repo <RUN_DIR>/repo"
+          "check": "python3 fixture/verify.py --repo <RUN_DIR>/fixture/repo"
         }
       ],
       "fixture_ref": "common_fixture",
