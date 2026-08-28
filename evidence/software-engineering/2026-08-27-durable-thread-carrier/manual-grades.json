@@ -7,7 +7,7 @@
     "candidate_behavioral_runs": 0,
     "blocked_runs": 20,
     "behavioral_verdict": "not-run",
-    "fixture_self_test": "pending-v4-workflow",
+    "fixture_self_test": "passed",
     "manual_policy_review": "completed; see manual-policy-review.md"
   },
   "blocker": {
@@ -21,69 +21,109 @@
     "surfaced_durable_thread_tools": "unavailable"
   },
   "repository_validation": {
-    "validate_kit_exit_in_v4_evidence_run": "pending",
-    "fixture_self_test_exit": "pending"
+    "validate_kit_exit_in_v4_evidence_run": 1,
+    "fixture_self_test_exit": 0
   },
   "cases": [
     {
       "case_id": "SE-BOUNDED-CHILD",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     },
     {
       "case_id": "SE-DURABLE-CONTEXT-REUSE",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     },
     {
       "case_id": "SE-DURABLE-ADDRESSABILITY",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     },
     {
       "case_id": "SE-DURABLE-VISIBLE-TASK",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     },
     {
       "case_id": "SE-RECOVERY-OWNERSHIP-ONLY",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     },
     {
       "case_id": "SE-PREFLIGHT-MISMATCH-BLOCK",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     },
     {
       "case_id": "SE-PREFLIGHT-MISMATCH-FALLBACK",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     },
     {
       "case_id": "SE-PREACTIVATION-FALLBACK",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     },
     {
       "case_id": "SE-POSTACTIVATION-TRANSPORT-LOSS",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     },
     {
       "case_id": "SE-ACTIVE-WRITER-PREFLIGHT-ORDER",
-      "fixture": "defined; v4 self-test pending",
-      "baseline": {"grade": "not-run"},
-      "candidate": {"grade": "not-run"}
+      "fixture": "defined and v4 self-tested",
+      "baseline": {
+        "grade": "not-run"
+      },
+      "candidate": {
+        "grade": "not-run"
+      }
     }
   ]
 }

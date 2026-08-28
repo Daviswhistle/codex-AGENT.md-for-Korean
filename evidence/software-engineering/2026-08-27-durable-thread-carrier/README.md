@@ -21,12 +21,12 @@ child-agent·durable-thread tool surface가 없었다. 따라서 실행하지 �
 - 평가 ID: `software-engineering-durable-thread-v4`
 - 기준선 commit: `aa2ae97856d7968e50511864c03f1babcd608d0d`
 - 후보 정책 commit: `4a87005223d235dc29873fbe602445617a52decb`
-- 실행 환경과 v4 self-test run: pending one-shot GitHub Actions evidence workflow
+- 실행 환경과 v4 self-test run: GitHub Actions run `33133238362`
 - model·reasoning effort·sandbox·approval policy: unavailable
 - surfaced child-agent tools: unavailable
 - surfaced durable-thread tools: unavailable
-- fixture v4 self-test: pending
-- evidence-run `python3 scripts/validate_kit.py`: pending
+- fixture v4 self-test: passed (exit `0`)
+- evidence-run `python3 scripts/validate_kit.py`: failed (exit `1`)
 
 원시 환경은 [`environment-probe.txt`](environment-probe.txt), fixture 실행은
 [`fixture-self-test.log`](fixture-self-test.log), 저장소 검증은

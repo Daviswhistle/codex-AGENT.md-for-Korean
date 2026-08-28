@@ -1,7 +1,7 @@
 # Manual policy diff review
 
-날짜: 2026-08-28  
-기준선: `aa2ae97856d7968e50511864c03f1babcd608d0d`  
+날짜: 2026-08-28
+기준선: `aa2ae97856d7968e50511864c03f1babcd608d0d`
 후보 정책: `4a87005223d235dc29873fbe602445617a52decb`
 
 이 기록은 자동 문자열 검사 결과가 아니다. Primary session이
