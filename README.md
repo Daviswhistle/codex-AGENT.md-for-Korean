@@ -162,7 +162,7 @@ Doctor는 다음을 함께 확인합니다.
 - [`software-engineering`](skills/software-engineering/) - 비사소한 구현과 로컬 검증의 실행 carrier를 primary·child agent·durable thread 중에서 고르고, CRA 또는 TCA의 필요성을 자율적으로 판단해 선택한 workflow를 실행하기 위한 스킬
 - [`writing-quality`](skills/writing-quality/) - 독자가 그대로 읽거나 보내거나 게시할 원고를 과제에 맞는 구조와 확인된 글쓰기 원칙으로 작성·편집하기 위한 범용 스킬
 
-`software-engineering`의 위임 계약은 모델과 transport에 중립적입니다. bounded 실행에는 child agent를 기본으로 사용합니다. durable thread는 이미 관련된 task 문맥을 유지·재사용해야 하거나, 역할이 여러 turn/session에 걸쳐 addressable해야 하거나, 사용자가 별도로 보이는 task를 명시적으로 요청한 경우에만 사용하며 surfaced tool 계약이 허용해야 합니다. recovery·ownership 이점은 이 세 lifecycle 조건을 뒷받침할 수 있지만 독립적인 선택 사유는 아닙니다. 선택적 custom `worker` 예시는 [`worker-luna-max-fast.toml`](skills/software-engineering/references/worker-luna-max-fast.toml)에 있으며 child-agent carrier만 설정합니다. 이 예시는 설치 시 자동 적용되지 않습니다.
+`software-engineering`의 위임 계약은 모델과 transport에 중립적입니다. bounded 실행에는 child agent를 기본으로 사용합니다. durable thread는 이미 관련된 task 문맥을 유지·재사용해야 하거나, 역할이 여러 turn/session에 걸쳐 addressable해야 하거나, 사용자가 별도로 보이는 task를 명시적으로 요청한 경우에만 사용하며 surfaced tool 계약이 허용해야 합니다. recovery·ownership 이점은 이 세 lifecycle 조건을 뒷받침할 수 있지만 독립적인 선택 사유는 아닙니다. 구현 가능한 durable thread를 재사용하려면 surfaced runtime·worktree identity와 관측한 branch·starting revision·worktree status가 선택한 mutable boundary와 일치해야 하며, implementation dispatch가 전달됐을 수 있는 순간부터 potential writer로 취급합니다. 선택적 custom `worker` 예시는 [`worker-luna-max-fast.toml`](skills/software-engineering/references/worker-luna-max-fast.toml)에 있으며 child-agent carrier만 설정합니다. 이 예시는 설치 시 자동 적용되지 않습니다.
 
 ## 첫 번째 기준점
 

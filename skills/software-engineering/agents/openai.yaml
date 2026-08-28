@@ -1,4 +1,4 @@
 interface:
   display_name: "Software Engineering Orchestration"
   short_description: "Choose an execution carrier and run CRA or TCA when useful"
-  default_prompt: "Use $software-engineering to define the task contract, choose direct execution, a bounded child agent, or an authorized durable thread, verify the result, and decide whether CRA or TCA is warranted."
+  default_prompt: "Use $software-engineering to define the task contract, choose direct execution, a bounded child agent, or a surfaced durable thread with a verified execution boundary, verify the result, and decide whether CRA or TCA is warranted."

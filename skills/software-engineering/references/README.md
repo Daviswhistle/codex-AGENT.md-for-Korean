@@ -6,7 +6,7 @@ Use a reference when the software-engineering skill selects that execution path 
 
 ## Current References
 
-- `execution-delegation.md`: primary/execution-owner responsibilities, direct versus child-agent versus durable-thread selection, durable-thread handshakes, worktree concurrency, independent validation evidence, review independence, fallbacks, and optional child-agent profile installation.
+- `execution-delegation.md`: primary/execution-owner responsibilities, direct versus child-agent versus durable-thread selection, runtime/worktree binding, implementation dispatch and transport-loss boundaries, worktree concurrency, independent validation evidence, review independence, fallbacks, and optional child-agent profile installation.
 - `worker-luna-max-fast.toml`: opt-in custom `worker` example using GPT-5.6 Luna, Max reasoning, Fast service tier, and workspace-write sandboxing. It configures the child-agent carrier only.
 - `cra-loop.md`: Commit-Review-Amend first-pass review, claim-based review ledger, conservative invalidation, amendment-delta review, full-review reset, stop, and reporting mechanics.
 - `tca-loop.md`: Task-Commit-Approve entry records, task boundaries, per-task carrier selection and CRA gates, restart rules, stop conditions, and reporting.

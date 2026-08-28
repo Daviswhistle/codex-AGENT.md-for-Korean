@@ -20,8 +20,8 @@ For `autonomous-structure`, record the concrete task boundaries, dependency, or 
 1. TCA is not an ordinary plan or a reason to split every multi-step change.
 2. Each task unit must have one clear goal, an explainable scope, a local validation contract, and a clean commit boundary.
 3. Every TCA task runs CRA after local validation. Do not proceed to the next task while the current task's CRA is running or has unresolved valid findings.
-4. When delegating, choose the carrier under `references/execution-delegation.md` and delegate only the active task unit. Treat its mutable worktree as a single-writer, stable-reader boundary: serialize repository-state-dependent readers until the writer exits. A read-only carrier may instead use a separate worktree or fixed commit snapshot; every potential writer requires a quiescent target worktree or a separate mutable worktree and branch.
-5. A durable thread is a lifecycle choice, not worktree isolation or independent review. Respect its surfaced creation, messaging, and approval contract. Establish a stable worktree view before its read-only preflight; write authority begins only after a matched acknowledgement and a separate activation message. After activation may have been delivered, communication loss is a stop condition until the original writer is terminal or explicitly stopped and the worktree is reconciled.
+4. When delegating, choose the carrier under `references/execution-delegation.md` and delegate only the active task unit. Treat its mutable worktree as a single-writer, stable-reader boundary: serialize repository-state-dependent readers until the writer exits. A read-only carrier may instead use a separate worktree or fixed commit snapshot; every potential writer requires a quiescent target worktree or a separate mutable worktree and branch with its observed status recorded.
+5. A durable thread is a lifecycle choice, not worktree isolation or independent review. Respect its surfaced creation, messaging, and approval contract. Before implementation dispatch, verify a quiescent target worktree or allocate a separate mutable worktree and branch at the exact starting revision, capture its observed worktree status, and reuse a thread as writer only when its surfaced runtime and worktree identities, branch, revision, and status match that boundary. A missing or error response from a combined create-and-start call is ambiguous because a writer may exist. After that ambiguity or any other point at which an implementation-capable instruction may have been delivered, replacement is a stop condition until surfaced thread state establishes that the original writer is terminal or explicitly stopped and actual worktree inspection reconciles its state; if either step cannot be established, remain blocked.
 6. Do not manufacture task boundaries that leave the repository broken, misleading, or materially incomplete.
 7. Exclude unrelated user or coworker changes, secrets, caches, logs, review output, thread transcripts, coordination artifacts, and temporary files from every task commit.
 8. A local commit and CRA result do not authorize push, deployment, migration, snapshot approval, production data changes, or other remote mutation.
@@ -50,17 +50,27 @@ Entry source: <explicit-request|autonomous-structure>
 Selection rationale: <concrete reason>
 
 [ ] T1. Task name
+    - Contract ID: <stable unique identifier>
+    - Contract artifact: <not-applicable|stable path or identifier and digest containing every persisted binding field>
     - Goal:
     - Scope:
     - Dependency:
     - Expected validation:
     - Execution carrier: <primary|child-agent|durable-thread>
     - Carrier identity: <agent/task/thread id or not-applicable>
+    - Repository path: <exact path|in contract artifact>
+    - Worktree path: <exact path|in contract artifact>
+    - Branch: <exact branch|in contract artifact|not-applicable>
+    - Starting revision: <exact revision|in contract artifact|not-applicable>
+    - Observed worktree status: <exact status|in contract artifact|not-applicable>
+    - Execution mode: <read-only|implementation-capable>
+    - Permitted local mutations: <none/read-only|edits: exact scope and paths; state-changing tests: exact commands; commit: allowed|forbidden>
     - Writer boundary: <quiescent|separate-worktree|blocked>
     - Read source: <live-worktree|separate-worktree|fixed-snapshot|not-applicable>
-    - Durable preflight: <not-applicable|pending|matched|blocked>
-    - Write activation: <not-applicable|pending|granted|definitively-rejected|delivery-ambiguous>
-    - Post-activation transport: <not-applicable|healthy|blocked|terminal-and-reconciled>
+    - Durable binding: <not-applicable|verified|mismatched|unverifiable>
+    - Implementation dispatch: <not-applicable|pending|definitively-failed-before-any-implementation-capable-delivery|may-have-been-delivered>
+    - Post-dispatch state: <not-applicable|healthy|transport-blocked|terminal-and-reconciled>
+    - Reconciled binding: <not-applicable|exact repository/worktree path, branch, refreshed starting revision, and observed status|updated stable contract-artifact reference and digest>
     - Commit boundary:
     - CRA state: pending
     - Status notes:
@@ -82,11 +92,11 @@ Choose the next task by this priority:
 
 For each task unit:
 
-1. Select the task and restate its goal, scope, dependency, validation, and completion condition.
-2. Create the execution contract from `references/execution-delegation.md`. Choose the carrier by lifecycle: a child agent is the default bounded carrier when available; a durable thread is justified only when an already relevant task must retain or reuse context, the role must remain addressable across turns or sessions, or the user explicitly requests a separately visible task, and the surfaced tool contract permits it. Recovery or ownership benefits are not independent selection reasons. Otherwise record the direct-execution fallback.
-3. Before any repository-state-dependent carrier or durable preflight starts, establish an authority-compatible view. If the carrier may write, wait for the active writer to reach a terminal state and refresh the branch, revision, and worktree status, or give the carrier a separate mutable worktree and branch. Use a fixed commit snapshot only for a carrier that will remain read-only. Record the writer boundary and read source in the queue.
-4. If a durable thread is used, complete its read-only preflight against that authority-compatible view. Record the identity, contract ID, acknowledged starting revision, worktree or branch, requested post-ack authority, and planned validation. A fixed-snapshot preflight may never receive write activation; establish a writable boundary and repeat the preflight if authority changes. Compare the acknowledgement with the still-current state, then record the separate activation that grants write authority before any implementation or state-changing validation begins.
-5. Wait for the delegated writer to return before starting any repository-state-dependent agent or thread in the same worktree. If activation may have been delivered and transport is lost, do not start a fallback writer; stop until the original thread is terminal or explicitly stopped, then inspect and reconcile the worktree and refresh the starting state.
+1. Select the task, assign a stable contract ID, and restate its goal, scope, dependency, validation, and completion condition.
+2. Create the execution contract from `references/execution-delegation.md`. Record the execution mode and exact `Permitted local mutations`; these are coordination constraints, not runtime enforcement. The primary session owns the commit boundary even when a bounded local commit is allowed, and no task contract authorizes remote mutation. Choose the carrier by lifecycle: a child agent is the default bounded carrier when available; a durable thread is justified only when an already relevant task must retain or reuse context, the role must remain addressable across turns or sessions, or the user explicitly requests a separately visible task, and the surfaced tool contract permits it. Recovery or ownership benefits are not independent selection reasons. Otherwise record the direct-execution fallback.
+3. Before any repository-state-dependent carrier starts, establish an execution-compatible view. If the carrier may write, wait for the active writer to reach a terminal state and verify the target worktree is quiescent at the exact branch and starting revision, or give the carrier a separate mutable worktree and branch at that revision. Capture and verify the observed worktree status in either case. Use a fixed commit snapshot only for a carrier that will remain read-only; if writing becomes necessary, select a new writer and mutable boundary. Before dispatch, persist in the queue the contract ID and either the exact repository path, worktree path, branch, starting revision, and observed worktree status or a stable contract-artifact reference containing all of them. Also record the writer boundary and read source.
+4. If a durable thread will implement, verify its surfaced runtime and worktree identities and confirm that its branch, starting revision, and observed worktree status match the selected mutable boundary before reuse. Before any implementation-capable instruction could have been delivered, a definitively unavailable, rejected, stale, unverifiable, or mismatched durable path, or a definitive creation or delivery failure, permits a validation-preserving safe alternative. Record the binding and implementation dispatch, and use the contract ID in every follow-up. A missing or error response from a combined create-and-start call is ambiguous because a writer may exist; from that ambiguity or any other moment an implementation-capable instruction may have been delivered, treat the thread as a potential active writer.
+5. Wait for the delegated writer to return before starting any repository-state-dependent agent or thread in the same worktree. If creation or delivery is ambiguous, or transport is lost after implementation dispatch, do not start a fallback writer. Establish from surfaced thread state that the original thread is terminal or explicitly stopped, then inspect and reconcile the worktree and persist the refreshed repository/worktree path, branch, starting revision, and observed status inline or in the referenced stable contract artifact. If either terminal-or-stopped state or reconciliation cannot be established, remain blocked. These persisted values and the contract ID are the resumption source for correlating follow-ups and identifying the worktree that must be reconciled.
 6. Inspect the actual changes, returned evidence, and repository state; do not accept a completion summary, thread status, or task title as proof.
 7. Independently verify every validation result required for completion by re-running it or inspecting independently accessible raw output, exit status, and artifacts. If only prose exists, re-run the validation.
 8. Check `git status --short` and the relevant diff; separate unrelated changes.
@@ -133,9 +143,9 @@ Stop instead of continuing when:
 2. the current task boundary becomes unclear
 3. unrelated changes cannot be separated safely
 4. required local validation or independently checkable evidence is unavailable, or its failure cannot be classified
-5. the execution handoff fails before activation and no safer direct-execution fallback exists
-6. a durable thread cannot establish a stable worktree view compatible with its requested authority, current contract, starting revision, or worktree boundary
-7. activation delivery is ambiguous or post-activation messaging, status, wait, or read transport is lost before the original thread is confirmed terminal or explicitly stopped and the worktree is reconciled
+5. before any implementation-capable delivery, the durable path is definitively unavailable, rejected, stale, unverifiable, or mismatched, or creation or delivery definitively fails, and no validation-preserving newly bound durable thread, child-agent, or direct fallback exists
+6. no available carrier can establish a verified runtime and worktree identity, branch, starting revision, and observed worktree status compatible with the implementation contract and writer boundary before dispatch
+7. creation or implementation delivery is ambiguous, including a missing or error response from a combined create-and-start call, or post-dispatch messaging, status, wait, or read transport is lost before surfaced thread state establishes the original thread is terminal or explicitly stopped and actual worktree inspection reconciles its state
 8. CRA fails in a way that cannot be corrected inside the current task
 9. a migration, deployment, production data update, purchase, or other external state change needs explicit approval
 10. review findings change the task premise and the queue has not yet been updated

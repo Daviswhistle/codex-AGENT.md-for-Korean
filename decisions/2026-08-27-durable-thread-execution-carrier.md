@@ -21,18 +21,20 @@
    - 기각. 여러 session에 걸친 역할, 기존 task 문맥 재사용, 사용자가 직접 볼 수 있는 장기 task에는 durable thread가 명확한 이점을 준다.
 3. `codex_tui` namespace나 0.150 계열의 정확한 tool 이름을 스킬에 규범적으로 고정한다.
    - 기각. transport와 노출 방식은 바뀔 수 있다. 스킬은 현재 runtime에 surfaced된 capability와 각 tool의 계약을 확인해야 한다.
-4. 별도 orchestration framework나 새 스킬을 추가한다.
+4. 프롬프트의 read-only preflight, acknowledgement, activation을 writer 권한 경계로 삼는다.
+   - 기각. 이 문구들은 carrier와 primary 사이의 coordination text일 뿐 sandbox, worktree binding, message delivery를 runtime에서 강제하지 않는다. 구현 경계는 surfaced runtime·worktree identity와 실제 branch·starting revision·관측한 worktree status를 외부에서 검증하고 implementation-capable instruction의 전달 가능 시점부터 writer lifecycle을 추적해야 한다.
+5. 별도 orchestration framework나 새 스킬을 추가한다.
    - 기각. task contract, 권한 경계, worktree 격리, 검증, CRA·TCA는 기존 `software-engineering` 스킬이 이미 소유한다. 필요한 것은 backend 분리이지 새 정책 계층이 아니다.
 
 경계:
 
-1. 실행 계약을 먼저 정의하고 carrier는 그 뒤에 고른다.
+1. 실행 계약을 먼저 정의하고 carrier는 그 뒤에 고른다. 계약에는 execution mode와 정확한 `Permitted local mutations`(none/read-only, edit scope·path, state-changing test command, local commit 허용·금지)를 기록한다. 이는 runtime enforcement가 아닌 coordination constraint이며, local commit을 허용해도 commit boundary는 주 세션이 소유하고 push·deploy·migration 등 remote mutation 권한은 생기지 않는다.
 2. 새 durable task를 만드는 권한을 일반적인 코드 수정 요청에서 추론하지 않는다. surfaced tool이 요구하는 명시 요청과 승인을 따른다.
-3. durable thread를 재사용할 때도 요청할 후속 권한에 맞는 worktree 경계를 먼저 만든다. 끝까지 read-only인 thread는 writer가 없는 worktree, 별도 worktree 또는 고정 snapshot을 읽을 수 있다. edit·상태 변경 test·commit 권한을 받을 수 있는 thread는 기존 writer가 종료된 뒤 새로 읽은 실제 mutable worktree나 별도 mutable worktree·branch에서만 preflight한다. 고정 snapshot에서 받은 acknowledgement는 write activation의 근거가 될 수 없으며, 쓰기가 필요해지면 writable boundary를 만든 뒤 preflight를 다시 수행한다. 첫 메시지는 read-only preflight로 제한해 contract ID, repository·worktree·branch, 시작 revision, 요청할 후속 권한과 검증 계획을 전달하고, acknowledgement를 현재 상태와 다시 대조한 뒤 별도 activation 메시지로만 권한을 부여한다.
+3. read-only carrier는 writer가 없는 stable view, 별도 worktree 또는 고정 snapshot을 읽을 수 있지만 writer로 승격하지 않는다. 쓰기가 필요해지면 새 writer를 선택하고, 기존 writer가 종료된 quiescent mutable worktree 또는 정확한 starting revision의 별도 mutable worktree·branch를 만든 뒤 실제 branch·revision·관측한 worktree status를 실행 경계로 기록·검증한다. durable thread를 writer로 재사용할 때는 surfaced runtime·worktree identity와 이 mutable boundary가 일치해야 하며, prompt acknowledgement나 activation 문구를 runtime enforcement로 취급하지 않는다.
 4. 다른 thread의 제목, 요약, 내용, idle 상태, 완료 선언은 증거가 아니다. 현재 사용자 의도와 저장소 지침에 맞춰 실제 diff와 원문 검증 근거를 확인한다.
-5. 하나의 mutable worktree는 carrier 수와 무관하게 single-writer, stable-reader 경계다. durable thread는 worktree 격리를 제공하지 않으며, active writer가 있는 worktree를 읽는 preflight도 안정된 근거가 아니다. 고정 snapshot은 read isolation만 제공할 뿐 이후 쓰기를 위한 mutable worktree를 제공하지 않는다.
+5. 하나의 mutable worktree는 carrier 수와 무관하게 single-writer, stable-reader 경계다. durable thread는 worktree 격리를 제공하지 않는다. 구현 dispatch 전에는 quiescent target 또는 별도 mutable worktree·branch의 runtime/worktree identity, branch, starting revision, 관측한 worktree status를 검증하며, stable dirty state도 clean state와 구분해 계약에 남긴다. 고정 snapshot은 read isolation만 제공할 뿐 이후 쓰기를 위한 mutable worktree를 제공하지 않는다.
 6. 구현에 참여한 child agent나 durable thread는 자기 작업을 독립 승인할 수 없다. CRA와 고정 snapshot 검토 규칙은 그대로 유지한다.
-7. write activation 전에 thread 생성·preflight·activation이 확정적으로 불가하거나 거절되면 child agent 또는 primary로 되돌아가되 검증 기준은 낮추지 않는다. activation이 전달됐을 가능성이 생긴 뒤 transport가 끊기면 자동 fallback을 금지하고, 기존 thread의 terminal 상태나 명시적 중단을 확인한 뒤 실제 worktree를 대조·정리하고 새 시작 상태를 확정할 때까지 중단한다.
+7. 어떤 implementation-capable instruction도 전달될 수 있기 전에 durable-thread 경로가 확정적으로 unavailable·rejected·stale·unverifiable·mismatched이거나 생성·delivery 실패가 확정되면 child agent 또는 primary로 되돌아가며 검증 기준은 낮추지 않는다. create-and-start가 결합된 호출에서 응답이 없거나 error가 반환된 경우에는 thread와 writer가 존재할 수 있으므로 실패 확정이 아니라 모호한 delivery로 본다. 그 모호성이 생기거나 instruction이 전달됐을 가능성이 생긴 순간부터 durable thread를 potential active writer로 보고 자동 fallback을 금지한다. surfaced thread state로 기존 thread의 terminal 상태나 명시적 중단을 확인하고 실제 worktree를 검사·reconcile한 뒤 branch·revision·worktree status를 새 starting state로 다시 기록할 때까지 중단하며, 둘 중 하나라도 확정할 수 없으면 blocked 상태를 유지한다.
 8. 특정 모델, reasoning effort, provider, service tier를 durable thread의 전역 기본값으로 만들지 않는다. 기존 Luna Max + Fast 예시는 child-agent `worker`의 opt-in 설정으로만 남긴다.
 9. `AGENTS.md`는 이미 “하위 에이전트나 격리된 실행 문맥”을 포괄하므로 변경하지 않는다.
 
