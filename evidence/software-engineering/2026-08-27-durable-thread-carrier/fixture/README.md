@@ -225,6 +225,36 @@ uncompressed size and SHA-256.
 The publisher never walks or copies the raw directory wholesale, so `auth.json` and
 the rest of per-run `CODEX_HOME` remain outside published evidence.
 
+The repository-tracked v6 packet is the published form of this contract, not a raw
+run-root copy. Its `behavior-run-manifest.json` SHA-256 is
+`78769e9949d348e6de51f199949159be15ba24f0d50251e112e652a07150468d`; it
+binds execution harness
+`2c5910b7870d8befe33d205dbab19a0434c211e614766034cbc15f433906417b`
+and grading harness
+`a81824c4a65b301e8ed0c57488b1383ce6a867b3283e3a27f0983ec83a1600e3`.
+The twenty runs contain 281 gzip artifacts (282 publication files including the
+plain top-level manifest), a 134,079,188-byte stored/compressed packet footprint,
+960,028,633 uncompressed artifact bytes, and a largest stored gzip blob of
+50,763,386 bytes. `runs/` contains no symlink or plaintext file. Exact allowlisted
+artifacts are tracked; raw run directories are not; per-run `CODEX_HOME`, auth, and
+all non-allowlisted paths remain excluded.
+
+The root `.gitattributes` fixes every plaintext file under this evidence root to
+`text eol=lf`, while `runs/**/*.gz` explicitly unsets text and EOL conversion. The
+canonical policy diff retains LF normalization but disables whitespace diagnostics
+because its exact historical bytes include added blank lines with spaces. Therefore
+`core.autocrlf=true` cannot change manifest, policy-diff, report, or harness bytes.
+Grade the tracked clone directly with:
+
+```bash
+python3 "$EVIDENCE/fixture/grade_runs.py" \
+  --manifest "$EVIDENCE/behavior-run-manifest.json"
+```
+
+`automated-grade-report.json` is a path-free, clone-stable projection of that
+command's material identities, summary, and per-run outcomes. It deliberately is
+not the raw grader stdout, whose absolute manifest and checkout paths vary by clone.
+
 ## Final-run replacement boundary
 
 The eight runs already present in the pre-identity `primary-20` directory are

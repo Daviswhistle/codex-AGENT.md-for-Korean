@@ -1,2 +1,5 @@
 # Generated evaluation evidence is preserved byte-for-byte, including model formatting.
 evidence/outcome-ownership/**/runs/** -text -whitespace
+evidence/software-engineering/2026-08-27-durable-thread-carrier/** text eol=lf
+evidence/software-engineering/2026-08-27-durable-thread-carrier/runs/**/*.gz -text -eol -whitespace
+evidence/software-engineering/2026-08-27-durable-thread-carrier/policy-diff.txt text eol=lf -whitespace

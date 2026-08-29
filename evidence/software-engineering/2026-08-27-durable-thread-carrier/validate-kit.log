@@ -1,7 +1,7 @@
 [PASS] manifest validation (kit 0.2.0, schema 1)
 
 ==> unittest:tests
-    /usr/bin/python3 -m unittest discover -s tests -p test*.py -v
+    /home/davis/.pyenv/versions/3.11.9/bin/python3 -m unittest discover -s tests -p test*.py -v
 test_doctor_failure_removes_every_created_parent_directory (test_install_codex_review_feedback.InstallCodexReviewFeedbackTests.test_doctor_failure_removes_every_created_parent_directory) ... ok
 test_doctor_interrupt_rolls_back_and_returns_130 (test_install_codex_review_feedback.InstallCodexReviewFeedbackTests.test_doctor_interrupt_rolls_back_and_returns_130) ... ok
 test_interrupt_during_link_creation_rolls_back_and_returns_130 (test_install_codex_review_feedback.InstallCodexReviewFeedbackTests.test_interrupt_during_link_creation_rolls_back_and_returns_130) ... ok
@@ -22,13 +22,13 @@ test_repository_manifest_is_valid (test_runtime_tools.ManifestAndValidationTests
 test_validation_runner_discovers_executable_suites_and_helpers (test_runtime_tools.ManifestAndValidationTests.test_validation_runner_discovers_executable_suites_and_helpers) ... ok
 
 ----------------------------------------------------------------------
-Ran 18 tests in 0.884s
+Ran 18 tests in 0.775s
 
 OK (skipped=1)
 [PASS] unittest:tests
 
 ==> unittest:skills/outcome-owner/tests
-    /usr/bin/python3 -m unittest discover -s skills/outcome-owner/tests -p test*.py -v
+    /home/davis/.pyenv/versions/3.11.9/bin/python3 -m unittest discover -s skills/outcome-owner/tests -p test*.py -v
 test_binding_reuses_recorded_creation_identity_kind (test_outcome_ledger.OutcomeLedgerTests.test_binding_reuses_recorded_creation_identity_kind) ... ok
 test_case_insensitive_path_key_conflict_is_portably_simulated (test_outcome_ledger.OutcomeLedgerTests.test_case_insensitive_path_key_conflict_is_portably_simulated) ... ok
 test_case_only_distinct_directories_do_not_conflict_on_sensitive_filesystem (test_outcome_ledger.OutcomeLedgerTests.test_case_only_distinct_directories_do_not_conflict_on_sensitive_filesystem) ... ok
@@ -70,9 +70,7 @@ test_local_state_uses_restrictive_permissions_and_expected_schema (test_outcome_
 test_looping_repo_and_database_paths_fail_with_structured_json (test_outcome_ledger.OutcomeLedgerTests.test_looping_repo_and_database_paths_fail_with_structured_json) ... ok
 test_malformed_database_failure_is_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_malformed_database_failure_is_structured_and_nonmutating) ... ok
 test_mutation_timestamps_remain_ordered_after_wall_clock_rollback (test_outcome_ledger.OutcomeLedgerTests.test_mutation_timestamps_remain_ordered_after_wall_clock_rollback) ... ok
-test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating) ...
-  test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating) (case='deeply-nested') ... FAIL
-test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating) ... FAIL
+test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating) ... ok
 test_preflight_clone_ignores_project_scoped_temp_directory (test_outcome_ledger.OutcomeLedgerTests.test_preflight_clone_ignores_project_scoped_temp_directory) ... ok
 test_record_replay_uses_historical_fencing_generation (test_outcome_ledger.OutcomeLedgerTests.test_record_replay_uses_historical_fencing_generation) ... ok
 test_record_requires_owner_and_has_canonical_idempotency (test_outcome_ledger.OutcomeLedgerTests.test_record_requires_owner_and_has_canonical_idempotency) ... ok
@@ -95,42 +93,16 @@ test_ttl_below_clock_resolution_fails_without_creating_a_lease (test_outcome_led
 test_unrelated_sqlite_is_rejected_without_persistent_mutation (test_outcome_ledger.OutcomeLedgerTests.test_unrelated_sqlite_is_rejected_without_persistent_mutation) ... ok
 test_unsafe_identified_main_and_sidecar_modes_fail_before_source_open (test_outcome_ledger.OutcomeLedgerTests.test_unsafe_identified_main_and_sidecar_modes_fail_before_source_open) ... ok
 test_waiting_blocked_interrupted_abandoned_and_complete_release_lease (test_outcome_ledger.OutcomeLedgerTests.test_waiting_blocked_interrupted_abandoned_and_complete_release_lease) ... ok
-test_wsl_mnt_c_case_semantics_are_detected_when_available (test_outcome_ledger.OutcomeLedgerTests.test_wsl_mnt_c_case_semantics_are_detected_when_available) ... skipped 'WSL /mnt/c case-insensitive path is unavailable'
-
-======================================================================
-FAIL: test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating) (case='deeply-nested')
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/runner/work/davis-agent-kit/davis-agent-kit/skills/outcome-owner/tests/test_outcome_ledger.py", line 1941, in test_pathological_metadata_errors_are_structured_and_nonmutating
-    completed, failure = self.run_cli(
-                         ^^^^^^^^^^^^^
-  File "/home/runner/work/davis-agent-kit/davis-agent-kit/skills/outcome-owner/tests/test_outcome_ledger.py", line 58, in run_cli
-    self.assertNotEqual(completed.returncode, 0)
-AssertionError: 0 == 0
-
-======================================================================
-FAIL: test_pathological_metadata_errors_are_structured_and_nonmutating (test_outcome_ledger.OutcomeLedgerTests.test_pathological_metadata_errors_are_structured_and_nonmutating)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/runner/work/davis-agent-kit/davis-agent-kit/skills/outcome-owner/tests/test_outcome_ledger.py", line 1973, in test_pathological_metadata_errors_are_structured_and_nonmutating
-    self.assertEqual(after, before)
-AssertionError: Tuples differ: (1787884010.3919559, 1) != (1787884010.2230663, 0)
-
-First differing element 0:
-1787884010.3919559
-1787884010.2230663
-
-- (1787884010.3919559, 1)
-+ (1787884010.2230663, 0)
+test_wsl_mnt_c_case_semantics_are_detected_when_available (test_outcome_ledger.OutcomeLedgerTests.test_wsl_mnt_c_case_semantics_are_detected_when_available) ... ok
 
 ----------------------------------------------------------------------
-Ran 65 tests in 27.458s
+Ran 65 tests in 25.355s
 
-FAILED (failures=2, skipped=1)
-[FAIL] unittest:skills/outcome-owner/tests (exit 1)
+OK
+[PASS] unittest:skills/outcome-owner/tests
 
 ==> unittest:skills/translation-quality/tests
-    /usr/bin/python3 -m unittest discover -s skills/translation-quality/tests -p test*.py -v
+    /home/davis/.pyenv/versions/3.11.9/bin/python3 -m unittest discover -s skills/translation-quality/tests -p test*.py -v
 test_escapes_raw_html_and_preserves_inline_markdown_and_links (test_md_to_html.MdToHtmlTests.test_escapes_raw_html_and_preserves_inline_markdown_and_links) ... ok
 test_mismatched_table_columns_fail (test_md_to_html.MdToHtmlTests.test_mismatched_table_columns_fail) ... ok
 test_numeric_columns_override_centered_markdown_separator (test_md_to_html.MdToHtmlTests.test_numeric_columns_override_centered_markdown_separator) ... ok
@@ -158,31 +130,29 @@ test_missing_table_alignment_fails (test_report_equivalence.ReportEquivalenceTes
 test_raw_markdown_artifact_fails (test_report_equivalence.ReportEquivalenceTests.test_raw_markdown_artifact_fails) ... ok
 
 ----------------------------------------------------------------------
-Ran 25 tests in 1.526s
+Ran 25 tests in 0.998s
 
 OK
 [PASS] unittest:skills/translation-quality/tests
 
 ==> helper-help:skills/outcome-owner/scripts/outcome_ledger.py
-    /usr/bin/python3 skills/outcome-owner/scripts/outcome_ledger.py --help
+    /home/davis/.pyenv/versions/3.11.9/bin/python3 skills/outcome-owner/scripts/outcome_ledger.py --help
 [PASS] helper-help:skills/outcome-owner/scripts/outcome_ledger.py
 
 ==> helper-help:skills/translation-quality/scripts/evaluate_report_equivalence.py
-    /usr/bin/python3 skills/translation-quality/scripts/evaluate_report_equivalence.py --help
+    /home/davis/.pyenv/versions/3.11.9/bin/python3 skills/translation-quality/scripts/evaluate_report_equivalence.py --help
 [PASS] helper-help:skills/translation-quality/scripts/evaluate_report_equivalence.py
 
 ==> helper-help:skills/translation-quality/scripts/md_to_html.py
-    /usr/bin/python3 skills/translation-quality/scripts/md_to_html.py --help
+    /home/davis/.pyenv/versions/3.11.9/bin/python3 skills/translation-quality/scripts/md_to_html.py --help
 [PASS] helper-help:skills/translation-quality/scripts/md_to_html.py
 
 ==> helper-help:skills/translation-quality/scripts/merge_chunks.py
-    /usr/bin/python3 skills/translation-quality/scripts/merge_chunks.py --help
+    /home/davis/.pyenv/versions/3.11.9/bin/python3 skills/translation-quality/scripts/merge_chunks.py --help
 [PASS] helper-help:skills/translation-quality/scripts/merge_chunks.py
 
 ==> helper-help:skills/translation-quality/scripts/qa_html_translation.py
-    /usr/bin/python3 skills/translation-quality/scripts/qa_html_translation.py --help
+    /home/davis/.pyenv/versions/3.11.9/bin/python3 skills/translation-quality/scripts/qa_html_translation.py --help
 [PASS] helper-help:skills/translation-quality/scripts/qa_html_translation.py
 
-Validation summary: 7 passed, 1 failed, 8 total
-Failed checks:
-  - unittest:skills/outcome-owner/tests
+Validation summary: 8 passed, 0 failed, 8 total

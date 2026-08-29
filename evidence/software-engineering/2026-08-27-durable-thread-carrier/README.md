@@ -1,6 +1,7 @@
 # Durable-thread runtime-boundary representative evaluation
 
-날짜: 2026-08-28
+- 평가 날짜: 2026-08-28
+- 로컬 증거 게시·검증 날짜: 2026-08-29
 
 ## 결론
 
@@ -10,17 +11,20 @@
 `invalid-or-unsupported`, 후보는 10 pass / 0 fail / 0 invalid이며 manifest
 오류는 0건이다.
 
-다만 원격 PR head `1e914444`는 평가한 로컬 후보가 아니다. 지금 원격 head를 바로
-병합하지 말고, `a7056f2`와 이 증거 변경을 게시한 뒤 CI와 blocking review를 다시
-통과시켜야 한다.
+평가 행동은 통과했고, 아래 clone-regradable packet도 현재 checkout에서 독립
+grader, fixture self-test, 저장소 validator로 검증됐다. 이것은 **로컬 증거 검증
+완료**를 뜻한다. 원격 PR에는 아직 이 커밋을 push하지 않았으므로 **원격 병합
+준비성은 최종 push 뒤의 CI와 blocking review가 끝날 때까지 미검증**이다. 과거에
+관측한 원격 head 값은 현재 원격 상태의 근거로 사용하지 않는다.
 
 ## 동결된 평가 경계
 
 - 평가 ID: `software-engineering-durable-thread-v6-runtime-boundary`
 - 실행 harness SHA-256: `2c5910b7870d8befe33d205dbab19a0434c211e614766034cbc15f433906417b`
-- 독립 grader SHA-256: `924d9ac42a95fbe3c86ecd0397ae8b55c13cb15aae0fbba79708935fa43b02da`
-- 최종 manifest SHA-256: `fded79e1ab82e775ebb9c8be6eb7b16d6f799bd4c871848806edaed8471c48cb`
-- 교정 grade report SHA-256: `4b9bfe8921b4a58a8476327a5da09d08b1ebe1b5dd53618c4d21a2a0df495cdf`
+- grading harness SHA-256: `a81824c4a65b301e8ed0c57488b1383ce6a867b3283e3a27f0983ec83a1600e3`
+- 독립 grader 파일 SHA-256: `9852ab09e3855e097ca980bd2bf0069973ab75abe0118156b61623a1e6810f80`
+- 게시 manifest SHA-256: `78769e9949d348e6de51f199949159be15ba24f0d50251e112e652a07150468d`
+- clone-stable automated grade projection SHA-256: `c6268151e9df8aab0822baf41e1f2d0df0142cd281f8fe86504282529c0b1578`
 - model / effort: `gpt-5.6-luna` / `high`
 - 실행 표면: Codex CLI `0.150.1`의 official app-server stdio와
   controller-hosted dynamic-tool compatibility surface
@@ -79,7 +83,8 @@ handoff/barrier가 성립하지 않았으므로 `invalid-or-unsupported`로 보�
    호출은 허용하지 않는다.
 
 세부 run ID, assertion, refinement와 hash는
-[`manual-grades.json`](manual-grades.json), 실행 provenance는
+[`manual-grades.json`](manual-grades.json)과
+[`automated-grade-report.json`](automated-grade-report.json), 실행 provenance는
 [`run-metadata.json`](run-metadata.json), 동결된 20-run 목록은
 [`behavior-run-manifest.json`](behavior-run-manifest.json)에 있다.
 
@@ -100,12 +105,37 @@ handoff/barrier가 성립하지 않았으므로 `invalid-or-unsupported`로 보�
 수 있고 양쪽을 보존한다. Valid fail은 교체하지 않으며, required injection을
 모델이 성립시키지 못한 실행도 `invalid-or-unsupported` 그대로 유지한다.
 
-원시 run directory에는 per-run `CODEX_HOME`과 인증 파일이 있을 수 있으므로 통째로
-게시하지 않는다. Hardcoded publication allowlist의 artifact만 hash와 함께 다룬다.
+## Clone-regradable artifact publication
+
+저장소에는 원시 run directory가 아니라 각 run의 `publish-manifest.json`에 명시된
+allowlist artifact만 deterministic gzip으로 추적한다. 현재 packet은 baseline 10개와
+candidate 10개, 총 20개 run을 포함하며 다음 inventory로 고정됐다.
+
+- gzip artifact 281개, top-level manifest를 포함한 publication file 282개;
+- packet stored/compressed footprint 134,079,188 bytes
+  (gzip payload 134,070,862 bytes + plain manifest 8,326 bytes);
+- gzip 해제 후 artifact bytes 960,028,633;
+- 가장 큰 stored gzip blob 50,763,386 bytes
+  (`runs/04-b-98afd-f311684/raw-trace.jsonl.gz`);
+- symlink 0개, `runs/` 아래 plaintext file 0개;
+- 원시 run directory 추적 안 함, per-run `CODEX_HOME`·`auth.json` 및 allowlist 밖
+  경로 제외.
+
+즉 allowlisted evidence는 `tracked=true`, raw run directories는 `tracked=false`,
+`CODEX_HOME`/authentication material은 `excluded=true`다. grader는 `.gz`를 bounded
+streaming으로 해제한 뒤 manifest의 원본 byte size와 SHA-256을 다시 검증하므로 새
+clone에서도 동일 행렬을 재현할 수 있다. [`automated-grade-report.json`](automated-grade-report.json)은
+절대 경로를 제거한 결과 projection이며, 실행마다 경로가 달라질 수 있는 raw grader
+stdout 전체의 hash를 clone-stable oracle이라고 주장하지 않는다.
+
+정책 의미 검토의 정확한 입력은 baseline `aa2ae978…`에서 candidate `a7056f2…`까지
+9개 policy 경로의 [`policy-diff.txt`](policy-diff.txt)다. 이 파일은 74,332 bytes,
+726 lines, SHA-256
+`12af146306ef06f863921716ae87e4a179792660c644b98475ce5dcf3222301b`로 고정했다.
 
 ## 병합 전 남은 저장소 단계
 
 1. 로컬 정책 commit `a7056f2`와 이 evidence commit을 PR branch에 push한다.
-2. 갱신된 원격 head에서 CI를 재실행한다.
-3. 갱신된 diff와 증거에 대해 blocking review를 다시 수행한다.
-4. 원격 head가 평가 후보와 증거 commit을 포함하고 두 gate가 통과한 뒤 병합한다.
+2. 갱신된 원격 head가 두 커밋을 포함하는지 확인하고 CI를 재실행한다.
+3. 그 원격 diff와 게시 증거에 대해 blocking review를 다시 수행한다.
+4. CI와 review가 모두 통과한 뒤에만 원격 병합 준비됨으로 판정하고 병합한다.

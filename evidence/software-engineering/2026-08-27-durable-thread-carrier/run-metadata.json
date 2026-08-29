@@ -13,16 +13,49 @@
     "child_agent_surface": "native multi_agent_v1 app-server items",
     "durable_task_surface": "official app-server based controller-hosted dynamic-tool compatibility surface; not stock TUI E2E",
     "fresh_process_codex_home_fixture_and_root_per_run": true,
-    "primary_runs": 20,
-    "raw_artifacts_published": false
+    "primary_runs": 20
   },
   "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
   "candidate_policy_commit": "a7056f2469b1b8c6ae8cb996f4624e9c333205cd",
-  "remote_pr_head_observed_before_local_evidence_commit": "1e9144447de3cc8c5b433470a3a88eec550b96ca",
-  "execution_harness_sha256": "2c5910b7870d8befe33d205dbab19a0434c211e614766034cbc15f433906417b",
-  "grader_sha256": "924d9ac42a95fbe3c86ecd0397ae8b55c13cb15aae0fbba79708935fa43b02da",
-  "behavior_run_manifest_sha256": "fded79e1ab82e775ebb9c8be6eb7b16d6f799bd4c871848806edaed8471c48cb",
-  "corrected_grade_report_sha256": "4b9bfe8921b4a58a8476327a5da09d08b1ebe1b5dd53618c4d21a2a0df495cdf",
+  "historical_observations": {
+    "pre_publication_remote_pr_head": "1e9144447de3cc8c5b433470a3a88eec550b96ca",
+    "scope": "historical observation only; not queried or asserted as the current remote head"
+  },
+  "frozen_identities": {
+    "execution_harness_sha256": "2c5910b7870d8befe33d205dbab19a0434c211e614766034cbc15f433906417b",
+    "grading_harness_sha256": "a81824c4a65b301e8ed0c57488b1383ce6a867b3283e3a27f0983ec83a1600e3",
+    "grader_sha256": "9852ab09e3855e097ca980bd2bf0069973ab75abe0118156b61623a1e6810f80",
+    "behavior_run_manifest_sha256": "78769e9949d348e6de51f199949159be15ba24f0d50251e112e652a07150468d",
+    "automated_grade_projection_sha256": "c6268151e9df8aab0822baf41e1f2d0df0142cd281f8fe86504282529c0b1578"
+  },
+  "publication": {
+    "allowlisted_artifacts_tracked": true,
+    "raw_run_directories_tracked": false,
+    "codex_home_and_auth_excluded": true,
+    "primary_runs": 20,
+    "gzip_files": 281,
+    "total_publication_files": 282,
+    "stored_compressed_packet_bytes": 134079188,
+    "gzip_payload_bytes": 134070862,
+    "plain_manifest_bytes": 8326,
+    "uncompressed_artifact_bytes": 960028633,
+    "largest_stored_gzip_blob_bytes": 50763386,
+    "largest_stored_gzip_blob": "runs/04-b-98afd-f311684/raw-trace.jsonl.gz",
+    "symlinks": 0,
+    "plaintext_files_under_runs": 0
+  },
+  "policy_diff": {
+    "baseline_commit": "aa2ae97856d7968e50511864c03f1babcd608d0d",
+    "candidate_commit": "a7056f2469b1b8c6ae8cb996f4624e9c333205cd",
+    "paths": 9,
+    "files_changed": 9,
+    "insertions": 367,
+    "deletions": 201,
+    "lines": 726,
+    "bytes": 74332,
+    "sha256": "12af146306ef06f863921716ae87e4a179792660c644b98475ce5dcf3222301b",
+    "generation": "git diff <baseline> <candidate> -- <the nine paths listed in manual-policy-review.md>"
+  },
   "primary_matrix": {
     "baseline_passed": 4,
     "baseline_failed": 5,
@@ -32,9 +65,11 @@
     "candidate_invalid_or_unsupported": 0,
     "manifest_errors": 0
   },
-  "behavioral_verdict": "passed",
-  "evaluated_local_candidate_readiness": "ready",
-  "current_remote_head_readiness": "not-ready-because-it-does-not-contain-the-evaluated-local-candidate",
+  "readiness": {
+    "evaluated_behavior": "passed",
+    "local_evidence_validation": "passed",
+    "remote_merge_readiness": "unverified-until-final-push-ci-and-blocking-review"
+  },
   "excluded_execution_counts": {
     "pre_identity_exploratory": 8,
     "targeted_harness_pilots": 4
@@ -42,9 +77,15 @@
   "repository_validation_after_evidence_update": {
     "validate_kit_exit": 0,
     "validate_kit_summary": "8 passed, 0 failed, 8 total",
+    "validate_kit_log_sha256": "7725f105810ace0b106e0dde7b9fda60a2622ccc05f7594a37acfa49fe09c867",
     "fixture_v6_self_test_exit": 0,
     "fixture_v6_self_test_summary": "durable-thread fixture v6 self-test passed",
-    "grade_runs_exit": 0,
-    "grade_runs_summary": "candidate 10 pass / 0 fail / 0 invalid; baseline 4 pass / 5 fail / 1 invalid; manifest errors 0"
+    "fixture_v6_self_test_log_sha256": "d5a80db8badcca53c908189581fd1842e7364645b6f6ce700a3ea17053c414a5",
+    "tracked_grade_runs_exit": 0,
+    "tracked_grade_runs_summary": "candidate 10 pass / 0 fail / 0 invalid; baseline 4 pass / 5 fail / 1 invalid; manifest errors 0",
+    "packet_copy_equality": true,
+    "json_parse": true,
+    "symlink_and_plaintext_run_files_absent": true,
+    "auth_and_codex_home_excluded": true
   }
 }

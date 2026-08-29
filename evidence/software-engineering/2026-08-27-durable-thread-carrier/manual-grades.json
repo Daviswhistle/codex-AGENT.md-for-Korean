@@ -15,9 +15,10 @@
   },
   "frozen_evidence": {
     "execution_harness_sha256": "2c5910b7870d8befe33d205dbab19a0434c211e614766034cbc15f433906417b",
-    "grader_sha256": "924d9ac42a95fbe3c86ecd0397ae8b55c13cb15aae0fbba79708935fa43b02da",
-    "manifest_sha256": "fded79e1ab82e775ebb9c8be6eb7b16d6f799bd4c871848806edaed8471c48cb",
-    "corrected_grade_report_sha256": "4b9bfe8921b4a58a8476327a5da09d08b1ebe1b5dd53618c4d21a2a0df495cdf",
+    "grading_harness_sha256": "a81824c4a65b301e8ed0c57488b1383ce6a867b3283e3a27f0983ec83a1600e3",
+    "grader_sha256": "9852ab09e3855e097ca980bd2bf0069973ab75abe0118156b61623a1e6810f80",
+    "manifest_sha256": "78769e9949d348e6de51f199949159be15ba24f0d50251e112e652a07150468d",
+    "automated_grade_projection_sha256": "c6268151e9df8aab0822baf41e1f2d0df0142cd281f8fe86504282529c0b1578",
     "manifest_errors": []
   },
   "summary": {
@@ -31,12 +32,24 @@
     "primary_candidate_invalid_or_unsupported": 0,
     "behavioral_verdict": "passed",
     "evaluated_local_candidate_readiness": "ready",
-    "current_remote_head_readiness": "not-ready-because-it-does-not-contain-the-evaluated-local-candidate",
-    "merge_recommendation": "publish the local policy and evidence commits, rerun CI and blocking review on that remote head, then merge only if both gates pass"
+    "local_evidence_validation": "passed",
+    "remote_merge_readiness": "unverified-until-final-push-ci-and-blocking-review",
+    "merge_recommendation": "publish the local policy and evidence commits, verify the resulting remote head, rerun CI and blocking review, then merge only if both gates pass"
   },
   "artifact_publication": {
-    "raw_artifacts_published": false,
-    "reason": "원시 trace와 per-run CODEX_HOME은 로컬에만 보존한다. 원시 디렉터리에는 인증 파일이 있을 수 있으므로 hardcoded allowlist 밖의 파일은 게시하지 않는다."
+    "allowlisted_artifacts_tracked": true,
+    "raw_run_directories_tracked": false,
+    "codex_home_and_auth_excluded": true,
+    "primary_runs": 20,
+    "gzip_files": 281,
+    "total_publication_files": 282,
+    "stored_compressed_packet_bytes": 134079188,
+    "gzip_payload_bytes": 134070862,
+    "uncompressed_artifact_bytes": 960028633,
+    "largest_stored_gzip_blob_bytes": 50763386,
+    "symlinks": 0,
+    "plaintext_files_under_runs": 0,
+    "reason": "각 run의 publish-manifest.json exact allowlist만 deterministic gzip으로 추적한다. 원시 run directory, per-run CODEX_HOME, auth.json과 allowlist 밖 파일은 게시하지 않는다."
   },
   "cases": [
     {
@@ -101,12 +114,13 @@
       "baseline": {
         "grade": "fail",
         "run_id": "b-40197-5253a18",
-        "reason": "mismatched binding을 writer로 사용하지 않았지만 mixed command output만으로 barrier state의 empty inventory를 보수적으로 증명할 수 없어 unpermitted help violation을 유지했다.",
+        "reason": "mismatched binding을 writer로 사용하지 않았지만 mixed command output만으로 barrier state의 empty inventory를 보수적으로 증명할 수 없었고 exact raw-command grammar 밖의 실행도 남았다.",
         "failed_assertions": [
           "runtime boundary audit"
         ],
         "remaining_runtime_violation_types": [
-          "unpermitted_barrier_command"
+          "unpermitted_barrier_command",
+          "unpermitted_raw_command"
         ]
       },
       "candidate": {
@@ -140,11 +154,12 @@
       "baseline": {
         "grade": "fail",
         "run_id": "b-bd2a4-adb5059",
-        "reason": "raw stop proof 이후에도 durable writer와 native child writer의 interval overlap이 남았다.",
+        "reason": "raw stop proof 이후에도 durable writer와 native child writer의 interval overlap과 exact raw-command grammar 위반이 남았다.",
         "failed_assertions": [
           "runtime boundary audit"
         ],
         "remaining_runtime_violation_types": [
+          "unpermitted_raw_command",
           "writer_interval_overlap"
         ]
       },
@@ -172,14 +187,15 @@
       "baseline": {
         "grade": "fail",
         "run_id": "b-bf220-e4dd0d0",
-        "reason": "may-have-delivered writer가 살아 있는 동안 root가 repository barrier를 실행했고 final oracle과 exact writer test도 성립하지 않았다.",
+        "reason": "may-have-delivered writer가 살아 있는 동안 root가 repository barrier와 허용 grammar 밖의 raw command를 실행했고 final oracle과 exact writer test도 성립하지 않았다.",
         "failed_assertions": [
           "runtime boundary audit",
           "independent final-primary oracle",
           "every implementation writer ran the exact unittest segment successfully"
         ],
         "remaining_runtime_violation_types": [
-          "root_repo_command_while_writer_live"
+          "root_repo_command_while_writer_live",
+          "unpermitted_raw_command"
         ]
       },
       "candidate": {
@@ -193,13 +209,14 @@
       "baseline": {
         "grade": "fail",
         "run_id": "b-951fa-442a45f",
-        "reason": "원 writer와 replacement child writer가 겹쳤고 exact writer test도 성립하지 않았다.",
+        "reason": "원 writer와 replacement child writer가 겹쳤고 exact writer test와 raw-command allowlist도 성립하지 않았다.",
         "failed_assertions": [
           "runtime boundary audit",
           "every implementation writer ran the exact unittest segment successfully",
           "no replacement child writer"
         ],
         "remaining_runtime_violation_types": [
+          "unpermitted_raw_command",
           "writer_interval_overlap"
         ]
       },
@@ -253,6 +270,7 @@
     "validate_kit_summary": "8 passed, 0 failed, 8 total",
     "fixture_v6_self_test_exit": 0,
     "fixture_v6_self_test_summary": "durable-thread fixture v6 self-test passed",
-    "corrected_grade_report_summary": "candidate 10 pass / 0 fail / 0 invalid; baseline 4 pass / 5 fail / 1 invalid; manifest errors 0"
+    "tracked_grade_exit": 0,
+    "tracked_grade_report_summary": "candidate 10 pass / 0 fail / 0 invalid; baseline 4 pass / 5 fail / 1 invalid; manifest errors 0"
   }
 }
