@@ -187,7 +187,7 @@ if codex review - \
   -c model_reasoning_effort="max" \
   -c model_context_window=1000000 \
   -c model_auto_compact_token_limit=900000 \
-  < "$PROMPT_PATH" > "$REVIEW_LOG" 2>&1
+  < "$PROMPT_PATH" >| "$REVIEW_LOG" 2>&1
 then
   REVIEW_EXIT=0
 else
@@ -203,7 +203,7 @@ fi
 tail -100 "$REVIEW_LOG"
 ```
 
-The output redirection truncates the fixed log before each run, and `codex review` blocks until the command exits. Use `REVIEW_EXIT` as the command completion signal rather than creating, deleting, or retaining a sentinel. A zero exit code establishes only that the review command completed; determine `completed-clean` or `completed-with-findings` from the completed output.
+The `>|` output redirection intentionally truncates the fixed log before each run even when shell `noclobber` is enabled, and `codex review` blocks until the command exits. Use `REVIEW_EXIT` as the command completion signal rather than creating, deleting, or retaining a sentinel. A zero exit code establishes only that the review command completed; determine `completed-clean` or `completed-with-findings` from the completed output.
 
 After completion:
 
@@ -222,7 +222,7 @@ if codex review --commit "$CURRENT_SHA" \
   -c model_reasoning_effort="max" \
   -c model_context_window=1000000 \
   -c model_auto_compact_token_limit=900000 \
-  > "$REVIEW_LOG" 2>&1
+  >| "$REVIEW_LOG" 2>&1
 then
   REVIEW_EXIT=0
 else
@@ -355,7 +355,7 @@ A full reset creates a new complete pass for the same fixed task parent and curr
 4. If the process is still alive, keep the process state as `running`.
 5. After process exit, inspect only the exit code, structured result, and the last 50-100 log lines unless debugging a failed review command requires more.
 6. Keep prompts, logs, and the ledger under the Git path returned by `git rev-parse --git-path cra`; do not put them in the worktree.
-7. Reuse the fixed prompt and log paths. Do not create per-pass temporary directories or retain run artifacts unless the user or a specific debugging task explicitly requires history.
+7. Reuse the fixed prompt and log paths, and use `>|` for the log so shell `noclobber` cannot block intentional truncation. Do not create per-pass temporary directories or retain run artifacts unless the user or a specific debugging task explicitly requires history.
 
 Review is a batch job, not a streaming conversation.
 
