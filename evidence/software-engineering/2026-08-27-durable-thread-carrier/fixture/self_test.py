@@ -2,17 +2,21 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import time
 
+import evidence_contract
 from inspect_binding import compare_binding
 from inspect_binding import observe_binding
+import publish_evidence
 
 
 def run(
@@ -20,6 +24,7 @@ def run(
     *,
     cwd: Path | None = None,
     expect_success: bool = True,
+    show_output: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     print("$", " ".join(args), flush=True)
     completed = subprocess.run(
@@ -29,7 +34,8 @@ def run(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
-    print(completed.stdout, end="")
+    if show_output:
+        print(completed.stdout, end="")
     print(f"exit={completed.returncode}", flush=True)
     if expect_success and completed.returncode != 0:
         raise SystemExit(completed.returncode)
@@ -218,25 +224,959 @@ def main() -> int:
             for side in ("baseline", "candidate")
         )
     ]
+    grading_identity = evidence_contract.compute_grading_harness_identity()
     complete_manifest = {
         "schema_version": 6,
         "evaluation_id": grader_module.EVALUATION_ID,
+        "artifact_scope": evidence_contract.ARTIFACT_SCOPE,
         "baseline_commit": grader_module.BASELINE_COMMIT,
         "candidate_commit": grader_module.CANDIDATE_COMMIT,
         "execution_harness_sha256": harness_identity[
             "execution_harness_sha256"
         ],
+        "grading_harness_sha256": grading_identity[
+            "grading_harness_sha256"
+        ],
+        "primary_run_policy": evidence_contract.PRIMARY_RUN_POLICY,
         "runs": manifest_runs,
     }
     if grader_module.validate_manifest(complete_manifest):
         raise SystemExit("grader rejected a complete identity-bound manifest")
-    del complete_manifest["execution_harness_sha256"]
-    if not any(
-        "execution harness SHA-256" in error
-        for error in grader_module.validate_manifest(complete_manifest)
-    ):
+    missing_execution_identity = json.loads(json.dumps(complete_manifest))
+    del missing_execution_identity["execution_harness_sha256"]
+    if not grader_module.validate_manifest(missing_execution_identity):
         raise SystemExit("grader accepted a manifest without harness identity")
-    print("tracked grader execution-identity manifest gate self-test passed")
+    missing_grading_identity = json.loads(json.dumps(complete_manifest))
+    del missing_grading_identity["grading_harness_sha256"]
+    if not grader_module.validate_manifest(missing_grading_identity):
+        raise SystemExit("grader accepted a manifest without grading identity")
+    mismatched_grading_identity = json.loads(json.dumps(complete_manifest))
+    mismatched_grading_identity["grading_harness_sha256"] = "0" * 64
+    if not grader_module.validate_manifest(mismatched_grading_identity):
+        raise SystemExit("grader accepted a mismatched grading identity")
+    null_grading_identity = json.loads(json.dumps(complete_manifest))
+    null_grading_identity["grading_harness_sha256"] = None
+    if not grader_module.validate_manifest(null_grading_identity):
+        raise SystemExit("grader accepted a null grading identity")
+    print("tracked execution/grading identity manifest gates self-test passed")
+
+    if evidence_contract.grading_harness_identity_errors(grading_identity):
+        raise SystemExit("shared grading-harness identity is invalid")
+    if tuple(item["path"] for item in grading_identity["files"]) != (
+        "evidence_contract.py",
+        "grade_runs.py",
+        "publish_evidence.py",
+    ):
+        raise SystemExit("grading-harness identity inventory is incomplete")
+    tampered_grading_identity = json.loads(json.dumps(grading_identity))
+    tampered_grading_identity["files"][0]["size_bytes"] += 1
+    if not evidence_contract.grading_harness_identity_errors(
+        tampered_grading_identity
+    ):
+        raise SystemExit("grading-harness identity tampering was not detected")
+    for payload in (
+        b'{"apiKey":"x","apiKey":""}',
+        b'{"number":NaN}',
+        b'{"number":Infinity}',
+        b'{"number":-Infinity}',
+    ):
+        try:
+            evidence_contract.strict_json_loads(
+                payload, description="strict JSON self-test"
+            )
+        except evidence_contract.PublicationError:
+            pass
+        else:
+            raise SystemExit("strict JSON parser accepted ambiguous input")
+    print(
+        "shared grading-harness identity and strict JSON coverage self-test passed"
+    )
+
+    invalid_manifest_path = root / "invalid-grader-manifest.json"
+    invalid_manifest_path.write_text(
+        json.dumps(missing_execution_identity, sort_keys=True), encoding="utf-8"
+    )
+    invalid_grade = run(
+        [
+            sys.executable,
+            str(grader_path),
+            "--manifest",
+            str(invalid_manifest_path),
+        ],
+        cwd=source_repo,
+        expect_success=False,
+        show_output=False,
+    )
+    try:
+        invalid_grade_report = json.loads(invalid_grade.stdout)
+    except json.JSONDecodeError as exc:
+        raise SystemExit("nonzero grader did not emit a complete JSON report") from exc
+    if invalid_grade_report.get("summary", {}).get("exit_status") != 1 or not (
+        invalid_grade_report.get("manifest_errors")
+    ):
+        raise SystemExit("invalid grader report did not explain its nonzero exit")
+    if not invalid_grade_report.get("grading_harness_identity"):
+        raise SystemExit("grader report omitted the grading-harness identity")
+    for grade in ("fail", "invalid-or-unsupported"):
+        if not grader_module.report_requires_nonzero_exit(
+            {
+                "manifest_errors": [],
+                "runs": [{"side": "candidate", "grade": grade}],
+            }
+        ):
+            raise SystemExit(f"grader exit gate accepted candidate {grade}")
+    frozen_invalid = grader_module.EXPECTED_FROZEN_INVALID_RUNS[
+        ("baseline", "SE-DURABLE-ADDRESSABILITY-RESUME")
+    ]
+    frozen_invalid_item = {
+        "case_id": "SE-DURABLE-ADDRESSABILITY-RESUME",
+        "side": "baseline",
+        "grade": "invalid-or-unsupported",
+        **{
+            field: frozen_invalid[field]
+            for field in (
+                "run_id",
+                "replicate",
+                "result_sha256",
+                "raw_trace_sha256",
+            )
+        },
+        "invalid_reasons": sorted(frozen_invalid["invalid_reasons"]),
+    }
+    exact_frozen_report = {
+        "manifest_errors": [],
+        "runs": [frozen_invalid_item],
+    }
+    if grader_module.report_requires_nonzero_exit(exact_frozen_report):
+        raise SystemExit("grader exit gate rejected the exact frozen invalid run")
+    for field, replacement in (
+        ("run_id", "b-other-run"),
+        ("replicate", "replacement"),
+        ("result_sha256", "0" * 64),
+        ("raw_trace_sha256", "1" * 64),
+    ):
+        mutated_report = json.loads(json.dumps(exact_frozen_report))
+        mutated_report["runs"][0][field] = replacement
+        if not grader_module.report_requires_nonzero_exit(mutated_report):
+            raise SystemExit(
+                f"grader exit gate accepted frozen-invalid {field} substitution"
+            )
+    print(
+        "grader complete-JSON and exact frozen-invalid identity gate self-test passed"
+    )
+
+    publication_root = root / "publication-sources"
+    publication_root.mkdir()
+    publication_bytes: dict[str, bytes] = {}
+
+    def artifact_payload(relative: str, index: int) -> bytes:
+        if relative.endswith(".json"):
+            return (json.dumps({"artifact": relative}, sort_keys=True) + "\n").encode()
+        if relative.endswith(".jsonl"):
+            return (json.dumps({"artifact": relative}, sort_keys=True) + "\n").encode()
+        return f"allowlisted artifact {index}: {relative}\n".encode()
+
+    def write_publish_manifest(run_dir: Path) -> dict[str, object]:
+        entries: list[dict[str, object]] = []
+        for index, relative in enumerate(
+            sorted(evidence_contract.REQUIRED_PUBLISH_PATHS)
+        ):
+            payload = artifact_payload(relative, index)
+            path = run_dir / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(payload)
+            publication_bytes.setdefault(relative, payload)
+            entries.append(
+                {
+                    "path": relative,
+                    "sha256": hashlib.sha256(payload).hexdigest(),
+                    "size_bytes": len(payload),
+                }
+            )
+        publish = {
+            "schema_version": 1,
+            "publication_mode": "explicit allowlist only",
+            "compatibility_surface": evidence_contract.PUBLISH_COMPATIBILITY_SURFACE,
+            "explicitly_excluded": evidence_contract.PUBLISH_EXPLICITLY_EXCLUDED,
+            "files": entries,
+        }
+        (run_dir / "publish-manifest.json").write_text(
+            json.dumps(publish, sort_keys=True), encoding="utf-8"
+        )
+        return publish
+
+    synthetic_runs: list[dict[str, object]] = []
+    source_publish_manifests: list[dict[str, object]] = []
+    for index, (case_id, side) in enumerate(
+        (case, side)
+        for case in evidence_contract.CASE_IDS
+        for side in ("baseline", "candidate")
+    ):
+        run_id = f"synthetic-{index:02d}-{side}"
+        run_dir = publication_root / run_id
+        run_dir.mkdir()
+        publish = write_publish_manifest(run_dir)
+        source_publish_manifests.append(publish)
+        by_path = {entry["path"]: entry for entry in publish["files"]}
+        synthetic_runs.append(
+            {
+                "case_id": case_id,
+                "side": side,
+                "replicate": "primary",
+                "run_id": run_id,
+                "run_dir": str(run_dir),
+                "result_sha256": by_path["result.json"]["sha256"],
+                "raw_trace_sha256": by_path["raw-trace.jsonl"]["sha256"],
+            }
+        )
+    synthetic_behavior_manifest = {
+        "schema_version": 6,
+        "evaluation_id": evidence_contract.EVALUATION_ID,
+        "artifact_scope": evidence_contract.ARTIFACT_SCOPE,
+        "baseline_commit": evidence_contract.BASELINE_COMMIT,
+        "candidate_commit": evidence_contract.CANDIDATE_COMMIT,
+        "execution_harness_sha256": evidence_contract.EXECUTION_HARNESS_SHA256,
+        "grading_harness_sha256": grading_identity[
+            "grading_harness_sha256"
+        ],
+        "primary_run_policy": evidence_contract.PRIMARY_RUN_POLICY,
+        "runs": synthetic_runs,
+    }
+    synthetic_manifest_path = root / "synthetic-behavior-manifest.json"
+
+    def write_behavior_manifest() -> None:
+        synthetic_manifest_path.write_text(
+            json.dumps(synthetic_behavior_manifest, sort_keys=True),
+            encoding="utf-8",
+        )
+
+    def refresh_artifact(index: int, relative: str, payload: bytes) -> None:
+        run_dir = Path(str(synthetic_runs[index]["run_dir"]))
+        (run_dir / relative).write_bytes(payload)
+        publish = source_publish_manifests[index]
+        entry = next(item for item in publish["files"] if item["path"] == relative)
+        entry["sha256"] = hashlib.sha256(payload).hexdigest()
+        entry["size_bytes"] = len(payload)
+        (run_dir / "publish-manifest.json").write_text(
+            json.dumps(publish, sort_keys=True), encoding="utf-8"
+        )
+        if relative == "result.json":
+            synthetic_runs[index]["result_sha256"] = entry["sha256"]
+        elif relative == "raw-trace.jsonl":
+            synthetic_runs[index]["raw_trace_sha256"] = entry["sha256"]
+        write_behavior_manifest()
+
+    write_behavior_manifest()
+    secret = Path(str(synthetic_runs[0]["run_dir"])) / "policy/codex-home/auth.json"
+    secret.parent.mkdir(parents=True, exist_ok=True)
+    secret.write_text("must-not-publish\n", encoding="utf-8")
+
+    legacy_behavior_manifest = json.loads(json.dumps(synthetic_behavior_manifest))
+    del legacy_behavior_manifest["grading_harness_sha256"]
+    legacy_manifest_path = root / "legacy-unbound-behavior-manifest.json"
+    legacy_manifest_path.write_text(
+        json.dumps(legacy_behavior_manifest, sort_keys=True), encoding="utf-8"
+    )
+    bound_manifest_path = root / "identity-bound-behavior-manifest.json"
+    bind_result = run(
+        [
+            sys.executable,
+            str(fixture_dir / "publish_evidence.py"),
+            "--manifest",
+            str(legacy_manifest_path),
+            "--bind-output",
+            str(bound_manifest_path),
+        ],
+        cwd=source_repo,
+        show_output=False,
+    )
+    bind_report = json.loads(bind_result.stdout)
+    bound_behavior_manifest = evidence_contract.read_path_json_no_symlink(
+        bound_manifest_path,
+        max_bytes=evidence_contract.MAX_BEHAVIOR_MANIFEST_BYTES,
+    )
+    if (
+        not bind_report.get("bound")
+        or bound_behavior_manifest.get("grading_harness_sha256")
+        != grading_identity["grading_harness_sha256"]
+        or any(
+            not Path(entry["run_dir"]).is_absolute()
+            for entry in bound_behavior_manifest["runs"]
+        )
+        or grader_module.validate_manifest(bound_behavior_manifest)
+    ):
+        raise SystemExit("manifest binder did not produce a current portable manifest")
+    bound_grade = run(
+        [sys.executable, str(grader_path), "--manifest", str(bound_manifest_path)],
+        cwd=source_repo,
+        expect_success=False,
+        show_output=False,
+    )
+    bound_grade_report = json.loads(bound_grade.stdout)
+    if len(bound_grade_report.get("runs", [])) != 20 or any(
+        "grading_harness_sha256" in reason
+        for reason in bound_grade_report.get("manifest_errors", [])
+    ):
+        raise SystemExit("identity-bound manifest was not evaluated by the grader")
+    unbound_grade = run(
+        [sys.executable, str(grader_path), "--manifest", str(legacy_manifest_path)],
+        cwd=source_repo,
+        expect_success=False,
+        show_output=False,
+    )
+    unbound_grade_report = json.loads(unbound_grade.stdout)
+    if not any(
+        "grading_harness_sha256" in reason
+        for reason in unbound_grade_report.get("manifest_errors", [])
+    ):
+        raise SystemExit("grader accepted a legacy manifest without grading binding")
+    mismatched_manifest = json.loads(json.dumps(bound_behavior_manifest))
+    mismatched_manifest["grading_harness_sha256"] = "0" * 64
+    mismatched_manifest_path = root / "mismatched-grading-manifest.json"
+    mismatched_manifest_path.write_text(
+        json.dumps(mismatched_manifest, sort_keys=True), encoding="utf-8"
+    )
+    mismatched_grade = run(
+        [
+            sys.executable,
+            str(grader_path),
+            "--manifest",
+            str(mismatched_manifest_path),
+        ],
+        cwd=source_repo,
+        expect_success=False,
+        show_output=False,
+    )
+    mismatched_grade_report = json.loads(mismatched_grade.stdout)
+    if not any(
+        "grading_harness_sha256 mismatch" in reason
+        for reason in mismatched_grade_report.get("manifest_errors", [])
+    ):
+        raise SystemExit("grader accepted a mismatched grading binding")
+    print("grading-harness manifest bind/missing/mismatch self-test passed")
+
+    malformed_result = {
+        "case_id": synthetic_runs[0]["case_id"],
+        "policy_side": synthetic_runs[0]["side"],
+        "schema_version": 6,
+        "boot": [],
+    }
+    original_result = publication_bytes["result.json"]
+    refresh_artifact(
+        0,
+        "result.json",
+        (json.dumps(malformed_result, sort_keys=True) + "\n").encode(),
+    )
+    malformed_result_grade = run(
+        [sys.executable, str(grader_path), "--manifest", str(synthetic_manifest_path)],
+        cwd=source_repo,
+        expect_success=False,
+        show_output=False,
+    )
+    malformed_result_report = json.loads(malformed_result_grade.stdout)
+    if malformed_result_report.get("summary", {}).get("exit_status") != 1:
+        raise SystemExit("malformed nested result did not produce complete nonzero JSON")
+    refresh_artifact(0, "result.json", original_result)
+
+    malformed_manifest = json.loads(json.dumps(synthetic_behavior_manifest))
+    malformed_manifest["runs"][0]["case_id"] = {"nested": "object"}
+    malformed_manifest["runs"][1]["side"] = ["nested", "array"]
+    malformed_manifest_path = root / "malformed-nested-manifest.json"
+    malformed_manifest_path.write_text(
+        json.dumps(malformed_manifest, sort_keys=True), encoding="utf-8"
+    )
+    malformed_manifest_grade = run(
+        [sys.executable, str(grader_path), "--manifest", str(malformed_manifest_path)],
+        cwd=source_repo,
+        expect_success=False,
+        show_output=False,
+    )
+    malformed_manifest_report = json.loads(malformed_manifest_grade.stdout)
+    if malformed_manifest_report.get("summary", {}).get("exit_status") != 1:
+        raise SystemExit("malformed nested manifest did not produce complete nonzero JSON")
+
+    canonical_manifest_text = json.dumps(
+        synthetic_behavior_manifest, sort_keys=True
+    )
+    ambiguous_manifest_payloads = (
+        '{"schema_version":6,' + canonical_manifest_text[1:],
+        canonical_manifest_text.replace(
+            '"schema_version": 6', '"schema_version": NaN', 1
+        ),
+    )
+    for counter, payload in enumerate(ambiguous_manifest_payloads):
+        ambiguous_manifest_path = root / f"ambiguous-manifest-{counter}.json"
+        ambiguous_manifest_path.write_text(payload, encoding="utf-8")
+        ambiguous_grade = run(
+            [
+                sys.executable,
+                str(grader_path),
+                "--manifest",
+                str(ambiguous_manifest_path),
+            ],
+            cwd=source_repo,
+            expect_success=False,
+            show_output=False,
+        )
+        ambiguous_report = json.loads(ambiguous_grade.stdout)
+        if (
+            ambiguous_report.get("summary", {}).get("exit_status") != 1
+            or not ambiguous_report.get("manifest_errors")
+        ):
+            raise SystemExit("ambiguous manifest did not produce complete nonzero JSON")
+
+    missing_run_manifest = json.loads(json.dumps(synthetic_behavior_manifest))
+    missing_run_manifest["runs"][0]["run_dir"] = str(root / "missing-run")
+    missing_run_manifest_path = root / "missing-run-manifest.json"
+    missing_run_manifest_path.write_text(
+        json.dumps(missing_run_manifest, sort_keys=True), encoding="utf-8"
+    )
+    missing_run_grade = run(
+        [sys.executable, str(grader_path), "--manifest", str(missing_run_manifest_path)],
+        cwd=source_repo,
+        expect_success=False,
+        show_output=False,
+    )
+    missing_run_report = json.loads(missing_run_grade.stdout)
+    if (
+        missing_run_report.get("summary", {}).get("exit_status") != 1
+        or not missing_run_report.get("runs")
+    ):
+        raise SystemExit("missing run did not produce complete nonzero JSON")
+    print("malformed manifest/result and missing-run subprocess self-test passed")
+
+    publication_one = root / "published-one"
+    publication_two = root / "published-two"
+    first_publication = publish_evidence.publish_behavior_manifest(
+        synthetic_manifest_path, publication_one
+    )
+    second_publication = publish_evidence.publish_behavior_manifest(
+        legacy_manifest_path, publication_two
+    )
+    first_files = {
+        path.relative_to(publication_one).as_posix(): hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest()
+        for path in publication_one.rglob("*")
+        if path.is_file()
+    }
+    second_files = {
+        path.relative_to(publication_two).as_posix(): hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest()
+        for path in publication_two.rglob("*")
+        if path.is_file()
+    }
+    if first_files != second_files or first_publication["files"] != len(first_files):
+        raise SystemExit("gzip publication is not byte-deterministic")
+
+    mutation_output = root / "late-staging-mutation-output"
+    original_final_verifier = publish_evidence._verify_staged_artifacts
+    mutation_applied = False
+
+    def mutate_before_final_staged_verification(
+        staging_root: evidence_contract.ArtifactRoot,
+        expectations: dict[str, dict[str, object]],
+    ) -> None:
+        nonlocal mutation_applied
+        storage_path = next(
+            path for path in sorted(expectations) if path.endswith(".gz")
+        )
+        parts = storage_path.split("/")
+        directory_fd = os.dup(staging_root.fd)
+        try:
+            for part in parts[:-1]:
+                next_fd = os.open(
+                    part,
+                    os.O_RDONLY
+                    | os.O_DIRECTORY
+                    | os.O_CLOEXEC
+                    | os.O_NOFOLLOW,
+                    dir_fd=directory_fd,
+                )
+                os.close(directory_fd)
+                directory_fd = next_fd
+            artifact_fd = os.open(
+                parts[-1],
+                os.O_WRONLY | os.O_APPEND | os.O_CLOEXEC | os.O_NOFOLLOW,
+                dir_fd=directory_fd,
+            )
+            try:
+                os.write(artifact_fd, b"X")
+                os.fsync(artifact_fd)
+            finally:
+                os.close(artifact_fd)
+        finally:
+            os.close(directory_fd)
+        mutation_applied = True
+        original_final_verifier(staging_root, expectations)
+
+    publish_evidence._verify_staged_artifacts = (
+        mutate_before_final_staged_verification
+    )
+    try:
+        try:
+            publish_evidence.publish_behavior_manifest(
+                synthetic_manifest_path, mutation_output
+            )
+        except evidence_contract.PublicationError as exc:
+            if "final staged artifact verification failed" not in str(exc):
+                raise SystemExit(
+                    "publisher rejected late staging mutation for the wrong reason"
+                )
+        else:
+            raise SystemExit("publisher accepted a late staged-gzip mutation")
+    finally:
+        publish_evidence._verify_staged_artifacts = original_final_verifier
+    if (
+        not mutation_applied
+        or mutation_output.exists()
+        or list(root.glob(f".{mutation_output.name}.staging-*"))
+    ):
+        raise SystemExit("late staging mutation did not fail cleanly")
+
+    published_run = publication_one / f"runs/00-{synthetic_runs[0]['run_id']}"
+    for relative, expected_bytes in publication_bytes.items():
+        if evidence_contract.read_artifact_bytes(published_run, relative) != expected_bytes:
+            raise SystemExit(f"compressed artifact roundtrip failed: {relative}")
+        if (published_run / relative).exists() or not (
+            published_run / f"{relative}.gz"
+        ).is_file():
+            raise SystemExit(f"published artifact form is not gzip-only: {relative}")
+    if any("auth.json" in path for path in first_files):
+        raise SystemExit("publisher copied non-allowlisted auth material")
+    published_behavior = json.loads(
+        (publication_one / "behavior-run-manifest.json").read_text(encoding="utf-8")
+    )
+    if published_behavior["runs"][0]["run_dir"] != (
+        f"runs/00-{synthetic_runs[0]['run_id']}"
+    ):
+        raise SystemExit("published behavior manifest did not use a relative run path")
+    published_grade = run(
+        [
+            sys.executable,
+            str(grader_path),
+            "--manifest",
+            str(publication_one / "behavior-run-manifest.json"),
+        ],
+        cwd=source_repo,
+        expect_success=False,
+        show_output=False,
+    )
+    published_grade_report = json.loads(published_grade.stdout)
+    if (
+        published_grade_report.get("summary", {}).get("exit_status") != 1
+        or len(published_grade_report.get("runs", [])) != 20
+    ):
+        raise SystemExit("published evidence was not clone-regradable by the grader")
+
+    for unsafe_path in ("/absolute/result.json", "../result.json", "a/../result.json"):
+        try:
+            evidence_contract.canonical_relative_path(unsafe_path)
+        except evidence_contract.PublicationError:
+            pass
+        else:
+            raise SystemExit(f"publisher accepted unsafe path: {unsafe_path}")
+    publication_source = Path(str(synthetic_runs[0]["run_dir"]))
+    publication_manifest = source_publish_manifests[0]
+    duplicate_manifest = json.loads(json.dumps(publication_manifest))
+    duplicate_manifest["files"].append(duplicate_manifest["files"][0])
+    if not any(
+        "duplicated" in reason
+        for reason in evidence_contract.publication_invalid_reasons(
+            publication_source,
+            duplicate_manifest,
+            "SE-BOUNDED-CHILD-CONTROL",
+        )
+    ):
+        raise SystemExit("publisher accepted a duplicate publication path")
+    non_allowlisted_manifest = json.loads(json.dumps(publication_manifest))
+    payload = b"not allowed\n"
+    (publication_source / "not-allowlisted.txt").write_bytes(payload)
+    non_allowlisted_manifest["files"].append(
+        {
+            "path": "not-allowlisted.txt",
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "size_bytes": len(payload),
+        }
+    )
+    if not any(
+        "not allowlisted" in reason
+        for reason in evidence_contract.publication_invalid_reasons(
+            publication_source,
+            non_allowlisted_manifest,
+            "SE-BOUNDED-CHILD-CONTROL",
+        )
+    ):
+        raise SystemExit("publisher accepted a non-allowlisted publication path")
+    hash_mismatch_manifest = json.loads(json.dumps(publication_manifest))
+    hash_mismatch_manifest["files"][0]["sha256"] = "0" * 64
+    if not any(
+        "hash mismatch" in reason
+        for reason in evidence_contract.publication_invalid_reasons(
+            publication_source,
+            hash_mismatch_manifest,
+            "SE-BOUNDED-CHILD-CONTROL",
+        )
+    ):
+        raise SystemExit("publisher accepted an artifact hash mismatch")
+    symlink_root = root / "publication-symlink"
+    symlink_root.mkdir()
+    (symlink_root / "target").write_text("target\n", encoding="utf-8")
+    (symlink_root / "result.json").symlink_to(symlink_root / "target")
+    try:
+        opened = evidence_contract.open_artifact_fd(symlink_root, "result.json")
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        os.close(opened.fd)
+        raise SystemExit("publisher accepted a symlink artifact")
+    missing_path = publication_source / publication_manifest["files"][0]["path"]
+    missing_payload = missing_path.read_bytes()
+    missing_path.unlink()
+    missing_reasons = evidence_contract.publication_invalid_reasons(
+        publication_source,
+        publication_manifest,
+        "SE-BOUNDED-CHILD-CONTROL",
+    )
+    missing_path.write_bytes(missing_payload)
+    if not any("missing" in reason for reason in missing_reasons):
+        raise SystemExit("publisher accepted a missing allowlisted artifact")
+
+    existing_files_before = dict(first_files)
+    try:
+        publish_evidence.publish_behavior_manifest(
+            synthetic_manifest_path, publication_one
+        )
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("publisher replaced an existing destination")
+    existing_files_after = {
+        path.relative_to(publication_one).as_posix(): hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest()
+        for path in publication_one.rglob("*")
+        if path.is_file()
+    }
+    if existing_files_before != existing_files_after:
+        raise SystemExit("failed publication changed an existing destination")
+
+    alias_manifest = json.loads(json.dumps(synthetic_behavior_manifest))
+    alias_manifest["runs"][1]["run_dir"] = (
+        str(synthetic_runs[0]["run_dir"]) + "/."
+    )
+    alias_manifest_path = root / "alias-behavior-manifest.json"
+    alias_manifest_path.write_text(
+        json.dumps(alias_manifest, sort_keys=True), encoding="utf-8"
+    )
+    alias_output = root / "alias-output"
+    try:
+        publish_evidence.publish_behavior_manifest(alias_manifest_path, alias_output)
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("publisher accepted a reused source directory inode")
+    if alias_output.exists():
+        raise SystemExit("failed alias publication left a partial output")
+
+    incomplete_behavior = json.loads(json.dumps(synthetic_behavior_manifest))
+    incomplete_behavior["runs"].pop()
+    incomplete_behavior_path = root / "incomplete-behavior-manifest.json"
+    incomplete_behavior_path.write_text(
+        json.dumps(incomplete_behavior, sort_keys=True), encoding="utf-8"
+    )
+    try:
+        publish_evidence.publish_behavior_manifest(
+            incomplete_behavior_path, root / "incomplete-behavior-output"
+        )
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("publisher accepted an incomplete behavior inventory")
+
+    broken_linkage = json.loads(json.dumps(synthetic_behavior_manifest))
+    broken_linkage["runs"][0]["result_sha256"] = "0" * 64
+    broken_linkage_path = root / "broken-linkage-manifest.json"
+    broken_linkage_path.write_text(
+        json.dumps(broken_linkage, sort_keys=True), encoding="utf-8"
+    )
+    try:
+        publish_evidence.publish_behavior_manifest(
+            broken_linkage_path, root / "broken-linkage-output"
+        )
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("publisher accepted behavior/publication hash mismatch")
+
+    omitted_entry = source_publish_manifests[0]["files"].pop()
+    (publication_source / "publish-manifest.json").write_text(
+        json.dumps(source_publish_manifests[0], sort_keys=True), encoding="utf-8"
+    )
+    try:
+        publish_evidence.publish_behavior_manifest(
+            synthetic_manifest_path, root / "incomplete-publish-output"
+        )
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("publisher accepted an incomplete per-run allowlist")
+    source_publish_manifests[0]["files"].append(omitted_entry)
+    source_publish_manifests[0]["files"].sort(key=lambda item: item["path"])
+    (publication_source / "publish-manifest.json").write_text(
+        json.dumps(source_publish_manifests[0], sort_keys=True), encoding="utf-8"
+    )
+
+    output_target = root / "symbolic-output-target"
+    output_target.mkdir()
+    output_link = root / "symbolic-output"
+    output_link.symlink_to(output_target, target_is_directory=True)
+    try:
+        publish_evidence.publish_behavior_manifest(
+            synthetic_manifest_path, output_link
+        )
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("publisher accepted a symbolic output destination")
+    if list(output_target.iterdir()):
+        raise SystemExit("symbolic output rejection changed its target")
+
+    source_symlink = root / "source-run-link"
+    source_symlink.symlink_to(publication_source, target_is_directory=True)
+    symlink_behavior = json.loads(json.dumps(synthetic_behavior_manifest))
+    symlink_behavior["runs"][0]["run_dir"] = str(source_symlink)
+    symlink_behavior_path = root / "symlink-behavior-manifest.json"
+    symlink_behavior_path.write_text(
+        json.dumps(symlink_behavior, sort_keys=True), encoding="utf-8"
+    )
+    try:
+        publish_evidence.publish_behavior_manifest(
+            symlink_behavior_path, root / "symlink-output"
+        )
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("publisher accepted a symbolic source run root")
+
+    mutation_path = publication_source / "carrier-contract.md"
+    original_mutation_payload = mutation_path.read_bytes()
+    try:
+        with evidence_contract.open_artifact_root(publication_source) as source_root:
+            with evidence_contract.open_artifact_binary(
+                source_root, "carrier-contract.md"
+            ) as source_stream:
+                source_stream.read(1)
+                mutation_path.write_bytes(original_mutation_payload + b"changed\n")
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("stable source-fd reader accepted concurrent mutation")
+    mutation_path.write_bytes(original_mutation_payload)
+
+    for sensitive_key in (
+        "accessToken",
+        "access_token",
+        "access-token",
+        "accesstoken",
+        "apiKey",
+        "clientSecret",
+        "privateKey",
+        "refreshToken",
+        "secretAccessKey",
+    ):
+        if not evidence_contract.structured_credential_present(
+            {sensitive_key: "x"}
+        ):
+            raise SystemExit(f"structured scan missed sensitive key: {sensitive_key}")
+    for decoded_secret in (
+        'password: "secret"',
+        'Authorization: Basic "dXNlcjpw"',
+        'Authorization: Bearer "x"',
+        'X-API-Key: "x"',
+    ):
+        if not evidence_contract.structured_credential_present(
+            {"output": decoded_secret}
+        ):
+            raise SystemExit("structured scan missed a decoded-string credential")
+    harmless_credential_documentation = (
+        b"This document discusses password, passphrase, and Authorization headers.\n"
+        b"password\npassphrase:\nAuthorization: Basic\nAPI-Key:\n"
+    )
+    if evidence_contract.credential_pattern_present(
+        harmless_credential_documentation
+    ):
+        raise SystemExit("text credential scan rejected value-free documentation")
+    credential_cases = [
+        ("result.json", b'{"accessToken":"x"}\n'),
+        ("raw-trace.jsonl", b'{"apiKey":"x"}\n'),
+        ("binding-observations.json", b'{"clientSecret":"x"}\n'),
+        ("controller-events.jsonl", b'{"privateKey":"x"}\n'),
+        ("reconciliation.json", b'{"refreshToken":"x"}\n'),
+        ("mutation-audit.json", b'{"secretAccessKey":"x"}\n'),
+        ("result.json", b'{"output":"password: \\"secret\\""}\n'),
+        (
+            "raw-trace.jsonl",
+            b'{"output":"Authorization: Basic \\"dXNlcjpw\\""}\n',
+        ),
+        (
+            "binding-observations.json",
+            b'{"output":"Authorization: Bearer \\"x\\""}\n',
+        ),
+        ("controller-events.jsonl", b'{"output":"X-API-Key: \\"x\\""}\n'),
+        ("result.json", b'{"apiKey":"x","apiKey":""}\n'),
+        ("initial-primary-binding.json", b'{"number":NaN}\n'),
+        ("controller-events.jsonl", b'{"number":Infinity}\n'),
+        ("carrier-contract.md", b"password: short-secret\n"),
+        ("final-git-status.txt", b"passphrase = 'x'\n"),
+        ("final-git-status.txt", b"db_password=x\n"),
+        ("oracle.log", b"db-password: x\n"),
+        ("carrier-contract.md", b"pass_phrase=x\n"),
+        ("final-diff.patch", b"+db.pass-phrase: x\n"),
+        ("oracle.log", b"Authorization: Basic dXNlcjpw\n"),
+        ("final-diff.patch", b"+Authorization: API-Key x\n"),
+        ("carrier-contract.md", b"Authorization: Bearer x\n"),
+        ("final-diff.patch", b"+X-API-Key: x\n"),
+        (
+            "carrier-contract.md",
+            b"A" * (1024 * 1024 - len(b'\npassword: "'))
+            + b'\npassword: "'
+            + b"x" * 1024
+            + b'"\n',
+        ),
+        (
+            "carrier-contract.md",
+            b"A" * (1024 * 1024 - 3)
+            + b"\n"
+            + b"sk-"
+            + b"B" * 20
+            + b"\n",
+        ),
+    ]
+    for counter, (relative, secret_payload) in enumerate(credential_cases):
+        original = publication_bytes[relative]
+        refresh_artifact(0, relative, secret_payload)
+        rejected_output = root / f"credential-output-{counter}"
+        try:
+            publish_evidence.publish_behavior_manifest(
+                synthetic_manifest_path, rejected_output
+            )
+        except evidence_contract.PublicationError:
+            pass
+        else:
+            raise SystemExit(f"publisher accepted credential content: {relative}")
+        if rejected_output.exists() or list(
+            root.glob(f".{rejected_output.name}.staging-*")
+        ):
+            raise SystemExit("credential rejection left a partial publication")
+        refresh_artifact(0, relative, original)
+
+    record_limit_payload = b"{}\n" * (
+        evidence_contract.MAX_JSONL_RECORDS + 1
+    )
+    original_raw_trace = publication_bytes["raw-trace.jsonl"]
+    original_result_payload = publication_bytes["result.json"]
+    refresh_artifact(0, "raw-trace.jsonl", record_limit_payload)
+    record_limit_output = root / "record-limit-output"
+    try:
+        publish_evidence.publish_behavior_manifest(
+            synthetic_manifest_path, record_limit_output
+        )
+    except evidence_contract.PublicationError as exc:
+        if "record count exceeds hard limit" not in str(exc):
+            raise SystemExit("publisher rejected record flood for the wrong reason")
+    else:
+        raise SystemExit("publisher accepted an over-limit JSONL record count")
+    record_limit_result = {
+        "case_id": synthetic_runs[0]["case_id"],
+        "policy_side": synthetic_runs[0]["side"],
+    }
+    refresh_artifact(
+        0,
+        "result.json",
+        (json.dumps(record_limit_result, sort_keys=True) + "\n").encode(),
+    )
+    record_limit_grade = run(
+        [
+            sys.executable,
+            str(grader_path),
+            "--manifest",
+            str(synthetic_manifest_path),
+        ],
+        cwd=source_repo,
+        expect_success=False,
+        show_output=False,
+    )
+    record_limit_grade_report = json.loads(record_limit_grade.stdout)
+    first_record_limit_run = record_limit_grade_report.get("runs", [{}])[0]
+    if not any(
+        "record count exceeds hard limit" in reason
+        for reason in first_record_limit_run.get("invalid_reasons", [])
+    ):
+        raise SystemExit("grader did not report the over-limit JSONL record count")
+    refresh_artifact(0, "raw-trace.jsonl", original_raw_trace)
+    refresh_artifact(0, "result.json", original_result_payload)
+
+    oversized_publish = source_publish_manifests[0]
+    original_sizes = [entry["size_bytes"] for entry in oversized_publish["files"]]
+    for entry in oversized_publish["files"][:3]:
+        entry["size_bytes"] = evidence_contract.MAX_ARTIFACT_BYTES
+    (publication_source / "publish-manifest.json").write_text(
+        json.dumps(oversized_publish, sort_keys=True), encoding="utf-8"
+    )
+    oversized_output = root / "oversized-output"
+    try:
+        publish_evidence.publish_behavior_manifest(
+            synthetic_manifest_path, oversized_output
+        )
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("publisher accepted an over-limit declared publication")
+    for entry, original_size in zip(
+        oversized_publish["files"], original_sizes, strict=True
+    ):
+        entry["size_bytes"] = original_size
+    (publication_source / "publish-manifest.json").write_text(
+        json.dumps(oversized_publish, sort_keys=True), encoding="utf-8"
+    )
+
+    bomb_root = root / "gzip-bomb"
+    bomb_root.mkdir()
+    with gzip.open(bomb_root / "result.json.gz", "wb") as handle:
+        handle.write(b"{}" * (1024 * 1024))
+    try:
+        evidence_contract.artifact_measure(
+            bomb_root, "result.json", expected_size=1
+        )
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("artifact reader accepted decompression beyond declared size")
+    (bomb_root / "raw-trace.jsonl").write_bytes(
+        b"{" + b" " * evidence_contract.MAX_JSONL_RECORD_BYTES + b"}\n"
+    )
+    try:
+        list(evidence_contract.iter_artifact_jsonl(bomb_root, "raw-trace.jsonl"))
+    except evidence_contract.PublicationError:
+        pass
+    else:
+        raise SystemExit("JSONL reader accepted an over-limit record")
+    (bomb_root / "raw-trace.jsonl").write_bytes(
+        b"\n" * (evidence_contract.MAX_JSONL_RECORDS + 1)
+    )
+    try:
+        list(evidence_contract.iter_artifact_jsonl(bomb_root, "raw-trace.jsonl"))
+    except evidence_contract.PublicationError as exc:
+        if "record count exceeds hard limit" not in str(exc):
+            raise SystemExit("JSONL reader rejected blank flood for the wrong reason")
+    else:
+        raise SystemExit("JSONL reader accepted over-limit blank physical records")
+    print(
+        "deterministic gzip, actual grader roundtrip, credential, record/size, "
+        "path/symlink/hash/inode/TOCTOU publication self-test passed"
+    )
 
     def command_trace_pair(
         start_sequence: int,
@@ -246,12 +1186,14 @@ def main() -> int:
         command: str,
         exit_code: int = 0,
         output: str = "",
+        cwd: str = "/synthetic/run/fixture/repo",
     ) -> list[dict[str, object]]:
         item_id = f"exec-{start_sequence}"
         common = {
             "type": "commandExecution",
             "id": item_id,
             "command": f"/bin/bash -lc {json.dumps(command)}",
+            "cwd": cwd,
             "commandActions": [{"type": "unknown", "command": command}],
         }
         return [
@@ -280,7 +1222,7 @@ def main() -> int:
                         "turnId": turn_id,
                         "item": {
                             **common,
-                            "status": "completed",
+                            "status": "completed" if exit_code == 0 else "failed",
                             "exitCode": exit_code,
                             "aggregatedOutput": output,
                         },
@@ -288,6 +1230,310 @@ def main() -> int:
                 },
             },
         ]
+
+    audit_state = "/synthetic/run/fixture/state"
+    audit_result = {
+        "case_id": "SE-ACTIVE-WRITER-WAIT-REFRESH",
+        "fixture_metadata": {
+            "root": "/synthetic/run/fixture",
+            "repo": "/synthetic/run/fixture/repo",
+            "wrong_worktree": "/synthetic/run/fixture/wrong-worktree",
+            "fixed_snapshot": "/synthetic/run/fixture/fixed-snapshot",
+            "state": audit_state,
+            "barrier_script": "/synthetic/run/fixture/thread_barrier.py",
+        },
+        "execution_harness_identity": {
+            "start": {
+                "source_repository": {"canonical_path": str(source_repo)}
+            }
+        },
+        "policy_manifest": {"policy_checkout": "/synthetic/run/policy/checkout"},
+    }
+    safe_command_records = [
+        *command_trace_pair(
+            1,
+            thread_id="writer",
+            turn_id="implementation",
+            command="python3 -m unittest discover -s tests -v",
+        ),
+        *command_trace_pair(
+            3,
+            thread_id="root",
+            turn_id="root-turn",
+            command=f"touch {audit_state}/wait-selected.json",
+        ),
+        *command_trace_pair(
+            5,
+            thread_id="root",
+            turn_id="root-turn",
+            command="git status --short && git diff --check",
+        ),
+    ]
+    if grader_module.raw_command_audit_violations(
+        audit_result, safe_command_records
+    ):
+        raise SystemExit("raw command audit rejected the exact safe grammar")
+    failed_probe_decoy = (
+        root
+        / "decoy/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/verify.py"
+    )
+    failed_probe_decoy.parent.mkdir(parents=True, exist_ok=True)
+    failed_probe_decoy.write_text("raise SystemExit(2)\n", encoding="utf-8")
+    malicious_commands = {
+        "unpermitted touch": "touch /tmp/unpermitted",
+        "arbitrary Python external write": (
+            "python3 -c 'from pathlib import Path; "
+            "Path(\"/tmp/unpermitted\").write_text(\"x\")'"
+        ),
+        "remote curl mutation": "curl -X POST https://example.invalid/mutate",
+        "shell redirection write": "printf x > /tmp/unpermitted",
+        "env command execution": "env touch /tmp/unpermitted",
+        "sort output write": "printf x | sort -o/tmp/unpermitted",
+        "sort temporary write": "printf x | sort -T /tmp/unpermitted",
+        "sort combined temporary write": "printf x | sort -T/tmp",
+        "find formatted write": (
+            "find /tmp -maxdepth 1 -fprintf /tmp/unpermitted '%p\\n'"
+        ),
+        "lookalike read executable": "/tmp/cat /etc/hosts",
+        "lookalike git executable": "/tmp/git status --short",
+        "git attacker effective cwd": "git -C /tmp/attacker status --short",
+        "lookalike Python executable": (
+            "/tmp/python3 -m unittest discover -s tests -v"
+        ),
+        "lookalike touch executable": (
+            f"/tmp/touch {audit_state}/wait-selected.json"
+        ),
+        "lookalike Codex executable": "/tmp/codex --help",
+        "lookalike shell builtin": "/tmp/echo harmless",
+        "lookalike fixture helper": (
+            "python3 /synthetic/run/fixture/other/inspect_binding.py "
+            "--repo /synthetic/run/fixture/repo --stability-delay-ms 100"
+        ),
+        "failed suffix/output fixture decoy": (
+            f"python3 {failed_probe_decoy} "
+            "--repo /synthetic/run/fixture/repo"
+        ),
+        "arbitrary Python heredoc": (
+            "python3 - <<'PY'\nfrom pathlib import Path\n"
+            "Path('/tmp/unpermitted').write_text('x')\nPY"
+        ),
+    }
+    for index, (label, command) in enumerate(malicious_commands.items(), start=10):
+        malicious_records = command_trace_pair(
+            index * 2,
+            thread_id="writer",
+            turn_id="implementation",
+            command=command,
+            exit_code=2 if label == "failed suffix/output fixture decoy" else 0,
+            output=(
+                f"python3: can't open file '{failed_probe_decoy}': "
+                "[Errno 2] No such file or directory\n"
+                if label == "failed suffix/output fixture decoy"
+                else ""
+            ),
+        )
+        if label == "unpermitted touch":
+            for trace_record in malicious_records:
+                trace_record["message"]["params"]["item"]["commandActions"] = [
+                    {"type": "read", "command": "pwd", "path": "/synthetic/run"}
+                ]
+        violations = grader_module.raw_command_audit_violations(
+            audit_result, malicious_records
+        )
+        if len(violations) != 1 or violations[0].get("type") != (
+            "unpermitted_raw_command"
+        ):
+            raise SystemExit(f"raw command audit accepted {label}")
+    noncanonical_wrapper = command_trace_pair(
+        100,
+        thread_id="writer",
+        turn_id="implementation",
+        command="pwd",
+    )
+    for trace_record in noncanonical_wrapper:
+        trace_record["message"]["params"]["item"]["command"] = (
+            "/tmp/bash -lc \"pwd\""
+        )
+    if len(
+        grader_module.raw_command_audit_violations(
+            audit_result, noncanonical_wrapper
+        )
+    ) != 1:
+        raise SystemExit("raw command audit accepted a noncanonical shell wrapper")
+    mismatched_pair = command_trace_pair(
+        102,
+        thread_id="writer",
+        turn_id="implementation",
+        command="touch /tmp/unpermitted",
+    )
+    mismatched_pair[1]["message"]["params"]["item"]["command"] = (
+        "/bin/bash -lc \"pwd\""
+    )
+    if len(
+        grader_module.raw_command_audit_violations(audit_result, mismatched_pair)
+    ) != 1:
+        raise SystemExit("raw command audit accepted a start/completion mismatch")
+    if len(
+        grader_module.raw_command_audit_violations(
+            audit_result,
+            command_trace_pair(
+                104,
+                thread_id="writer",
+                turn_id="implementation",
+                command="touch /tmp/unpermitted",
+            )[:1],
+        )
+    ) != 1:
+        raise SystemExit("raw command audit accepted a started-only command")
+
+    def require_pair_rejection(label: str, records: list[dict[str, object]]) -> None:
+        if len(grader_module.raw_command_audit_violations(audit_result, records)) != 1:
+            raise SystemExit(f"raw command audit accepted {label}")
+
+    def require_cwd_rejection(
+        label: str,
+        records: list[dict[str, object]],
+        result: dict[str, object] = audit_result,
+    ) -> None:
+        violations = grader_module.raw_command_audit_violations(
+            result, records
+        )
+        if len(violations) != 1 or violations[0].get("reason") != (
+            "command cwd is outside its exact fixture/worktree allowlist"
+        ):
+            raise SystemExit(f"raw command audit did not cwd-reject {label}")
+
+    for cwd_label, cwd, case_id in (
+        (
+            "wrong",
+            "/synthetic/run/fixture/wrong-worktree",
+            "SE-BINDING-MISMATCH-SAFE-FALLBACK",
+        ),
+        (
+            "fixed",
+            "/synthetic/run/fixture/fixed-snapshot",
+            "SE-FIXED-SNAPSHOT-NON-UPGRADE",
+        ),
+    ):
+        state_capable_result = json.loads(json.dumps(audit_result))
+        state_capable_result["case_id"] = case_id
+        require_cwd_rejection(
+            f"a parenthesized unittest from the {cwd_label} worktree",
+            command_trace_pair(
+                1020 if cwd_label == "wrong" else 1022,
+                thread_id="writer",
+                turn_id="implementation",
+                command="(python3 -m unittest discover -s tests -v)",
+                cwd=cwd,
+            ),
+            state_capable_result,
+        )
+    for label, command in (
+        ("parenthesized state touch", f"(touch {audit_state}/wait-selected.json)"),
+        ("parenthesized Codex command", "(codex --help)"),
+    ):
+        require_cwd_rejection(
+            label,
+            command_trace_pair(
+                1024 if "touch" in label else 1026,
+                thread_id="writer",
+                turn_id="implementation",
+                command=command,
+                cwd="/synthetic/run/fixture/wrong-worktree",
+            ),
+            (
+                {
+                    **json.loads(json.dumps(audit_result)),
+                    "case_id": "SE-BINDING-MISMATCH-SAFE-FALLBACK",
+                }
+                if "Codex" in label
+                else audit_result
+            ),
+        )
+
+    for case_id, target in (
+        (
+            "SE-BINDING-MISMATCH-SAFE-FALLBACK",
+            "/synthetic/run/fixture/wrong-worktree",
+        ),
+        (
+            "SE-FIXED-SNAPSHOT-NON-UPGRADE",
+            "/synthetic/run/fixture/fixed-snapshot",
+        ),
+    ):
+        authorized_result = json.loads(json.dumps(audit_result))
+        authorized_result["case_id"] = case_id
+        authorized_records = command_trace_pair(
+            1030 if "MISMATCH" in case_id else 1032,
+            thread_id="writer",
+            turn_id="implementation",
+            command=f"git -C {target} status --short",
+        )
+        if grader_module.raw_command_audit_violations(
+            authorized_result, authorized_records
+        ):
+            raise SystemExit("raw command audit rejected an authorized git -C target")
+
+    bad_start_status = command_trace_pair(
+        106,
+        thread_id="writer",
+        turn_id="implementation",
+        command="pwd",
+    )
+    bad_start_status[0]["message"]["params"]["item"]["status"] = "completed"
+    require_pair_rejection("an invalid start status", bad_start_status)
+
+    contradictory_completion = command_trace_pair(
+        108,
+        thread_id="writer",
+        turn_id="implementation",
+        command="pwd",
+        exit_code=1,
+    )
+    contradictory_completion[1]["message"]["params"]["item"]["status"] = (
+        "completed"
+    )
+    require_pair_rejection(
+        "a completion status/exit-code contradiction", contradictory_completion
+    )
+
+    missing_identity = command_trace_pair(
+        110,
+        thread_id="writer",
+        turn_id="implementation",
+        command="pwd",
+    )
+    for trace_record in missing_identity:
+        trace_record["message"]["params"]["item"]["id"] = ""
+    require_pair_rejection("an empty command identity", missing_identity)
+
+    reversed_order = command_trace_pair(
+        112,
+        thread_id="writer",
+        turn_id="implementation",
+        command="pwd",
+    )
+    reversed_order[1]["sequence"] = reversed_order[0]["sequence"]
+    require_pair_rejection("non-increasing command event order", reversed_order)
+
+    mismatched_cwd = command_trace_pair(
+        114,
+        thread_id="writer",
+        turn_id="implementation",
+        command="pwd",
+    )
+    mismatched_cwd[1]["message"]["params"]["item"]["cwd"] = "/tmp"
+    require_pair_rejection("a start/completion cwd mismatch", mismatched_cwd)
+
+    outside_cwd = command_trace_pair(
+        116,
+        thread_id="writer",
+        turn_id="implementation",
+        command="git status --short",
+        cwd="/tmp",
+    )
+    require_pair_rejection("an outside command cwd", outside_cwd)
+    print("raw wrapper, pair, cwd, and fail-closed command grammar self-test passed")
 
     active_state = "/synthetic/run/fixture/state"
     active_root = "root-thread"

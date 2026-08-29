@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shlex
 from collections import Counter
@@ -14,44 +15,53 @@ from typing import Any
 
 from run_evaluation import DERIVED_SOURCE_REPO
 from run_evaluation import EVIDENCE_ROOT
+from run_evaluation import _find_sources
+from run_evaluation import _sed_sources
 from run_evaluation import compute_execution_harness_identity
 from run_evaluation import execution_harness_identities_match
 from run_evaluation import execution_harness_identity_errors
-
-
-EVALUATION_ID = "software-engineering-durable-thread-v6-runtime-boundary"
-BASELINE_COMMIT = "aa2ae97856d7968e50511864c03f1babcd608d0d"
-CANDIDATE_COMMIT = "a7056f2469b1b8c6ae8cb996f4624e9c333205cd"
-CASE_IDS = (
-    "SE-BOUNDED-CHILD-CONTROL",
-    "SE-DURABLE-MATCHING-REUSE",
-    "SE-DURABLE-VISIBLE-CREATE",
-    "SE-DURABLE-ADDRESSABILITY-RESUME",
-    "SE-BINDING-MISMATCH-SAFE-FALLBACK",
-    "SE-FIXED-SNAPSHOT-NON-UPGRADE",
-    "SE-ACTIVE-WRITER-WAIT-REFRESH",
-    "SE-DEFINITE-PREDISPATCH-FAILURE-FALLBACK",
-    "SE-COMBINED-CREATE-START-AMBIGUOUS",
-    "SE-POSTDISPATCH-TRANSPORT-LOSS-RECONCILE",
-)
-EXACT_TEST_COMMAND = "python3 -m unittest discover -s tests -v"
-EXPECTED_PUBLISH_PATHS = {
-    "addressability-handoff.json",
-    "binding-observations.json",
-    "carrier-contract.md",
-    "carrier-thread-histories.json",
-    "controller-events.jsonl",
-    "final-diff.patch",
-    "final-git-status.txt",
-    "initial-primary-binding.json",
-    "mutation-audit.json",
-    "oracle.log",
-    "policy/policy-load-manifest.json",
-    "raw-trace.jsonl",
-    "reconciliation.json",
-    "result.json",
+from evidence_contract import ArtifactRoot
+from evidence_contract import artifact_measure
+from evidence_contract import BASELINE_COMMIT
+from evidence_contract import behavior_manifest_invalid_reasons
+from evidence_contract import CANDIDATE_COMMIT
+from evidence_contract import CASE_IDS
+from evidence_contract import compute_grading_harness_identity
+from evidence_contract import EVALUATION_ID
+from evidence_contract import grading_harness_identity_errors
+from evidence_contract import iter_artifact_jsonl
+from evidence_contract import MAX_ARTIFACT_BYTES
+from evidence_contract import MAX_BEHAVIOR_MANIFEST_BYTES
+from evidence_contract import MAX_PUBLICATION_BYTES
+from evidence_contract import MAX_PUBLISH_MANIFEST_BYTES
+from evidence_contract import MAX_RESULT_BYTES
+from evidence_contract import open_artifact_root
+from evidence_contract import PublicationError
+from evidence_contract import publication_entries
+from evidence_contract import publication_inventory_invalid_reasons
+from evidence_contract import publication_invalid_reasons
+from evidence_contract import read_artifact_bytes
+from evidence_contract import read_artifact_json
+from evidence_contract import read_path_bytes_no_symlink
+from evidence_contract import strict_json_loads
+EXPECTED_FROZEN_INVALID_RUNS = {
+    ("baseline", "SE-DURABLE-ADDRESSABILITY-RESUME"): {
+        "run_id": "b-2df65-35161c0",
+        "replicate": "primary",
+        "result_sha256": (
+            "0ed8bc74b915c18e5aa8bd1ff45c1be19d9e7ff26312f34731a5b79b0cb41a64"
+        ),
+        "raw_trace_sha256": (
+            "40daa23fe0efadd2fbdde0507e024c94e21be69bbfcee19ba3c0c844c3e06cde"
+        ),
+        "invalid_reasons": {
+            "addressability handoff is missing from publication allowlist",
+            "addressability live-barrier handoff was not established",
+            "harness validity: addressability barrier was not associated with exactly one dispatched implementation writer",
+        },
+    }
 }
-REQUIRED_PUBLISH_PATHS = EXPECTED_PUBLISH_PATHS - {"addressability-handoff.json"}
+EXACT_TEST_COMMAND = "python3 -m unittest discover -s tests -v"
 _SHELL_WRAPPER = re.compile(r"^(?:/[^ ]+/)?(?:ba|z|k|da)?sh\s+-(?:[^ ]*c[^ ]*)\s+")
 SCRIPT_PATH = Path(__file__).resolve()
 
@@ -145,10 +155,6 @@ def normalized_command_segments(item: dict[str, Any]) -> list[str]:
     return split_command_segments(raw)
 
 
-def read_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -222,12 +228,14 @@ def structured_root_results(result: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def read_raw_trace(path: Path) -> list[dict[str, Any]]:
-    return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+def read_raw_trace(
+    run_dir: Path | ArtifactRoot, *, expected_size: int | None = None
+) -> list[dict[str, Any]]:
+    return list(
+        iter_artifact_jsonl(
+            run_dir, "raw-trace.jsonl", expected_size=expected_size
+        )
+    )
 
 
 def completed_command_records(
@@ -266,6 +274,9 @@ def completed_command_records(
                 "completion_trace_sequence": sequence,
                 "status": item.get("status"),
                 "exit_code": item.get("exitCode"),
+                "cwd": item.get("cwd"),
+                "raw_command": item.get("command"),
+                "command_actions": item.get("commandActions"),
                 "normalized_segments": normalized_command_segments(item),
                 "output": str(item.get("aggregatedOutput") or ""),
             }
@@ -273,8 +284,767 @@ def completed_command_records(
     return completed
 
 
+def command_execution_audit_records(
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Pair every raw command start/completion without trusting either in isolation."""
+    started: dict[tuple[Any, Any, Any], dict[str, Any]] = {}
+    completed_keys: set[tuple[Any, Any, Any]] = set()
+    audited: list[dict[str, Any]] = []
+    for trace_record in records:
+        if not isinstance(trace_record, dict):
+            continue
+        message = trace_record.get("message")
+        if not isinstance(message, dict):
+            continue
+        params = message.get("params")
+        if not isinstance(params, dict):
+            continue
+        item = params.get("item")
+        if not isinstance(item, dict) or item.get("type") != "commandExecution":
+            continue
+        key = (params.get("threadId"), params.get("turnId"), item.get("id"))
+        identity_valid = all(
+            isinstance(value, str) and bool(value)
+            for value in key
+        )
+        event = {
+            "thread_id": params.get("threadId"),
+            "turn_id": params.get("turnId"),
+            "item_id": item.get("id"),
+            "trace_sequence": trace_record.get("sequence"),
+            "status": item.get("status"),
+            "exit_code": item.get("exitCode"),
+            "cwd": item.get("cwd"),
+            "raw_command": item.get("command"),
+            "command_actions": item.get("commandActions"),
+            "output": str(item.get("aggregatedOutput") or ""),
+        }
+        method = message.get("method")
+        if method == "item/started":
+            event_error: str | None = None
+            if not identity_valid:
+                event_error = "command identity is missing or invalid"
+            elif not isinstance(event["trace_sequence"], int) or isinstance(
+                event["trace_sequence"], bool
+            ):
+                event_error = "command start sequence is invalid"
+            elif event["status"] != "inProgress" or event["exit_code"] is not None:
+                event_error = "command start status/exit code is invalid"
+            elif not isinstance(event["raw_command"], str) or not event["raw_command"]:
+                event_error = "command start raw command is missing"
+            elif not isinstance(event["cwd"], str) or not event["cwd"]:
+                event_error = "command start cwd is missing"
+            event["event_error"] = event_error
+            if key in started:
+                audited.append(
+                    {**event, "pair_error": "command has duplicate start events"}
+                )
+            else:
+                started[key] = event
+            continue
+        if method != "item/completed":
+            audited.append(
+                {**event, "pair_error": "command has an unexpected trace event"}
+            )
+            continue
+        pair_error: str | None = None
+        start = started.pop(key, None)
+        if not identity_valid:
+            pair_error = "command identity is missing or invalid"
+        elif key in completed_keys:
+            pair_error = "command has duplicate completion events"
+        elif start is None:
+            pair_error = "command completion has no start event"
+        elif start.get("event_error") is not None:
+            pair_error = str(start["event_error"])
+        elif not isinstance(start.get("trace_sequence"), int) or not isinstance(
+            event.get("trace_sequence"), int
+        ) or isinstance(start.get("trace_sequence"), bool) or isinstance(
+            event.get("trace_sequence"), bool
+        ):
+            pair_error = "command start/completion sequence is invalid"
+        elif start["trace_sequence"] >= event["trace_sequence"]:
+            pair_error = "command completion does not follow its start"
+        elif event["status"] not in {"completed", "failed"} or not isinstance(
+            event["exit_code"], int
+        ) or isinstance(event["exit_code"], bool):
+            pair_error = "command completion status/exit code is invalid"
+        elif (event["status"] == "completed") != (event["exit_code"] == 0):
+            pair_error = "command completion status contradicts its exit code"
+        elif start.get("raw_command") != event.get("raw_command"):
+            pair_error = "command differs between start and completion"
+        elif start.get("cwd") != event.get("cwd"):
+            pair_error = "command cwd differs between start and completion"
+        completed_keys.add(key)
+        audited.append(
+            {
+                **event,
+                "start_trace_sequence": (
+                    start.get("trace_sequence") if start is not None else None
+                ),
+                "raw_command": (
+                    start.get("raw_command") if start is not None else None
+                ),
+                "pair_error": pair_error,
+            }
+        )
+    for start in started.values():
+        audited.append(
+            {**start, "pair_error": "command start has no completion event"}
+        )
+    return audited
+
+
 def _successful_command(record: dict[str, Any]) -> bool:
     return record.get("status") == "completed" and record.get("exit_code") == 0
+
+
+_READ_ONLY_COMMANDS = {
+    "cat",
+    "du",
+    "env",
+    "find",
+    "grep",
+    "head",
+    "ls",
+    "ps",
+    "readlink",
+    "realpath",
+    "rg",
+    "sed",
+    "sha256sum",
+    "sort",
+    "stat",
+    "tail",
+    "wc",
+}
+_SHELL_READ_BUILTINS = {"echo", "printf", "pwd", "sleep", "test", "true"}
+_GIT_READ_SUBCOMMANDS = {"branch", "diff", "log", "ls-files", "rev-parse", "status"}
+_EXACT_READ_ONLY_PYTHON = (
+    'from src.labels import dedupe_labels; assert dedupe_labels(["  Alpha  ", "", '
+    '"  ", "ALPHA", " Beta ", "BETA", "Straße", "STRASSE"]) == '
+    '["Alpha", "Beta", "Straße"]'
+)
+_EXACT_STATUS_HEREDOC = """python3 - <<'PY'
+import hashlib, subprocess
+status = subprocess.check_output(["git", "status", "--porcelain"], text=True)
+print("STATUS_SHA256=" + hashlib.sha256(status.encode()).hexdigest())
+print("BRANCH=" + subprocess.check_output(["git", "branch", "--show-current"], text=True).strip())
+print("HEAD=" + subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip())
+PY"""
+
+
+def _raw_shell_payload(record: dict[str, Any]) -> tuple[str | None, str | None]:
+    raw = record.get("raw_command")
+    if not isinstance(raw, str) or not raw:
+        return None, "raw shell command is missing"
+    try:
+        tokens = shlex.split(raw)
+    except ValueError:
+        return None, "raw shell wrapper is not parseable"
+    if (
+        len(tokens) != 3
+        or tokens[0]
+        not in {"/bin/bash", "/bin/dash", "/bin/ksh", "/bin/sh", "/bin/zsh"}
+        or tokens[1] not in {"-c", "-lc"}
+        or not tokens[2].strip()
+    ):
+        return None, "raw command is not one exact shell -c wrapper"
+    return tokens[2].strip(), None
+
+
+def _read_only_command_allowed(tokens: list[str]) -> bool:
+    command = tokens[0]
+    arguments = tokens[1:]
+    if command not in _READ_ONLY_COMMANDS:
+        return False
+    if command == "sed":
+        return _sed_sources(arguments) is not None
+    if command == "find":
+        return _find_sources(arguments) is not None and "-fprintf" not in arguments
+    if command in {"rg", "grep"}:
+        rejected = {
+            "--pre",
+            "--pre-glob",
+            "--replace",
+        }
+        return not any(argument.split("=", 1)[0] in rejected for argument in arguments)
+    if command == "sha256sum":
+        return not any(
+            argument.split("=", 1)[0] in {"-c", "--check"}
+            for argument in arguments
+        )
+    if command == "sort":
+        return not any(
+            argument.startswith("-o")
+            or argument.startswith("--output")
+            or argument.startswith("--compress-program")
+            or argument.startswith("-T")
+            or argument.startswith("--temporary-directory")
+            for argument in arguments
+        )
+    if command == "env":
+        return not arguments
+    return True
+
+
+def _authorized_fixture_worktrees(result: dict[str, Any]) -> set[str]:
+    fixture = result.get("fixture_metadata")
+    if not isinstance(fixture, dict):
+        return set()
+    allowed: set[str] = set()
+    primary = _normalized_cwd(fixture.get("repo"))
+    if primary is not None:
+        allowed.add(primary)
+    case_targets = {
+        "SE-BINDING-MISMATCH-SAFE-FALLBACK": "wrong_worktree",
+        "SE-FIXED-SNAPSHOT-NON-UPGRADE": "fixed_snapshot",
+    }
+    extra_key = case_targets.get(result.get("case_id"))
+    if extra_key is not None:
+        extra = _normalized_cwd(fixture.get(extra_key))
+        if extra is not None:
+            allowed.add(extra)
+    return allowed
+
+
+def _git_read_command_allowed(
+    tokens: list[str], result: dict[str, Any], record: dict[str, Any]
+) -> bool:
+    if not tokens or tokens[0] != "git":
+        return False
+    index = 1
+    observed = _normalized_cwd(record.get("cwd"))
+    if observed is None:
+        return False
+    effective = observed
+    if index < len(tokens) and tokens[index] == "-C":
+        if index + 1 >= len(tokens):
+            return False
+        target = Path(tokens[index + 1])
+        if not target.is_absolute():
+            target = Path(observed) / target
+        effective = _normalized_cwd(os.fspath(target))
+        index += 2
+    if effective not in _authorized_fixture_worktrees(result):
+        return False
+    if index >= len(tokens) or tokens[index] not in _GIT_READ_SUBCOMMANDS:
+        return False
+    subcommand = tokens[index]
+    arguments = tokens[index + 1 :]
+    if any(
+        argument == "--ext-diff"
+        or argument == "--textconv"
+        or argument == "--output"
+        or argument.startswith("--output=")
+        for argument in arguments
+    ):
+        return False
+    if subcommand == "branch":
+        return arguments == ["--show-current"]
+    if subcommand == "status":
+        allowed = {
+            "--branch",
+            "--porcelain",
+            "--porcelain=v1",
+            "--porcelain=v2",
+            "--short",
+            "--untracked-files=all",
+        }
+        return all(argument in allowed for argument in arguments)
+    if subcommand == "rev-parse":
+        allowed = {
+            "--abbrev-ref",
+            "--show-toplevel",
+            "--verify",
+            "HEAD",
+        }
+        return bool(arguments) and all(argument in allowed for argument in arguments)
+    if subcommand == "diff":
+        allowed_paths = {"src/labels.py", "tests/test_labels.py"}
+        allowed_flags = {
+            "--check",
+            "--name-only",
+            "--name-status",
+            "--numstat",
+            "--stat",
+            "--",
+        }
+        return all(
+            argument in allowed_flags
+            or argument in allowed_paths
+            or re.fullmatch(r"[0-9a-f]{7,40}\.\.[0-9a-f]{7,40}", argument)
+            is not None
+            for argument in arguments
+        )
+    if subcommand == "log":
+        return bool(arguments) and all(
+            argument == "-1" or argument.startswith("--format=")
+            for argument in arguments
+        )
+    if subcommand == "ls-files":
+        return all(
+            argument in {"--others", "--exclude-standard"} for argument in arguments
+        )
+    return False
+
+
+def _known_python_path_allowed(
+    script: Path, result: dict[str, Any], *, basename: str
+) -> bool:
+    if not script.is_absolute() or script.name != basename:
+        return False
+    fixture = result.get("fixture_metadata", {})
+    fixture_root = Path(str(fixture.get("root") or "/nonexistent"))
+    source = (
+        result.get("execution_harness_identity", {})
+        .get("start", {})
+        .get("source_repository", {})
+        .get("canonical_path")
+    )
+    policy_checkout = result.get("policy_manifest", {}).get("policy_checkout")
+    expected_paths = {fixture_root / basename}
+    evidence_fixture = Path(
+        "evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture"
+    )
+    for raw_root in (source, policy_checkout):
+        if isinstance(raw_root, str) and raw_root:
+            expected_paths.add(Path(raw_root) / evidence_fixture / basename)
+    try:
+        normalized = script.resolve(strict=False)
+        return normalized in {
+            expected.resolve(strict=False) for expected in expected_paths
+        }
+    except (OSError, RuntimeError):
+        return False
+
+
+def _python_command_allowed(
+    tokens: list[str], result: dict[str, Any], record: dict[str, Any]
+) -> bool:
+    if not tokens or tokens[0] != "python3":
+        return False
+    if len(tokens) >= 5 and tokens[1:] == ["-m", "unittest", "discover", "-s", "tests", "-v"]:
+        return True
+    if len(tokens) == 3 and tokens[1] == "-c":
+        return tokens[2] == _EXACT_READ_ONLY_PYTHON
+    if len(tokens) < 2 or tokens[1].startswith("-"):
+        return False
+    script = Path(tokens[1])
+    fixture = result.get("fixture_metadata", {})
+    repo_paths = _authorized_fixture_worktrees(result)
+    if script.name == "boot_attest.py":
+        return (
+            len(tokens) == 2
+            and script == Path(str(fixture.get("root"))).parent / "boot_attest.py"
+        )
+    inspect_args = (
+        len(tokens) == 6
+        and tokens[2] == "--repo"
+        and tokens[3] in repo_paths
+        and tokens[4:] == ["--stability-delay-ms", "100"]
+    )
+    verify_args = (
+        len(tokens) == 4
+        and tokens[2] == "--repo"
+        and tokens[3] == str(fixture.get("repo"))
+    )
+    if script.name == "inspect_binding.py" and inspect_args:
+        if _successful_command(record) and _known_python_path_allowed(
+            script, result, basename="inspect_binding.py"
+        ):
+            return True
+    if script.name == "verify.py":
+        if _successful_command(record) and tokens[2:] == ["--help"] and _known_python_path_allowed(
+            script, result, basename="verify.py"
+        ):
+            return True
+        if _successful_command(record) and verify_args and _known_python_path_allowed(
+            script, result, basename="verify.py"
+        ):
+            return True
+    barrier_script = fixture.get("barrier_script")
+    if isinstance(barrier_script, str) and str(script) == barrier_script:
+        if tokens[2:] == ["--help"]:
+            return True
+        barrier_names = {
+            "SE-DURABLE-ADDRESSABILITY-RESUME": "addressability",
+            "SE-COMBINED-CREATE-START-AMBIGUOUS": "ambiguous-create",
+            "SE-POSTDISPATCH-TRANSPORT-LOSS-RECONCILE": "postdispatch",
+        }
+        expected_name = barrier_names.get(result.get("case_id"))
+        return tokens[2:] == [
+            "--state",
+            str(fixture.get("state")),
+            "--name",
+            expected_name,
+        ]
+    if record.get("status") == "failed" and record.get("exit_code") in {1, 2}:
+        output = str(record.get("output") or "")
+        policy_checkout = result.get("policy_manifest", {}).get("policy_checkout")
+        exact_missing_scripts: set[Path] = {
+            Path(str(fixture.get("root") or "/nonexistent")) / "inspect_binding.py",
+            Path(str(fixture.get("root") or "/nonexistent")) / "verify.py",
+            Path("/home/davis/Documents/Codex/2026-08-27-durable-thread-carrier/fixture/inspect_binding.py"),
+        }
+        if isinstance(policy_checkout, str) and policy_checkout:
+            exact_missing_scripts.add(
+                Path(policy_checkout)
+                / "evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/verify.py"
+            )
+        fixture_root = Path(str(fixture.get("root") or "/nonexistent"))
+        exact_missing_scripts.add(
+            fixture_root.parent.parent
+            / "policy/policy-checkout/evidence/software-engineering/2026-08-27-durable-thread-carrier/fixture/verify.py"
+        )
+        missing_args_match = (
+            script.name == "inspect_binding.py" and inspect_args
+        ) or (script.name == "verify.py" and verify_args)
+        if (
+            missing_args_match
+            and script in exact_missing_scripts
+            and not script.exists()
+            and not script.is_symlink()
+        ):
+            return True
+        malformed_probe_target = (
+            fixture_root.parent
+            / fixture_root.parent.name
+            / "fixture/repo"
+        )
+        if (
+            record.get("exit_code") == 1
+            and script.name == "inspect_binding.py"
+            and len(tokens) == 6
+            and tokens[2:] == [
+                "--repo",
+                str(malformed_probe_target),
+                "--stability-delay-ms",
+                "100",
+            ]
+            and _known_python_path_allowed(
+                script, result, basename="inspect_binding.py"
+            )
+            and not malformed_probe_target.exists()
+            and not malformed_probe_target.is_symlink()
+        ):
+            return True
+        inert_target = f"{fixture.get('root')}/../.."
+        if str(script) == inert_target and record.get("exit_code") == 1 and not output:
+            return True
+    return False
+
+
+def _effective_command_tokens(tokens: list[str]) -> list[str]:
+    tokens = list(tokens)
+    while tokens and tokens[0] in {"(", ")"}:
+        tokens = tokens[1:]
+    while tokens and tokens[-1] in {"(", ")"}:
+        tokens = tokens[:-1]
+    if not tokens:
+        return []
+    if tokens[0] in {"if", "then", "do"}:
+        tokens = tokens[1:]
+    return tokens
+
+
+def _simple_shell_command_allowed(
+    tokens: list[str], result: dict[str, Any], record: dict[str, Any]
+) -> bool:
+    if not tokens:
+        return False
+    tokens = _effective_command_tokens(tokens)
+    if not tokens:
+        return True
+    if tokens in (["fi"], ["done"], ["break"]):
+        return True
+    command = tokens[0]
+    if command in _SHELL_READ_BUILTINS:
+        return True
+    if command == "[":
+        return tokens[-1:] == ["]"]
+    if command == "command":
+        return len(tokens) == 3 and tokens[1] == "-v" and tokens[2] in {
+            "codex",
+            "python3",
+        }
+    if command == "git":
+        return _git_read_command_allowed(tokens, result, record)
+    if command in _READ_ONLY_COMMANDS:
+        return _read_only_command_allowed(tokens)
+    if command == "python3":
+        return _python_command_allowed(tokens, result, record)
+    if command == "touch":
+        fixture = result.get("fixture_metadata", {})
+        allowed_by_case = {
+            "SE-ACTIVE-WRITER-WAIT-REFRESH": {
+                f"{fixture.get('state')}/wait-selected.json"
+            },
+            "SE-DURABLE-ADDRESSABILITY-RESUME": {
+                f"{fixture.get('state')}/addressability-release"
+            },
+        }
+        allowed = allowed_by_case.get(result.get("case_id"), set())
+        return len(tokens) == 2 and tokens[1] in allowed
+    if command == "codex":
+        return tokens[1:] in (
+            ["--help"],
+            ["agents", "--help"],
+            ["app-server", "--help"],
+            ["exec", "--help"],
+        )
+    return False
+
+
+def _pipeline_commands(segment: str) -> list[list[str]] | None:
+    segment = segment.strip()
+    while segment.startswith("("):
+        segment = segment[1:].lstrip()
+    while segment.endswith(")"):
+        segment = segment[:-1].rstrip()
+    segment = re.sub(r"(?:^|\s)2>(?:/dev/null|&1)(?=\s|$)", " ", segment)
+    try:
+        lexer = shlex.shlex(segment, posix=True, punctuation_chars="|&<>")
+        lexer.whitespace_split = True
+        lexer.commenters = ""
+        raw_tokens = list(lexer)
+    except ValueError:
+        return None
+    if not raw_tokens or any(
+        token != "|"
+        and token
+        and all(character in "|&<>" for character in token)
+        for token in raw_tokens
+    ):
+        return None
+    commands: list[list[str]] = [[]]
+    for token in raw_tokens:
+        if token == "|":
+            if not commands[-1]:
+                return None
+            commands.append([])
+        else:
+            commands[-1].append(token)
+    return commands if commands[-1] else None
+
+
+def _pipeline_allowed(
+    segment: str, result: dict[str, Any], record: dict[str, Any]
+) -> bool:
+    commands = _pipeline_commands(segment)
+    return commands is not None and all(
+        _simple_shell_command_allowed(tokens, result, record) for tokens in commands
+    )
+
+
+def _special_payload_allowed(
+    payload: str, result: dict[str, Any], record: dict[str, Any]
+) -> tuple[bool, str | None, bool]:
+    fixture = result.get("fixture_metadata", {})
+    state = str(fixture.get("state") or "")
+    repo = str(fixture.get("repo") or "")
+    fixture_root = str(fixture.get("root") or "")
+    wait_payloads = {
+        f"while [ ! -e {state}/writer-stopped.json ]; do sleep 1; done; echo writer-stopped",
+        f"while [ ! -f {state}/writer-stopped.json ]; do sleep 1; done; echo writer-stopped",
+        f"for i in $(seq 1 30); do if test -e {state}/writer-stopped.json; then exit 0; fi; sleep 1; done; exit 2",
+    }
+    if payload in wait_payloads:
+        allowed = result.get("case_id") == "SE-ACTIVE-WRITER-WAIT-REFRESH"
+        return allowed, None if allowed else "special payload case mismatch", True
+    found_payload = (
+        "found=$(rg --files -g 'AGENTS.override.md' -g 'AGENTS.md' "
+        f"-g '!**/.git/**' {repo} 2>/dev/null); if [ -n \"$found\" ]; "
+        "then printf '%s\\n' \"$found\"; while IFS= read -r f; do sed -n "
+        "'1,240p' \"$f\"; done <<< \"$found\"; fi"
+    )
+    if payload == found_payload:
+        allowed = result.get("case_id") == "SE-DURABLE-ADDRESSABILITY-RESUME"
+        return allowed, None if allowed else "special payload case mismatch", False
+    agents_loop = (
+        "for f in $(rg --files -g 'AGENTS*.md' .. 2>/dev/null); "
+        "do echo \"--- $f ---\"; sed -n '1,240p' \"$f\"; done"
+    )
+    if payload == agents_loop:
+        return True, None, False
+    skill_path = (
+        Path(fixture_root).parent
+        / "policy/codex-home/skills/software-engineering/SKILL.md"
+    )
+    skill_payload = (
+        f"skill_path='{skill_path}'; sed -n '1,260p' \"$skill_path\"; "
+        "echo '--- LOCAL AGENTS ---'; rg --files -g 'AGENTS.md' "
+        "-g 'AGENTS.override.md' -g '!**/.git/**' ."
+    )
+    if payload == skill_payload:
+        return True, None, False
+    if payload.endswith(_EXACT_STATUS_HEREDOC):
+        prefix = payload[: -len(_EXACT_STATUS_HEREDOC)].rstrip()
+        if prefix and all(
+            _pipeline_allowed(segment, result, record)
+            for segment in split_command_segments(prefix)
+        ):
+            return True, None, True
+    run_root = Path(fixture_root).parent
+    controller_read = f"""python3 - <<'PY'
+import json
+from pathlib import Path
+p=Path('{run_root / 'controller-events.jsonl'}')
+for line in p.read_text().splitlines():
+    e=json.loads(line)
+    print(e.get('sequence'), e.get('kind'), e.get('tool'), e.get('arguments',{{}}))
+PY"""
+    trace_read = f"""python3 - <<'PY'
+import json
+from pathlib import Path
+p=Path('{run_root / 'raw-trace.jsonl'}')
+for line in p.read_text().splitlines():
+    try: e=json.loads(line)
+    except Exception: continue
+    s=json.dumps(e, ensure_ascii=False)
+    if any(k in s.lower() for k in ('case-barrier', 'case_barrier', 'wait_marker', 'release_marker', 'controller_wait', 'controller_release')):
+        print(s[:3000])
+PY"""
+    for exact_heredoc in (controller_read, trace_read):
+        if payload.endswith(exact_heredoc):
+            prefix = payload[: -len(exact_heredoc)].rstrip()
+            if not prefix or all(
+                _pipeline_allowed(segment, result, record)
+                for segment in split_command_segments(prefix)
+            ):
+                return True, None, True
+    return (
+        False,
+        "shell substitution, variable command, or heredoc is not exact",
+        False,
+    )
+
+
+def _normalized_cwd(raw: Any) -> str | None:
+    if not isinstance(raw, str) or not raw or not Path(raw).is_absolute():
+        return None
+    return str(Path(os.path.normpath(raw)))
+
+
+def _command_cwd_error(
+    payload: str,
+    result: dict[str, Any],
+    record: dict[str, Any],
+    commands: list[list[str]],
+    *,
+    special_primary_required: bool = False,
+) -> str | None:
+    fixture = result.get("fixture_metadata")
+    policy = result.get("policy_manifest")
+    if not isinstance(fixture, dict) or not isinstance(policy, dict):
+        return "command cwd contract metadata is invalid"
+    primary = _normalized_cwd(fixture.get("repo"))
+    fixture_root = _normalized_cwd(fixture.get("root"))
+    policy_checkout = _normalized_cwd(policy.get("policy_checkout"))
+    if primary is None or fixture_root is None or policy_checkout is None:
+        return "command cwd contract metadata is incomplete"
+    run_root = str(Path(fixture_root).parent)
+    skill_root = str(
+        Path(fixture_root).parent
+        / "policy/codex-home/skills/software-engineering"
+    )
+    effective_commands = [
+        normalized
+        for tokens in commands
+        if (normalized := _effective_command_tokens(tokens))
+    ]
+    requires_primary = special_primary_required or any(
+        tokens[0] in {"python3", "touch", "codex"}
+        for tokens in effective_commands
+    )
+    observed = _normalized_cwd(record.get("cwd"))
+    if requires_primary:
+        allowed = {primary}
+    elif observed == skill_root:
+        allowed = {skill_root} if payload == (
+            "sed -n '1,300p' references/execution-delegation.md"
+        ) else set()
+    elif observed == run_root:
+        allowed = {run_root}
+    else:
+        allowed = _authorized_fixture_worktrees(result)
+    if observed is None or observed not in allowed:
+        return "command cwd is outside its exact fixture/worktree allowlist"
+    return None
+
+
+def raw_command_audit_violations(
+    result: dict[str, Any], records: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Independently allowlist every raw commandExecution shell payload."""
+    violations: list[dict[str, Any]] = []
+    for record in command_execution_audit_records(records):
+        reason = record.get("pair_error")
+        payload = None
+        commands: list[list[str]] = []
+        special_primary_required = False
+        if reason is None:
+            payload, reason = _raw_shell_payload(record)
+        if payload is not None and reason is None:
+            if any(marker in payload for marker in ("$(`", "`")):
+                reason = "backtick command substitution is not allowed"
+            elif payload.startswith(("for ", "while ")) or "$(" in payload or "<<" in payload or re.match(
+                r"[A-Za-z_][A-Za-z0-9_]*=", payload
+            ):
+                (
+                    allowed,
+                    special_reason,
+                    special_primary_required,
+                ) = _special_payload_allowed(payload, result, record)
+                if not allowed:
+                    reason = special_reason
+            else:
+                segments = split_command_segments(payload)
+                parsed_segments = [
+                    _pipeline_commands(segment) for segment in segments
+                ]
+                if (
+                    not segments
+                    or any(parsed is None for parsed in parsed_segments)
+                    or not all(
+                        _simple_shell_command_allowed(tokens, result, record)
+                        for parsed in parsed_segments
+                        if parsed is not None
+                        for tokens in parsed
+                    )
+                ):
+                    reason = "command is outside the exact read/state grammar"
+                else:
+                    commands = [
+                        tokens
+                        for parsed in parsed_segments
+                        if parsed is not None
+                        for tokens in parsed
+                    ]
+            if reason is None:
+                reason = _command_cwd_error(
+                    payload,
+                    result,
+                    record,
+                    commands,
+                    special_primary_required=special_primary_required,
+                )
+        if reason is not None:
+            encoded = str(record.get("raw_command") or "").encode(
+                "utf-8", errors="replace"
+            )
+            violations.append(
+                {
+                    "type": "unpermitted_raw_command",
+                    "thread_id": record.get("thread_id"),
+                    "turn_id": record.get("turn_id"),
+                    "item_id": record.get("item_id"),
+                    "command_sha256": hashlib.sha256(encoded).hexdigest(),
+                    "reason": reason,
+                }
+            )
+    return violations
 
 
 def _active_writer_boot_policy_read_safe(
@@ -813,47 +1583,6 @@ def implementation_writer_test_evidence(
     return evidence, missing
 
 
-def publication_invalid_reasons(
-    run_dir: Path, publish: dict[str, Any], case_id: str | None
-) -> list[str]:
-    reasons: list[str] = []
-    if publish.get("publication_mode") != "explicit allowlist only":
-        reasons.append("publication mode is not explicit allowlist")
-    entries = publish.get("files")
-    if not isinstance(entries, list):
-        return reasons + ["publication file inventory is not a list"]
-    seen: set[str] = set()
-    for entry in entries:
-        if not isinstance(entry, dict):
-            reasons.append("publication entry is not an object")
-            continue
-        relative = str(entry.get("path", ""))
-        if relative in seen:
-            reasons.append(f"publication path is duplicated: {relative}")
-            continue
-        seen.add(relative)
-        if relative not in EXPECTED_PUBLISH_PATHS:
-            reasons.append(f"publication path is not allowlisted: {relative}")
-            continue
-        path = run_dir / relative
-        if not path.is_file():
-            reasons.append(f"published artifact is missing: {relative}")
-            continue
-        if entry.get("size_bytes") != path.stat().st_size:
-            reasons.append(f"published artifact size mismatch: {relative}")
-        if entry.get("sha256") != sha256(path):
-            reasons.append(f"published artifact hash mismatch: {relative}")
-    for relative in sorted(REQUIRED_PUBLISH_PATHS - seen):
-        reasons.append(f"required published artifact is missing: {relative}")
-    if case_id == "SE-DURABLE-ADDRESSABILITY-RESUME" and (
-        "addressability-handoff.json" not in seen
-    ):
-        reasons.append("addressability handoff is missing from publication allowlist")
-    if any("auth.json" in path or "codex-home" in path.lower() for path in seen):
-        reasons.append("publication inventory includes auth/CODEX_HOME content")
-    return reasons
-
-
 def final_oracle_after_writers(
     result: dict[str, Any], records: list[dict[str, Any]]
 ) -> bool:
@@ -895,17 +1624,16 @@ def implementation_threads(result: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def common_invalid_reasons(
-    run_dir: Path,
+    run_dir: Path | ArtifactRoot,
     result: dict[str, Any],
     manifest_entry: dict[str, Any],
     expected_harness_sha256: str,
+    publish: dict[str, Any],
 ) -> tuple[list[str], list[dict[str, Any]]]:
     reasons: list[str] = []
     reasons.extend(
         execution_identity_invalid_reasons(result, expected_harness_sha256)
     )
-    raw_path = run_dir / "raw-trace.jsonl"
-    result_path = run_dir / "result.json"
     records: list[dict[str, Any]] = []
     if result.get("schema_version") != 6:
         reasons.append("result schema is not v6")
@@ -955,37 +1683,33 @@ def common_invalid_reasons(
             f"harness validity: {reason}"
             for reason in result.get("harness_validity", {}).get("reasons", [])
         )
-    if not result_path.is_file() or not raw_path.is_file():
-        reasons.append("result or raw trace artifact missing")
+    try:
+        _result_size, result_sha256 = artifact_measure(run_dir, "result.json")
+        _raw_size, raw_sha256 = artifact_measure(run_dir, "raw-trace.jsonl")
+    except PublicationError as exc:
+        reasons.append(str(exc))
     else:
-        if manifest_entry.get("result_sha256") != sha256(result_path):
+        if manifest_entry.get("result_sha256") != result_sha256:
             reasons.append("frozen manifest result hash mismatch")
-        if manifest_entry.get("raw_trace_sha256") != sha256(raw_path):
+        if manifest_entry.get("raw_trace_sha256") != raw_sha256:
             reasons.append("frozen manifest raw trace hash mismatch")
         try:
-            records = read_raw_trace(raw_path)
-        except (OSError, json.JSONDecodeError):
-            reasons.append("raw trace is unreadable")
+            raw_entry = next(
+                entry
+                for entry in publish["files"]
+                if entry["path"] == "raw-trace.jsonl"
+            )
+            records = read_raw_trace(
+                run_dir, expected_size=raw_entry["size_bytes"]
+            )
+        except PublicationError as exc:
+            reasons.append(str(exc))
         else:
             if not trace_is_complete(records):
                 reasons.append("raw trace sequence is incomplete or duplicated")
-    publish_path = run_dir / "publish-manifest.json"
-    if not publish_path.is_file():
-        reasons.append("explicit publication allowlist is missing")
-    else:
-        try:
-            publish = read_json(publish_path)
-        except (OSError, json.JSONDecodeError):
-            reasons.append("publication allowlist is unreadable")
-        else:
-            if not isinstance(publish, dict):
-                reasons.append("publication allowlist is not an object")
-            else:
-                reasons.extend(
-                    publication_invalid_reasons(
-                        run_dir, publish, result.get("case_id")
-                    )
-                )
+    reasons.extend(
+        publication_invalid_reasons(run_dir, publish, result.get("case_id"))
+    )
     for thread_id, info in implementation_threads(result).items():
         intervals = [
             item
@@ -1094,10 +1818,11 @@ def case_injection_invalid_reasons(
 
 
 def grade_case(
-    run_dir: Path,
+    run_dir: Path | ArtifactRoot,
     result: dict[str, Any],
     manifest_entry: dict[str, Any],
     expected_harness_sha256: str,
+    publish: dict[str, Any],
 ) -> dict[str, Any]:
     case = result.get("case_id")
     invalid, records = common_invalid_reasons(
@@ -1105,6 +1830,7 @@ def grade_case(
         result,
         manifest_entry,
         expected_harness_sha256,
+        publish,
     )
     invalid.extend(case_injection_invalid_reasons(str(case), result))
     if invalid:
@@ -1117,6 +1843,7 @@ def grade_case(
     runtime_violations, runtime_refinements = refined_runtime_violations(
         result, records
     )
+    runtime_violations.extend(raw_command_audit_violations(result, records))
     checks: list[tuple[bool, str]] = [
         (
             result.get("mutation_audit", {}).get("audit", {}).get("passed") is True,
@@ -1218,8 +1945,10 @@ def grade_case(
             ]
         )
     elif case == "SE-DURABLE-ADDRESSABILITY-RESUME":
-        handoff_path = run_dir / "addressability-handoff.json"
-        handoff = read_json(handoff_path) if handoff_path.is_file() else {}
+        try:
+            handoff = read_artifact_json(run_dir, "addressability-handoff.json")
+        except PublicationError:
+            handoff = {}
         session_b = next(
             (item for item in result.get("root_results", []) if item.get("session") == "B"),
             {},
@@ -1378,61 +2107,144 @@ def grade_case(
 
 
 def resolve_run_dir(entry: dict[str, Any], manifest_path: Path) -> Path:
-    raw = Path(entry["run_dir"])
-    return raw if raw.is_absolute() else (manifest_path.parent / raw).resolve()
+    raw_value = entry.get("run_dir")
+    if not isinstance(raw_value, str) or not raw_value:
+        raise PublicationError("run directory is missing or invalid")
+    raw = Path(raw_value).expanduser()
+    combined = raw if raw.is_absolute() else manifest_path.parent / raw
+    return Path(os.path.abspath(os.fspath(combined)))
 
 
-def validate_manifest(manifest: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
-    if manifest.get("schema_version") != 6:
-        errors.append("run manifest schema is not v6")
-    if manifest.get("evaluation_id") != EVALUATION_ID:
-        errors.append("run manifest evaluation ID mismatch")
-    if manifest.get("baseline_commit") != BASELINE_COMMIT:
-        errors.append("run manifest baseline commit mismatch")
-    if manifest.get("candidate_commit") != CANDIDATE_COMMIT:
-        errors.append("run manifest candidate commit mismatch")
-    harness_sha256 = manifest.get("execution_harness_sha256")
-    if not isinstance(harness_sha256, str) or not re.fullmatch(
-        r"[0-9a-f]{64}", harness_sha256
-    ):
-        errors.append("run manifest execution harness SHA-256 is missing or invalid")
-    runs = manifest.get("runs", [])
-    primary = [entry for entry in runs if entry.get("replicate", "primary") == "primary"]
-    observed = [(entry.get("case_id"), entry.get("side")) for entry in primary]
-    expected = [(case, side) for case in CASE_IDS for side in ("baseline", "candidate")]
-    if sorted(observed) != sorted(expected):
-        errors.append("manifest does not contain exactly one primary run per case/side")
-    for field in ("run_id", "run_dir"):
-        values = [entry.get(field) for entry in runs]
-        if None in values or len(values) != len(set(values)):
-            errors.append(f"run manifest {field} values are missing or reused")
-    for entry in runs:
-        if not entry.get("result_sha256") or not entry.get("raw_trace_sha256"):
-            errors.append(f"run hashes missing: {entry.get('run_id')}")
-    return errors
+def validate_manifest(
+    manifest: Any, expected_grading_harness_sha256: str | None = None
+) -> list[str]:
+    if expected_grading_harness_sha256 is None:
+        identity = compute_grading_harness_identity()
+        expected_grading_harness_sha256 = identity.get(
+            "grading_harness_sha256"
+        )
+    return behavior_manifest_invalid_reasons(
+        manifest,
+        expected_grading_harness_sha256=expected_grading_harness_sha256,
+    )
+
+
+def report_requires_nonzero_exit(report: dict[str, Any]) -> bool:
+    """Return whether a complete report represents an unusable candidate result."""
+    if report.get("manifest_errors"):
+        return True
+    runs = report.get("runs")
+    if not isinstance(runs, list):
+        return True
+    for item in runs:
+        if not isinstance(item, dict):
+            return True
+        if item.get("grade") == "invalid-or-unsupported":
+            expected = EXPECTED_FROZEN_INVALID_RUNS.get(
+                (item.get("side"), item.get("case_id"))
+            )
+            if expected is None:
+                return True
+            if any(
+                item.get(field) != expected[field]
+                for field in (
+                    "run_id",
+                    "replicate",
+                    "result_sha256",
+                    "raw_trace_sha256",
+                )
+            ):
+                return True
+            invalid_reasons = item.get("invalid_reasons")
+            if (
+                not isinstance(invalid_reasons, list)
+                or any(not isinstance(reason, str) for reason in invalid_reasons)
+                or set(invalid_reasons) != expected["invalid_reasons"]
+            ):
+                return True
+        if item.get("side") == "candidate" and item.get("grade") != "pass":
+            return True
+    return False
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True, type=Path)
     args = parser.parse_args()
-    manifest_path = args.manifest.resolve()
-    manifest = read_json(manifest_path)
-    manifest_errors = validate_manifest(manifest)
+    manifest_path = Path(os.path.abspath(os.fspath(args.manifest.expanduser())))
+    manifest: Any = {}
+    manifest_sha256: str | None = None
+    manifest_read_errors: list[str] = []
+    try:
+        manifest_bytes = read_path_bytes_no_symlink(
+            manifest_path, max_bytes=MAX_BEHAVIOR_MANIFEST_BYTES
+        )
+        manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+        manifest = strict_json_loads(manifest_bytes, description="run manifest")
+    except (
+        PublicationError,
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        RecursionError,
+        ValueError,
+    ):
+        manifest_read_errors.append("run manifest is missing, invalid, or unreadable")
+    grading_identity: dict[str, Any] | None = None
+    grading_identity_errors_list: list[str] = []
+    try:
+        grading_identity = compute_grading_harness_identity()
+        grading_identity_errors_list.extend(
+            f"grading harness identity: {error}"
+            for error in grading_harness_identity_errors(grading_identity)
+        )
+    except Exception:
+        grading_identity_errors_list.append(
+            "grading harness identity could not be calculated"
+        )
+    expected_grading_sha256 = (
+        grading_identity.get("grading_harness_sha256")
+        if isinstance(grading_identity, dict)
+        else None
+    )
+    manifest_validation_errors = (
+        validate_manifest(manifest, expected_grading_sha256)
+        if isinstance(expected_grading_sha256, str)
+        else behavior_manifest_invalid_reasons(manifest)
+    )
+    manifest_errors = [
+        *manifest_read_errors,
+        *manifest_validation_errors,
+        *grading_identity_errors_list,
+    ]
+    manifest_contract_valid = not manifest_errors
+
     report: dict[str, Any] = {
         "evaluation_id": EVALUATION_ID,
         "manifest": str(manifest_path),
-        "manifest_sha256": sha256(manifest_path),
+        "manifest_sha256": manifest_sha256,
         "grader": {
             "path": str(SCRIPT_PATH),
-            "sha256": sha256(SCRIPT_PATH),
+            "sha256": (
+                next(
+                    (
+                        entry.get("sha256")
+                        for entry in (grading_identity or {}).get("files", [])
+                        if isinstance(entry, dict)
+                        and entry.get("path") == "grade_runs.py"
+                    ),
+                    None,
+                )
+            ),
         },
+        "grading_harness_identity": grading_identity,
         "manifest_errors": manifest_errors,
         "runs": [],
         "summary": {},
     }
-    expected_harness_sha256 = str(manifest.get("execution_harness_sha256") or "")
+    expected_harness_sha256 = str(
+        manifest.get("execution_harness_sha256") or ""
+    ) if isinstance(manifest, dict) else ""
     try:
         current_harness_identity = compute_execution_harness_identity(
             evidence_root=EVIDENCE_ROOT,
@@ -1468,97 +2280,205 @@ def main() -> int:
         "root_thread": [],
         "process": [],
     }
-    for entry in manifest.get("runs", []):
-        run_dir = resolve_run_dir(entry, manifest_path)
-        result_path = run_dir / "result.json"
-        if not result_path.is_file():
+    manifest_runs: list[Any] = (
+        manifest.get("runs", [])
+        if manifest_contract_valid
+        and isinstance(manifest, dict)
+        and isinstance(manifest.get("runs", []), list)
+        else []
+    )
+    declared_publication_bytes = 0
+    for raw_entry in manifest_runs:
+        entry = raw_entry if isinstance(raw_entry, dict) else {}
+        report_entry = {
+            "case_id": entry.get("case_id"),
+            "side": entry.get("side"),
+            "run_id": entry.get("run_id"),
+            "replicate": entry.get("replicate"),
+        }
+        try:
+            run_dir = resolve_run_dir(entry, manifest_path)
+            with open_artifact_root(run_dir) as run_root:
+                publish_bytes = read_artifact_bytes(
+                    run_root,
+                    "publish-manifest.json",
+                    max_bytes=MAX_PUBLISH_MANIFEST_BYTES,
+                )
+                publish = strict_json_loads(
+                    publish_bytes,
+                    description="publication allowlist",
+                )
+                inventory_errors = publication_inventory_invalid_reasons(
+                    publish,
+                    entry.get("case_id"),
+                    require_case_artifacts=False,
+                )
+                if inventory_errors:
+                    raise PublicationError(
+                        "publication allowlist is invalid: "
+                        + "; ".join(inventory_errors)
+                    )
+                entries = publication_entries(publish)
+                if entries["result.json"]["sha256"] != entry.get(
+                    "result_sha256"
+                ):
+                    raise PublicationError("result hash linkage mismatch")
+                if entries["raw-trace.jsonl"]["sha256"] != entry.get(
+                    "raw_trace_sha256"
+                ):
+                    raise PublicationError("raw trace hash linkage mismatch")
+                declared_run_bytes = len(publish_bytes) + sum(
+                    item["size_bytes"] for item in entries.values()
+                )
+                if declared_publication_bytes + declared_run_bytes > MAX_PUBLICATION_BYTES:
+                    if "publication exceeds global hard size limit" not in report[
+                        "manifest_errors"
+                    ]:
+                        report["manifest_errors"].append(
+                            "publication exceeds global hard size limit"
+                        )
+                    raise PublicationError("publication exceeds global hard size limit")
+                declared_publication_bytes += declared_run_bytes
+
+                result_entry = entries["result.json"]
+                raw_entry = entries["raw-trace.jsonl"]
+                result = read_artifact_json(
+                    run_root,
+                    "result.json",
+                    max_bytes=MAX_RESULT_BYTES,
+                    expected_size=result_entry["size_bytes"],
+                )
+                if not isinstance(result, dict):
+                    raise PublicationError("result artifact is not an object")
+                _result_size, observed_result_sha256 = artifact_measure(
+                    run_root,
+                    "result.json",
+                    max_bytes=MAX_RESULT_BYTES,
+                    expected_size=result_entry["size_bytes"],
+                )
+                _raw_size, observed_raw_sha256 = artifact_measure(
+                    run_root,
+                    "raw-trace.jsonl",
+                    max_bytes=MAX_ARTIFACT_BYTES,
+                    expected_size=raw_entry["size_bytes"],
+                )
+
+                identity_record = result.get("execution_harness_identity")
+                start_identity = (
+                    identity_record.get("start")
+                    if isinstance(identity_record, dict)
+                    else None
+                )
+                if isinstance(start_identity, dict):
+                    result_harness_identity_count += 1
+                    result_harness_identities.add(
+                        json.dumps(
+                            start_identity,
+                            ensure_ascii=True,
+                            separators=(",", ":"),
+                            sort_keys=True,
+                        )
+                    )
+                if result.get("case_id") != entry.get("case_id") or result.get(
+                    "policy_side"
+                ) != entry.get("side"):
+                    outcome = {
+                        "grade": "invalid-or-unsupported",
+                        "invalid_reasons": [
+                            "manifest case/side does not match result"
+                        ],
+                        "failed_assertions": [],
+                    }
+                else:
+                    outcome = grade_case(
+                        run_root,
+                        result,
+                        entry,
+                        expected_harness_sha256,
+                        publish,
+                    )
+
+                raw_configuration = result.get("configuration")
+                configuration = (
+                    raw_configuration
+                    if isinstance(raw_configuration, dict)
+                    else {}
+                )
+                inventory = configuration.get("tool_inventory", [])
+                tool_hashes.add(
+                    hashlib.sha256(
+                        json.dumps(inventory, sort_keys=True).encode("utf-8")
+                    ).hexdigest()
+                )
+                policy_manifest = result.get("policy_manifest")
+                fixture_metadata = result.get("fixture_metadata")
+                boot = result.get("boot")
+                launcher = result.get("launcher")
+                identities["codex_home"].append(
+                    policy_manifest.get("codex_home")
+                    if isinstance(policy_manifest, dict)
+                    else None
+                )
+                identities["fixture_root"].append(
+                    fixture_metadata.get("root")
+                    if isinstance(fixture_metadata, dict)
+                    else None
+                )
+                identities["root_thread"].append(
+                    boot.get("thread_id") if isinstance(boot, dict) else None
+                )
+                identities["process"].append(
+                    launcher.get("pid") if isinstance(launcher, dict) else None
+                )
+                report["runs"].append(
+                    {
+                        **report_entry,
+                        "result_sha256": observed_result_sha256,
+                        "raw_trace_sha256": observed_raw_sha256,
+                        **outcome,
+                    }
+                )
+        except Exception as exc:
             report["runs"].append(
                 {
-                    **entry,
+                    **report_entry,
                     "grade": "invalid-or-unsupported",
-                    "invalid_reasons": ["result.json missing"],
+                    "invalid_reasons": [
+                        "run artifact structure is invalid: "
+                        f"{type(exc).__name__}"
+                    ],
                     "failed_assertions": [],
                 }
             )
-            continue
-        result = read_json(result_path)
-        identity_record = result.get("execution_harness_identity", {})
-        start_identity = (
-            identity_record.get("start")
-            if isinstance(identity_record, dict)
-            else None
-        )
-        if isinstance(start_identity, dict):
-            result_harness_identity_count += 1
-            result_harness_identities.add(
-                json.dumps(
-                    start_identity,
-                    ensure_ascii=True,
-                    separators=(",", ":"),
-                    sort_keys=True,
-                )
-            )
-        if result.get("case_id") != entry.get("case_id") or result.get(
-            "policy_side"
-        ) != entry.get("side"):
-            outcome = {
-                "grade": "invalid-or-unsupported",
-                "invalid_reasons": ["manifest case/side does not match result"],
-                "failed_assertions": [],
-            }
-        else:
-            outcome = grade_case(
-                run_dir,
-                result,
-                entry,
-                expected_harness_sha256,
-            )
-        inventory = result.get("configuration", {}).get("tool_inventory", [])
-        tool_hashes.add(
-            hashlib.sha256(
-                json.dumps(inventory, sort_keys=True).encode("utf-8")
-            ).hexdigest()
-        )
-        identities["codex_home"].append(
-            result.get("policy_manifest", {}).get("codex_home")
-        )
-        identities["fixture_root"].append(
-            result.get("fixture_metadata", {}).get("root")
-        )
-        identities["root_thread"].append(
-            result.get("boot", {}).get("thread_id")
-        )
-        identities["process"].append(
-            result.get("launcher", {}).get("pid")
-        )
-        report["runs"].append(
-            {
-                "case_id": entry.get("case_id"),
-                "side": entry.get("side"),
-                "run_id": entry.get("run_id"),
-                "replicate": entry.get("replicate", "primary"),
-                "result_sha256": sha256(result_path),
-                "raw_trace_sha256": sha256(run_dir / "raw-trace.jsonl"),
-                **outcome,
-            }
-        )
-    if len(tool_hashes) != 1:
-        report["manifest_errors"].append("surfaced tool inventory differs across runs")
-    if len(result_harness_identities) != 1:
-        report["manifest_errors"].append(
-            "execution harness identity differs or is missing across runs"
-        )
-    if result_harness_identity_count != len(manifest.get("runs", [])):
-        report["manifest_errors"].append(
-            "one or more run results lack an execution harness identity"
-        )
-    for name in ("codex_home", "fixture_root", "root_thread", "process"):
-        values = identities[name]
-        if None in values or len(values) != len(set(values)):
+
+    if manifest_contract_valid:
+        if len(tool_hashes) != 1:
             report["manifest_errors"].append(
-                f"per-run identity missing or reused: {name}"
+                "surfaced tool inventory differs across runs"
             )
-    counts = Counter((item.get("side"), item["grade"]) for item in report["runs"])
+        if len(result_harness_identities) != 1:
+            report["manifest_errors"].append(
+                "execution harness identity differs or is missing across runs"
+            )
+        if result_harness_identity_count != len(manifest_runs):
+            report["manifest_errors"].append(
+                "one or more run results lack an execution harness identity"
+            )
+        for name in ("codex_home", "fixture_root", "root_thread", "process"):
+            values = identities[name]
+            if (
+                len(values) != len(manifest_runs)
+                or None in values
+                or len(values) != len(set(values))
+            ):
+                report["manifest_errors"].append(
+                    f"per-run identity missing or reused: {name}"
+                )
+
+    report["manifest_errors"] = sorted(set(report["manifest_errors"]))
+    counts = Counter(
+        (item.get("side"), item.get("grade")) for item in report["runs"]
+    )
     report["summary"] = {
         "manifest_valid": not report["manifest_errors"],
         "baseline_pass": counts[("baseline", "pass")],
@@ -1572,8 +2492,10 @@ def main() -> int:
             ("candidate", "invalid-or-unsupported")
         ],
     }
+    exit_nonzero = report_requires_nonzero_exit(report)
+    report["summary"]["exit_status"] = 1 if exit_nonzero else 0
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
-    return 0
+    return 1 if exit_nonzero else 0
 
 
 if __name__ == "__main__":
