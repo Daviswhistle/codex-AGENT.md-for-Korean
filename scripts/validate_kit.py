@@ -8,6 +8,7 @@ import subprocess
 import sys
 
 from kit_manifest import ManifestError, load_manifest, validate_manifest
+from openai_yaml_contract import discover_openai_yaml, validate_paths
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +87,7 @@ def run_check(check: CommandCheck, repo_root: Path, quiet: bool) -> bool:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run manifest validation, executable tests, and helper smoke checks."
+        description="Run manifest validation, metadata contracts, executable tests, and helper smoke checks."
     )
     parser.add_argument(
         "--root",
@@ -124,6 +125,22 @@ def main() -> int:
         print(
             f"[PASS] manifest validation "
             f"(kit {manifest.kit_version}, schema {manifest.schema_version})",
+            flush=True,
+        )
+
+    metadata_paths = discover_openai_yaml(repo_root)
+    if not metadata_paths:
+        print("[FAIL] openai.yaml metadata contract: no metadata files found")
+        return 1
+    metadata_errors = validate_paths(metadata_paths)
+    if metadata_errors:
+        print("[FAIL] openai.yaml metadata contract")
+        for error in metadata_errors:
+            print(f"  - {error}")
+        return 1
+    if not args.quiet:
+        print(
+            f"[PASS] openai.yaml metadata contract ({len(metadata_paths)} files)",
             flush=True,
         )
 
