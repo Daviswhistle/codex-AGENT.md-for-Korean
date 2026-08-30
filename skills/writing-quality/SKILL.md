@@ -1,6 +1,6 @@
 ---
 name: writing-quality
-description: Draft or revise user-facing Korean or English text when writing quality is a material part of success. Use for analytical essays, evidence-backed or recurring research answers, business-model or mechanism analysis, investment research, technical explanation, publish-ready HTML/CSS articles, relationship-sensitive cooperation requests, business messages, prompts, literary prose, or edits, especially when the user requests voice preservation, higher information density, careful revision, or publication-ready quality. Prose format alone is neither a reason to invoke nor a reason to exclude this skill; use it when the answer benefits materially from explicit structure, revision, or review.
+description: Draft or revise user-facing Korean or English text when writing quality is a material part of success. Use for analytical essays, long-form or recurring evidence-backed research, business-model or mechanism analysis, investment research, technical explanation, publish-ready HTML/CSS articles, relationship-sensitive cooperation requests, business messages, prompts, literary prose, or edits, especially when the user requests voice preservation, higher information density, careful revision, or publication-ready quality. Do not invoke solely because an answer is prose, uses sources, or needs factual verification; skip short atomic source-backed Q&A unless the user explicitly requests writing, revision, or publication-quality work.
 ---
 
 # Writing Quality
@@ -11,10 +11,11 @@ description: Draft or revise user-facing Korean or English text when writing qua
 
 1. 모든 사용자 대상 답변은 전역 지침의 최소 글쓰기 기준을 지킨다. 이 스킬은 그 기준을 대신하지 않고, 글쓰기 자체가 품질 병목일 때 구조 설계·작성·검수 절차를 추가한다.
 2. 독자가 그대로 읽거나 보내거나 게시할 원고가 주요 산출물일 때 사용한다.
-3. 사용자가 문체·목소리·완성도 개선을 명시하거나, 장문·근거 기반·반복 발행·판단 비용이 큰 답변에서 별도 설계와 퇴고가 실질적으로 품질을 높이면 채팅 응답에도 사용한다.
-4. 답변이 문장 형식이라는 사실만으로 호출하지 않으며, 일반 질의 응답이라는 형식만으로 배제하지도 않는다.
-5. 소프트웨어 변경이 중심이면 `software-engineering`이 작업과 검증을 소유한다. 문서나 사용자 대상 문구가 실질적 산출물일 때만 이 스킬을 함께 적용한다.
-6. 원고와 HTML/CSS가 함께 주요 산출물인 게시형 아티클은 이 스킬이 주장·한국어·정보 구조를 소유하고, `software-engineering`이 렌더링과 코드 검증을 소유한다. `references/publishable-html-article.md`를 함께 적용한다.
+3. 사용자가 문체·목소리·완성도 개선을 명시하거나, 장문·반복 발행·오독 비용이 큰 근거 기반 답변에서 별도 설계와 퇴고가 실질적으로 품질을 높이면 채팅 응답에도 사용한다.
+4. 답변이 문장 형식이거나 출처를 사용하거나 기술·투자 내용을 다룬다는 사실만으로 호출하지 않는다. 짧고 원자적인 출처 기반 질의응답에는 전역 최소 글쓰기 기준만 적용하고 질문에 직접 답한다.
+5. `일반 질의응답`이라는 형식만으로 배제하지도 않는다. 다만 글쓰기 자체가 성공의 실질적 병목일 때만 사용한다.
+6. 소프트웨어 변경이 중심이면 `software-engineering`이 작업과 검증을 소유한다. 문서나 사용자 대상 문구가 실질적 산출물일 때만 이 스킬을 함께 적용한다.
+7. 원고와 HTML/CSS가 함께 주요 산출물인 게시형 아티클은 이 스킬이 주장·한국어·정보 구조를 소유하고, `software-engineering`이 렌더링과 코드 검증을 소유한다. `references/publishable-html-article.md`를 함께 적용한다.
 
 ## 우선순위
 
@@ -41,6 +42,8 @@ description: Draft or revise user-facing Korean or English text when writing qua
 10. 자발적 협력이 필요한 업무 메시지에서는 발신자의 불편만 앞세우지 말고, 수신자가 실제로 원하는 결과와 발신자의 진실한 호의를 중심에 두라. 의무·제재·평가를 수신자를 위한 조언으로 위장하지 말라.
 
 ## 작성 절차
+
+과제 규모에 맞게 절차를 축소하라. 짧고 원자적인 답변, 단일 사실 확인, 한두 문장 교정에는 필요한 단계만 적용하고 작업표·다섯 줄 설계·분리 검수를 만들지 않는다.
 
 ### 1. 작업 계약을 정하라
 
@@ -82,7 +85,9 @@ description: Draft or revise user-facing Korean or English text when writing qua
 
 관계 전략과 문장 구현을 분리해 검수하라. 설득 구조가 적절해도 수신자 이익을 억지로 끼워 넣은 명사화, 주어 전환, `아쉽습니다`의 반복, 부자연스러운 인과가 남아 있으면 다시 써라.
 
-### 4. 다섯 줄 논리 설계를 만들라
+### 4. 필요할 때 다섯 줄 논리 설계를 만들라
+
+비사소한 원고, 장문 분석, 반복 발행물, 오독 비용이 큰 판단 답변에만 사용한다. 짧고 원자적인 답변, 단일 사실 확인, 한두 문장 교정, 간단한 출처 기반 질의응답에서는 만들지 말고 질문에 직접 답한 뒤 필요한 근거와 불확실성만 점검한다.
 
 사용자가 요청하지 않으면 노출하지 말고 내부 작업용으로 작성하라.
 
@@ -117,7 +122,7 @@ description: Draft or revise user-facing Korean or English text when writing qua
 - 수치가 집계하는 대상, 관측·추정 여부, 제안·결정·시행 단계, 출처의 성격이 문장에 정확히 반영됐는가
 - 비유가 실제 구조를 보존하는가
 
-시간축이 결론에 영향을 주는 글은 날짜, 대상 기간, 회계연도·분기, 수치, 실제값·전망·추정 구분, 비교 기준, 원자료를 사건표에 먼저 고정한다. 시간축이 없는 글은 사건표를 `해당 없음`으로 기록하고 형식적인 표를 만들지 않는다. `직전 분기`, `몇 달 뒤`, `그해` 같은 상대적 표현은 사건표의 인접 사건과 대조하고, 중간 사건을 생략해 독자가 잘못 연결하게 만들지 않는다.
+근거 기반 조사 프로필을 적용한 글에서 시간축이 결론에 영향을 주면 날짜, 대상 기간, 회계연도·분기, 수치, 실제값·전망·추정 구분, 비교 기준, 원자료를 사건표에 먼저 고정한다. 같은 프로필을 적용하지만 시간축이 없는 글은 사건표를 `해당 없음`으로 기록하고 형식적인 표를 만들지 않는다. 그 밖의 짧은 답변에는 사건표 자체를 만들지 않는다. `직전 분기`, `몇 달 뒤`, `그해` 같은 상대적 표현은 사건표의 인접 사건과 대조하고, 중간 사건을 생략해 독자가 잘못 연결하게 만들지 않는다.
 
 사실을 확인할 수 없으면 중심 근거로 삼지 말고 불확실성을 표시하라. 글을 풍부하게 보이게 하려고 수치, 인용, 출처, 수신자, 약속을 만들지 말라.
 
