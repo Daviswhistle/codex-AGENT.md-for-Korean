@@ -19,7 +19,7 @@ For `autonomous-risk`, record the concrete risk or uncertainty. A later user ins
 1. CRA starts after one coherent task unit is implemented and locally verified as far as reasonably possible.
 2. CRA requires one clean, non-merge task commit with a fixed single parent. That parent is the task boundary for every full or incremental pass.
 3. A local commit is not approval to push, deploy, migrate, approve snapshots, update production data, or mutate remote state.
-4. Exclude generated files, caches, logs, review logs, sentinels, ledger files, secrets, credentials, and unrelated user or coworker changes from the commit.
+4. Exclude generated files, caches, logs, review logs, ledger files, secrets, credentials, and unrelated user or coworker changes from the commit.
 5. Use CRA only for the requested task unit. Do not fold unrelated cleanup or follow-up work into the amend cycle.
 6. Autonomous CRA may use the already-configured reviewer and the current account's existing usage. It may not purchase credits, change billing, plan, or quota settings, or switch provider or account without explicit user approval.
 7. Do not use CRA as a substitute for missing local validation, and do not start when a clean task-unit commit cannot be isolated safely.
@@ -180,28 +180,30 @@ Run the custom review as a blocking batch:
 CRA_DIR="$(git rev-parse --git-path cra)"
 PROMPT_PATH="$CRA_DIR/review-prompt.md"
 REVIEW_LOG="$CRA_DIR/review.log"
-REVIEW_DONE="$CRA_DIR/review.done"
 mkdir -p "$CRA_DIR"
-rm -f "$REVIEW_DONE" "$REVIEW_LOG"
 
 if codex review - \
   -c model="gpt-5.6-sol" \
   -c model_reasoning_effort="max" \
   -c model_context_window=1000000 \
   -c model_auto_compact_token_limit=900000 \
-  < "$PROMPT_PATH" > "$REVIEW_LOG" 2>&1
+  < "$PROMPT_PATH" >| "$REVIEW_LOG" 2>&1
 then
   REVIEW_EXIT=0
-  touch "$REVIEW_DONE"
 else
   REVIEW_EXIT=$?
-  rm -f "$REVIEW_DONE"
 fi
 
 echo "review_exit=$REVIEW_EXIT"
-test -f "$REVIEW_DONE" && echo "review_done=yes" || echo "review_done=no"
+if [ "$REVIEW_EXIT" -eq 0 ]; then
+  echo "review_command=completed"
+else
+  echo "review_command=failed"
+fi
 tail -100 "$REVIEW_LOG"
 ```
+
+The `>|` output redirection intentionally truncates the fixed log before each run even when shell `noclobber` is enabled, and `codex review` blocks until the command exits. Use `REVIEW_EXIT` as the command completion signal rather than creating, deleting, or retaining a sentinel. A zero exit code establishes only that the review command completed; determine `completed-clean` or `completed-with-findings` from the completed output.
 
 After completion:
 
@@ -215,24 +217,24 @@ After completion:
 If the installed CLI does not support a custom review prompt through `codex review -`, preserve the same blocking discipline and reviewer profile while switching only the review target:
 
 ```bash
-rm -f "$REVIEW_DONE" "$REVIEW_LOG"
-
 if codex review --commit "$CURRENT_SHA" \
   -c model="gpt-5.6-sol" \
   -c model_reasoning_effort="max" \
   -c model_context_window=1000000 \
   -c model_auto_compact_token_limit=900000 \
-  > "$REVIEW_LOG" 2>&1
+  >| "$REVIEW_LOG" 2>&1
 then
   REVIEW_EXIT=0
-  touch "$REVIEW_DONE"
 else
   REVIEW_EXIT=$?
-  rm -f "$REVIEW_DONE"
 fi
 
 echo "review_exit=$REVIEW_EXIT"
-test -f "$REVIEW_DONE" && echo "review_done=yes" || echo "review_done=no"
+if [ "$REVIEW_EXIT" -eq 0 ]; then
+  echo "review_command=completed"
+else
+  echo "review_command=failed"
+fi
 tail -100 "$REVIEW_LOG"
 ```
 
@@ -351,8 +353,9 @@ A full reset creates a new complete pass for the same fixed task parent and curr
 2. Do not repeatedly tail the same log while the review is running.
 3. Do not interpret partial output as a finding, coverage marker, pass, or failure.
 4. If the process is still alive, keep the process state as `running`.
-5. After process exit, inspect only the exit code, optional sentinel, structured result, and the last 50-100 log lines unless debugging a failed review command requires more.
-6. Keep prompts, logs, sentinels, and the ledger under the Git path returned by `git rev-parse --git-path cra`; do not put them in the worktree.
+5. After process exit, inspect only the exit code, structured result, and the last 50-100 log lines unless debugging a failed review command requires more.
+6. Keep prompts, logs, and the ledger under the Git path returned by `git rev-parse --git-path cra`; do not put them in the worktree.
+7. Reuse the fixed prompt and log paths, and use `>|` for the log so shell `noclobber` cannot block intentional truncation. Do not create per-pass temporary directories or retain run artifacts unless the user or a specific debugging task explicitly requires history.
 
 Review is a batch job, not a streaming conversation.
 
