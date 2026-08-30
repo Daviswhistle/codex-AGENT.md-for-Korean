@@ -1,7 +1,7 @@
 interface:
   display_name: Writing Quality
-  short_description: Draft and revise user-facing text with Davis writing principles
-  default_prompt: Use $writing-quality to draft or revise this user-facing text with Davis's writing principles.
+  short_description: Draft and review polished user-facing text and evidence-backed research
+  default_prompt: Use $writing-quality to draft or revise this user-facing text. Apply the evidence-backed research profile when the task depends on sources, chronology, recurring evidence-backed publication, or claim-level factual review.
 policy:
   products:
   - chatgpt

@@ -16,7 +16,7 @@
 - `handoff-agent-builder`: 프로젝트별 인수인계 에이전트를 설계하고 멀티턴 검증까지 수행하기 위한 스킬
 - `outcome-owner`: 비사소하거나 장기적인 목표의 목적·제약·성공 기준·근거·소유권을 보존하고, 권한 안에서 주도적으로 실행해 검증된 완료까지 책임지기 위한 스킬
 - `software-engineering`: 비사소한 구현과 로컬 검증을 작업 에이전트에 위임하고, CRA 또는 TCA의 필요성을 자율적으로 판단해 선택한 workflow를 실행하기 위한 스킬
-- `writing-quality`: 독자가 그대로 읽거나 보내거나 게시할 한국어·영어 원고를 작성하거나 편집할 때 사용하는 범용 스킬. 일반 질의 응답이 산문이거나 기술·투자 내용을 다룬다는 이유만으로 호출하지 않는다.
+- `writing-quality`: 모든 사용자 답변에 적용되는 전역 최소 글쓰기 기준 위에서, 글쓰기 자체가 주요 품질 병목일 때 구조 설계·퇴고·검수를 제공하는 범용 스킬. 원고·장문·근거 기반·반복 발행·판단 비용이 큰 답변이나 명시적 완성도 요청에 사용하며, 문장 형식이라는 이유만으로 호출하거나 일반 질의 응답이라는 이유만으로 배제하지 않는다.
 
 `software-engineering`의 위임 계약은 모델 중립적입니다. `software-engineering/references/worker-luna-max-fast.toml`은 GPT-5.6 Luna, Max reasoning, Fast service tier를 사용하는 선택적 custom `worker` 예시이며 설치 시 자동 적용되지 않습니다.
 

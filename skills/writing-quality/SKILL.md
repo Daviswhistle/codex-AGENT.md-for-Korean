@@ -1,6 +1,6 @@
 ---
 name: writing-quality
-description: Draft or revise a user-facing Korean or English artifact using Davis's confirmed writing principles and style. Use when the main deliverable is an analytical essay, business-model or mechanism analysis, investment research, technical explanation, publish-ready HTML/CSS article, relationship-sensitive cooperation request, business message, prompt, literary prose, or an edit, especially when the user requests Davis's style, preservation of voice, higher information density, or a polished or tighter draft. Do not invoke solely because an ordinary answer is written in prose or contains technical or investment analysis.
+description: Draft or revise user-facing Korean or English text when writing quality is a material part of success. Use for analytical essays, evidence-backed or recurring research answers, business-model or mechanism analysis, investment research, technical explanation, publish-ready HTML/CSS articles, relationship-sensitive cooperation requests, business messages, prompts, literary prose, or edits, especially when the user requests voice preservation, higher information density, careful revision, or publication-ready quality. Prose format alone is neither a reason to invoke nor a reason to exclude this skill; use it when the answer benefits materially from explicit structure, revision, or review.
 ---
 
 # Writing Quality
@@ -9,10 +9,12 @@ description: Draft or revise a user-facing Korean or English artifact using Davi
 
 ## 호출 경계
 
-1. 독자가 그대로 읽거나 보내거나 게시할 원고가 주요 산출물일 때 사용한다.
-2. 일반 질의 응답이 산문 형식이거나 기술·투자 내용을 다룬다는 이유만으로 호출하지 않는다.
-3. 소프트웨어 변경이 중심이면 `software-engineering`이 작업과 검증을 소유한다. 문서나 사용자 대상 문구가 실질적 산출물일 때만 이 스킬을 함께 적용한다.
-4. 원고와 HTML/CSS가 함께 주요 산출물인 게시형 아티클은 이 스킬이 주장·한국어·정보 구조를 소유하고, `software-engineering`이 렌더링과 코드 검증을 소유한다. `references/publishable-html-article.md`를 함께 적용한다.
+1. 모든 사용자 대상 답변은 전역 지침의 최소 글쓰기 기준을 지킨다. 이 스킬은 그 기준을 대신하지 않고, 글쓰기 자체가 품질 병목일 때 구조 설계·작성·검수 절차를 추가한다.
+2. 독자가 그대로 읽거나 보내거나 게시할 원고가 주요 산출물일 때 사용한다.
+3. 사용자가 문체·목소리·완성도 개선을 명시하거나, 장문·근거 기반·반복 발행·판단 비용이 큰 답변에서 별도 설계와 퇴고가 실질적으로 품질을 높이면 채팅 응답에도 사용한다.
+4. 답변이 문장 형식이라는 사실만으로 호출하지 않으며, 일반 질의 응답이라는 형식만으로 배제하지도 않는다.
+5. 소프트웨어 변경이 중심이면 `software-engineering`이 작업과 검증을 소유한다. 문서나 사용자 대상 문구가 실질적 산출물일 때만 이 스킬을 함께 적용한다.
+6. 원고와 HTML/CSS가 함께 주요 산출물인 게시형 아티클은 이 스킬이 주장·한국어·정보 구조를 소유하고, `software-engineering`이 렌더링과 코드 검증을 소유한다. `references/publishable-html-article.md`를 함께 적용한다.
 
 ## 우선순위
 
@@ -60,6 +62,8 @@ description: Draft or revise a user-facing Korean or English artifact using Davi
 
 비즈니스 모델이나 행동 메커니즘을 설명할 때만 구체적 작동 장면, 선택의 변화, 반복 가능한 구조를 중심에 두라. 기술 설명, 투자 판단, 업무 메시지, 문학적 글에 이 순서를 억지로 이식하지 말라.
 
+근거 기반 조사 에세이, 반복 브리핑, 기업·정책·역사 사례를 하나의 인과적 줄기로 설명하는 장문에는 `references/evidence-backed-research-essay.md`를 적용하라. 과거 답변과 겹치지 않아야 하는 반복 작업에서는 그 프로필의 주제 원장과 중복 감사를 초안 전에 완료한다.
+
 단일 파일 HTML/CSS, CMS 붙여넣기용 코드, 미리보기 이미지까지 요구되는 분석 아티클에는 `references/publishable-html-article.md`의 주장·한국어·시각 의미·렌더링·산출물 일치 계약을 적용하라. 제목·카드·배지·도표 레이블처럼 짧게 압축한 화면 문구는 원문과 별도의 편집 산출물로 취급한다. 원문이 한국어여도 주체·행동·비교축이 사라지거나 명사만 이어 붙인 표현이 생기지 않았는지 다시 읽는다.
 
 ### 3. 관계 민감한 협조 요청은 별도로 설계하라
@@ -88,7 +92,7 @@ description: Draft or revise a user-facing Korean or English artifact using Davi
 4. 가장 강한 반대 근거, 경계 조건, 또는 독자의 다음 질문
 5. 글이 도달할 판단, 행동, 여운
 
-모든 칸을 기계적으로 본문 문단으로 바꾸지 말라. 낮은 중요도의 글에서는 불필요한 반론이나 경계 조건을 생략하라.
+모든 칸을 기계적으로 본문 문단으로 바꾸지 말라. 낮은 중요도의 글에서는 불필요한 반론이나 경계 조건을 생략하라. 근거 기반 조사 에세이에서는 이 설계를 주제 원장·주장표·사건표를 대신하는 간이 절차로 사용하지 말라.
 
 ### 5. 완결된 초안을 쓰라
 
@@ -113,6 +117,8 @@ description: Draft or revise a user-facing Korean or English artifact using Davi
 - 수치가 집계하는 대상, 관측·추정 여부, 제안·결정·시행 단계, 출처의 성격이 문장에 정확히 반영됐는가
 - 비유가 실제 구조를 보존하는가
 
+시간축이 결론에 영향을 주는 글은 날짜, 대상 기간, 회계연도·분기, 수치, 실제값·전망·추정 구분, 비교 기준, 원자료를 사건표에 먼저 고정한다. `직전 분기`, `몇 달 뒤`, `그해` 같은 상대적 표현은 사건표의 인접 사건과 대조하고, 중간 사건을 생략해 독자가 잘못 연결하게 만들지 않는다.
+
 사실을 확인할 수 없으면 중심 근거로 삼지 말고 불확실성을 표시하라. 글을 풍부하게 보이게 하려고 수치, 인용, 출처, 수신자, 약속을 만들지 말라.
 
 실화·자전적 글에서는 장면, 대화, 사건의 순서, 감정, 결과도 사실에 속한다. 사용자가 제공하지 않은 세부를 생생함을 위해 만들지 말라. 핵심 내용이 없으면 제공된 사실만으로 범위를 좁히거나, 필요한 자리에 표시를 남기거나, 선택에 따라 결과가 크게 달라질 때 질문하라.
@@ -120,6 +126,8 @@ description: Draft or revise a user-facing Korean or English artifact using Davi
 ### 7. 한 번의 집중 수정으로 마무리하라
 
 구조, 사실과 인과, 문장과 리듬 순서로 다시 읽으라. `references/review-rubric.md`를 긴 글, 중요한 판단, 또는 사용자가 높은 완성도를 요구한 작업에 적용하라.
+
+근거 기반 조사 에세이처럼 사실오류 비용이 크고 별도 검토의 가치가 있는 원고는 가능한 경우 `agents/research_fact_reviewer.md`와 `agents/korean_research_editor.md`를 서로 분리된 검수 문맥에서 순차 적용한다. 주 작성자는 실제 지적과 근거를 확인해 통합하고, 수정 과정에서 사실·숫자·인과가 바뀌면 사실 검수를 다시 통과시킨다. 분리된 검수 문맥을 사용할 수 없으면 같은 두 관점을 별도 패스로 적용하되 독립 검수를 수행했다고 표현하지 않는다.
 
 다음만 고치라.
 
@@ -140,6 +148,8 @@ description: Draft or revise a user-facing Korean or English artifact using Davi
 - 한국어는 `-다`, `-이다` 중심의 자연스럽고 단정적인 문장을 기본으로 삼되, 메시지의 높임말이나 장르의 어조를 우선하라.
 - 영어는 한국어 문장 구조를 옮기지 말고 같은 판단 밀도와 절제를 자연스러운 영어로 구현하라.
 - 영어 자료를 한국어로 재서술할 때는 어휘와 문장 뼈대를 옮기지 말고, 사실과 논리 관계를 한국어 독자의 처리 순서로 다시 써라.
+- 한국어 원고에서는 번역 가능한 전문 용어를 자연스러운 한국어로 쓴다. 검색·법률·공시·업계 관행상 정확한 원어가 필요할 때만 첫 등장에 한국어 뒤 괄호로 한 번 병기하고 이후에는 한국어를 사용한다.
+- 원문 URL, 검색 결과 제목, `[Image]`, 도구 표식, JSON, 수식용 코드 블록처럼 조사 과정의 표면을 독자용 본문에 흘리지 말라. 사용자가 링크 목록이나 원문 표기를 요구한 경우에만 목적에 맞게 정리한다.
 - 제목은 본문이 실제로 입증한 변화, 메커니즘, 판단을 근거의 강도로 압축하라. 본문에 없는 양자택일이나 더 강한 단정을 제목에서 만들지 말라.
 - 대조는 실제로 혼동하기 쉬운 두 개념의 경계를 그을 때만 사용하라. 약한 전제를 세운 뒤 `A가 아니라 B다`로 강조하는 습관을 피하라.
 - 비유는 문자 그대로의 설명보다 정확하고 짧을 때만 사용하라. 하나의 지배적 이미지를 여러 비유보다 우선하라.
@@ -182,8 +192,12 @@ description: Draft or revise a user-facing Korean or English artifact using Davi
 ## 참고 자료
 
 - `references/genre-playbooks.md`: 과제 유형별 전개 선택
+- `references/evidence-backed-research-essay.md`: 반복·근거 기반 조사 에세이의 중복 원장, 주장표, 사건표, 독립 검수 계약
+- `references/research-essay-evaluation.md`: 조사 에세이 프로필을 전향 평가할 대표 회귀 사례와 판정 기준
 - `references/review-rubric.md`: 블라인드 검수와 과최적화 감점
 - `references/recipient-centered-persuasion.md`: 호의 기반 수신자 관점 설득의 적용 조건, 구조, 경계 사례, 예시
 - `references/publishable-html-article.md`: 한국어 분석 원고를 게시 가능한 HTML/CSS 아티클로 완성할 때의 주장, 수치, 시각 의미, 렌더링, 산출물 일치 계약
 - `references/reader-first-information-design-examples.md`: 한국어 화면 문구 압축, 비교축, 시각 위계, 관계 시각화, 결과 우선 수정의 전후 사례
 - `references/test-matrix.md`: 스킬 자체를 수정하거나 전향 테스트할 때 사용할 범용성 과제
+- `agents/research_fact_reviewer.md`: 조사 원고의 사실·연대기·수치·출처·인과 전용 검수 관점
+- `agents/korean_research_editor.md`: 사실 검수 뒤 한국어·구조·중복·표면 잔재를 검수하는 편집 관점
