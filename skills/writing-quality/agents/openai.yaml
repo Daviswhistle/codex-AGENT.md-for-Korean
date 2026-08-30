@@ -1,7 +1,7 @@
 interface:
   display_name: Writing Quality
-  short_description: Draft and review polished user-facing text and evidence-backed research
-  default_prompt: Use $writing-quality to draft or revise this user-facing text. Apply the evidence-backed research profile when the task depends on sources, chronology, recurring evidence-backed publication, or claim-level factual review.
+  short_description: Draft and review polished text and evidence-backed research
+  default_prompt: Use $writing-quality to draft or revise this user-facing text. Apply the evidence-backed research profile only for long-form or recurring source-backed work where claim structure, chronology, duplicate control, or separated review materially improves quality; do not apply it merely because a short answer uses sources.
 policy:
   products:
   - chatgpt
