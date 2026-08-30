@@ -48,6 +48,14 @@ The worker must return changed files, behavioral effect, validation commands, ex
 
 The primary session may implement directly when the change is trivial, the work cannot be separated from an active interactive decision, subagents are unavailable, or a failed handoff makes direct recovery safer than another delegation. Do not delegate merely to add ceremony when coordination cost is greater than the expected benefit.
 
+## Feedback And Regression Scope
+
+Treat a user correction as a change to the current task contract by default. Fix the smallest causal defect and verify the affected behavior. Do not treat one correction as authorization to change durable instructions, add broad regression suites, or audit speculative variants.
+
+Promote the correction into durable guidance, workflow, or tests only when the user explicitly requests persistence, the same material failure recurs in an independent execution, or a concrete high-cost failure needs a durable boundary. Multiple findings from the same task or amend loop are not independent recurrence.
+
+A test must protect executable behavior, a public or operational contract, or a reproduced regression. When only prose guidance changes, use focused inspection and representative behavior evaluation rather than tests that pin wording or policy layout.
+
 ## TCA Decision
 
 Select TCA when the user explicitly requests it or when task-by-task commit and CRA gates would materially improve correctness, recovery, or reviewability.
@@ -79,10 +87,10 @@ Run CRA when:
 
 1. The user explicitly requests it or an active TCA task requires it.
 2. The change affects authentication, authorization, secrets, billing, money, persisted data, migrations, concurrency, recovery, deployment, runtime configuration, agent authority, or an external or public contract.
-3. The change spans multiple callers, states, or failure paths; performs a broad refactor; addresses a repeated regression; cannot be exercised adequately through local validation; or retains material uncertainty.
+3. The change spans multiple callers, states, or failure paths; performs a broad refactor; addresses a repeated regression under the scope above; cannot be exercised adequately through local validation; or retains material uncertainty.
 4. The user asks for production readiness, unusually high confidence, or independent review.
 
-Usually skip autonomous CRA for typo, formatting-only, comments-only, or narrowly mechanical changes whose contract is fully established by focused validation.
+Usually skip autonomous CRA for typo, formatting-only, comments-only, narrowly mechanical changes, or a single user correction whose causal fix is fully established by focused validation.
 
 Do not run CRA when the user asks to avoid commits or reviews, the task is review-only, a clean task-unit commit cannot be isolated, or local validation is missing. CRA is not a substitute for local validation.
 
