@@ -55,6 +55,24 @@
       "interpretation": "A real routing difference was observed: the candidate selected the dedicated English editor."
     }
   ],
+  "current_candidate_retests": [
+    {
+      "id": "WQ-ENGLISH-EDITOR-ROUTING-CURRENT",
+      "source_review_comment_id": 3888888454,
+      "pre_fix": "032b5b1cd9ae11ac6bc826807bf62eade30196dd",
+      "candidate": "a2d9826cc4af315422c8e8d76aa8b2847a497bc9",
+      "model": "GPT-5.6 Sol",
+      "reasoning_level": "medium",
+      "network": false,
+      "file_writes": false,
+      "exit_statuses": "completed/completed",
+      "pre_fix_grade": "FAIL",
+      "candidate_grade": "PASS",
+      "observed_delta": "pre-fix selected Korean Research Essay Editor; candidate selected English Research Essay Editor",
+      "edited_paragraph_delta": "none",
+      "evidence_file": "current-head-english-routing.md"
+    }
+  ],
   "summary": {
     "pre_fix": "2 pass, 1 fail",
     "candidate": "3 pass",
@@ -66,7 +84,7 @@
   },
   "limitations": [
     "One representative sample per case does not establish deterministic behavior.",
-    "The execution API did not expose a named reasoning level or build identifier.",
-    "Raw JSONL was not returned with the review comment; exact prompts and complete final outputs are preserved in boundary-evaluation.md."
+    "The first six-run evaluation did not expose a named reasoning level or build identifier.",
+    "Raw JSONL was not returned with the review comments; exact prompts and complete final outputs are preserved in the Markdown evidence files."
   ]
 }
