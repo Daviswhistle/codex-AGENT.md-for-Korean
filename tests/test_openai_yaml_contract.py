@@ -62,6 +62,49 @@ class OpenAIYamlContractTests(unittest.TestCase):
         )
         self.assertTrue(any("unsupported indentation" in error for error in errors))
 
+    def test_documented_mcp_dependency_mapping_is_supported(self) -> None:
+        text = metadata("A valid metadata description") + (
+            "\n"
+            "dependencies:\n"
+            "  tools:\n"
+            '    - type: "mcp"\n'
+            '      value: "github"\n'
+            '      description: "GitHub MCP server"\n'
+            '      transport: "streamable_http"\n'
+            '      url: "https://api.githubcopilot.com/mcp/"\n'
+            "\n"
+            "policy:\n"
+            "  products:\n"
+            "  - chatgpt\n"
+            "  - codex\n"
+            "  allow_implicit_invocation: true\n"
+        )
+        self.assertEqual([], self.validate_text(text))
+
+    def test_mcp_dependency_requires_supported_type_and_value(self) -> None:
+        text = metadata("A valid metadata description") + (
+            "\n"
+            "dependencies:\n"
+            "  tools:\n"
+            '    - type: "function"\n'
+            '      description: "Unsupported dependency"\n'
+        )
+        errors = self.validate_text(text)
+        self.assertTrue(any("only supports 'mcp'" in error for error in errors))
+        self.assertTrue(any(".value must be a non-empty string" in error for error in errors))
+
+    def test_mcp_url_must_be_absolute_http_url(self) -> None:
+        text = metadata("A valid metadata description") + (
+            "\n"
+            "dependencies:\n"
+            "  tools:\n"
+            '    - type: "mcp"\n'
+            '      value: "github"\n'
+            '      url: "./mcp"\n'
+        )
+        errors = self.validate_text(text)
+        self.assertTrue(any("absolute HTTP(S) URL" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()
