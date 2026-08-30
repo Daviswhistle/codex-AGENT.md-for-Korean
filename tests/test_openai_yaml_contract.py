@@ -10,21 +10,27 @@ from scripts.openai_yaml_contract import validate_openai_yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def metadata(short_description: str, *, include_default_prompt: bool = True) -> str:
+def metadata(
+    short_description: str,
+    *,
+    include_default_prompt: bool = True,
+    default_prompt: str = "Use $writing-quality for this text.",
+) -> str:
     lines = [
         "interface:",
         '  display_name: "Writing Quality"',
         f'  short_description: "{short_description}"',
     ]
     if include_default_prompt:
-        lines.append('  default_prompt: "Use $writing-quality for this text."')
+        lines.append(f'  default_prompt: "{default_prompt}"')
     return "\n".join(lines) + "\n"
 
 
 class OpenAIYamlContractTests(unittest.TestCase):
-    def validate_text(self, text: str) -> list[str]:
+    def validate_text(self, text: str, *, skill_name: str = "writing-quality") -> list[str]:
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "openai.yaml"
+            path = Path(tmp) / "skills" / skill_name / "agents" / "openai.yaml"
+            path.parent.mkdir(parents=True)
             path.write_text(text, encoding="utf-8")
             return validate_openai_yaml(path)
 
@@ -53,6 +59,34 @@ class OpenAIYamlContractTests(unittest.TestCase):
             metadata("A valid metadata description", include_default_prompt=False)
         )
         self.assertTrue(any("interface.default_prompt" in error for error in errors))
+
+    def test_default_prompt_must_reference_exact_skill_name(self) -> None:
+        missing = self.validate_text(
+            metadata("A valid metadata description", default_prompt="Draft this text.")
+        )
+        wrong = self.validate_text(
+            metadata(
+                "A valid metadata description",
+                default_prompt="Use $wrong-skill for this text.",
+            )
+        )
+        prefix_only = self.validate_text(
+            metadata(
+                "A valid metadata description",
+                default_prompt="Use $writing-quality-extra for this text.",
+            )
+        )
+        punctuated = self.validate_text(
+            metadata(
+                "A valid metadata description",
+                default_prompt="Start with $writing-quality.",
+            )
+        )
+
+        self.assertTrue(any("$writing-quality" in error for error in missing))
+        self.assertTrue(any("$writing-quality" in error for error in wrong))
+        self.assertTrue(any("$writing-quality" in error for error in prefix_only))
+        self.assertEqual([], punctuated)
 
     def test_malformed_indentation_is_rejected(self) -> None:
         errors = self.validate_text(
@@ -104,6 +138,39 @@ class OpenAIYamlContractTests(unittest.TestCase):
         )
         errors = self.validate_text(text)
         self.assertTrue(any("absolute HTTP(S) URL" in error for error in errors))
+
+    def test_policy_must_be_mapping(self) -> None:
+        errors = self.validate_text(
+            metadata("A valid metadata description") + "\npolicy: false\n"
+        )
+        self.assertTrue(any("policy must be a mapping" in error for error in errors))
+
+    def test_allow_implicit_invocation_must_be_boolean(self) -> None:
+        for invalid in ('"false"', "flase", '"true"'):
+            with self.subTest(invalid=invalid):
+                errors = self.validate_text(
+                    metadata("A valid metadata description")
+                    + "\npolicy:\n"
+                    + f"  allow_implicit_invocation: {invalid}\n"
+                )
+                self.assertTrue(
+                    any("allow_implicit_invocation must be a boolean" in error for error in errors)
+                )
+
+        self.assertEqual(
+            [],
+            self.validate_text(
+                metadata("A valid metadata description")
+                + "\npolicy:\n  allow_implicit_invocation: false\n"
+            ),
+        )
+        self.assertEqual(
+            [],
+            self.validate_text(
+                metadata("A valid metadata description")
+                + "\npolicy:\n  allow_implicit_invocation: true\n"
+            ),
+        )
 
 
 if __name__ == "__main__":
