@@ -71,6 +71,24 @@
       "observed_delta": "pre-fix selected Korean Research Essay Editor; candidate selected English Research Essay Editor",
       "edited_paragraph_delta": "none",
       "evidence_file": "current-head-english-routing.md"
+    },
+    {
+      "id": "WQ-SHORT-QA-BOUNDARY-CURRENT",
+      "source_review_comment_id": 3888915081,
+      "previous_candidate": "c90adb5b589232c518c8b608f5247621f6885697",
+      "boundary_candidate": "a2d9826cc4af315422c8e8d76aa8b2847a497bc9",
+      "review_head": "310992f2f6bf1a3e0da7d56e8a663f9c0877e829",
+      "writing_quality_tree": "0652b59513f44fc3ce32537aae7a8a39bf8154b8",
+      "model": "GPT-5.6 Sol",
+      "reasoning_level": "medium",
+      "network": false,
+      "file_writes": false,
+      "exit_statuses": "completed/completed",
+      "previous_grade": "PASS_OUTPUT_SURFACE",
+      "boundary_grade": "PASS_OUTPUT_SURFACE",
+      "observed_delta": false,
+      "interpretation": "Only first-sentence wording and emphasis differed. Internal workflow execution was not observable from final-only outputs.",
+      "evidence_file": "current-head-short-qa.md"
     }
   ],
   "summary": {
@@ -85,6 +103,7 @@
   "limitations": [
     "One representative sample per case does not establish deterministic behavior.",
     "The first six-run evaluation did not expose a named reasoning level or build identifier.",
+    "Final-only short-Q&A outputs cannot prove whether internal workpacks or the five-line design were skipped.",
     "Raw JSONL was not returned with the review comments; exact prompts and complete final outputs are preserved in the Markdown evidence files."
   ]
 }
