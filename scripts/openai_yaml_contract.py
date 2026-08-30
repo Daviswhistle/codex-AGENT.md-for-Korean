@@ -226,6 +226,59 @@ def _parse_yaml_subset(text: str, *, path: Path) -> dict[str, Any]:
     return parsed
 
 
+def _skill_name_from_metadata_path(path: Path) -> str | None:
+    if path.name != "openai.yaml" or path.parent.name != "agents":
+        return None
+    skill_name = path.parent.parent.name
+    return skill_name or None
+
+
+def _default_prompt_mentions_skill(default_prompt: str, skill_name: str) -> bool:
+    # Accept the exact invocation token followed by whitespace, common punctuation,
+    # a quote/backtick, or the end of the string. Reject longer skill-name prefixes.
+    terminators = r"\s,;:!?\)\]\}\"'`."
+    pattern = re.compile(rf"\${re.escape(skill_name)}(?=$|[{terminators}])")
+    return pattern.search(default_prompt) is not None
+
+
+def _validate_interface(
+    root: dict[str, Any], *, path: Path, errors: list[str]
+) -> None:
+    interface = root.get("interface")
+    if not isinstance(interface, dict):
+        errors.append(f"{path}: missing top-level interface mapping")
+        return
+
+    for field in _REQUIRED_INTERFACE_FIELDS:
+        value = interface.get(field)
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"{path}: missing non-empty interface.{field}")
+
+    short_description = interface.get("short_description")
+    if isinstance(short_description, str) and short_description:
+        length = len(short_description)
+        if not MIN_SHORT_DESCRIPTION <= length <= MAX_SHORT_DESCRIPTION:
+            errors.append(
+                f"{path}: interface.short_description must be "
+                f"{MIN_SHORT_DESCRIPTION}-{MAX_SHORT_DESCRIPTION} characters "
+                f"(got {length})"
+            )
+
+    default_prompt = interface.get("default_prompt")
+    if isinstance(default_prompt, str) and default_prompt.strip():
+        skill_name = _skill_name_from_metadata_path(path)
+        if skill_name is None:
+            errors.append(
+                f"{path}: cannot infer skill name from expected "
+                f"skills/<skill-name>/agents/openai.yaml path"
+            )
+        elif not _default_prompt_mentions_skill(default_prompt, skill_name):
+            errors.append(
+                f"{path}: interface.default_prompt must explicitly mention "
+                f"${skill_name}"
+            )
+
+
 def _validate_mcp_dependencies(
     root: dict[str, Any], *, path: Path, errors: list[str]
 ) -> None:
@@ -276,6 +329,22 @@ def _validate_mcp_dependencies(
                 errors.append(f"{prefix}.url must be an absolute HTTP(S) URL")
 
 
+def _validate_policy(root: dict[str, Any], *, path: Path, errors: list[str]) -> None:
+    policy = root.get("policy")
+    if policy is None:
+        return
+    if not isinstance(policy, dict):
+        errors.append(f"{path}: policy must be a mapping")
+        return
+
+    if "allow_implicit_invocation" in policy:
+        value = policy["allow_implicit_invocation"]
+        if not isinstance(value, bool):
+            errors.append(
+                f"{path}: policy.allow_implicit_invocation must be a boolean"
+            )
+
+
 def validate_openai_yaml(path: Path) -> list[str]:
     """Return contract errors for one agents/openai.yaml metadata file."""
 
@@ -291,27 +360,9 @@ def validate_openai_yaml(path: Path) -> list[str]:
         return [str(exc)]
 
     errors: list[str] = []
-    interface = root.get("interface")
-    if not isinstance(interface, dict):
-        errors.append(f"{path}: missing top-level interface mapping")
-        return errors
-
-    for field in _REQUIRED_INTERFACE_FIELDS:
-        value = interface.get(field)
-        if not isinstance(value, str) or not value.strip():
-            errors.append(f"{path}: missing non-empty interface.{field}")
-
-    short_description = interface.get("short_description")
-    if isinstance(short_description, str) and short_description:
-        length = len(short_description)
-        if not MIN_SHORT_DESCRIPTION <= length <= MAX_SHORT_DESCRIPTION:
-            errors.append(
-                f"{path}: interface.short_description must be "
-                f"{MIN_SHORT_DESCRIPTION}-{MAX_SHORT_DESCRIPTION} characters "
-                f"(got {length})"
-            )
-
+    _validate_interface(root, path=path, errors=errors)
     _validate_mcp_dependencies(root, path=path, errors=errors)
+    _validate_policy(root, path=path, errors=errors)
     return errors
 
 
