@@ -1,0 +1,72 @@
+{
+  "evaluation_date": "2026-08-30",
+  "source_review_comment_id": 3888862985,
+  "snapshots": {
+    "pre_fix": "032b5b1cd9ae11ac6bc826807bf62eade30196dd",
+    "candidate": "c90adb5b589232c518c8b608f5247621f6885697"
+  },
+  "execution": {
+    "model": "GPT-5.6 Sol",
+    "reasoning_level": "platform default; named level not exposed",
+    "fork_turns": "none",
+    "network": false,
+    "file_writes": false,
+    "all_exit_statuses": "completed",
+    "raw_jsonl_available": false
+  },
+  "cases": [
+    {
+      "id": "WQ-SHORT-QA-BOUNDARY",
+      "pre_fix": {
+        "grade": "PASS_OUTPUT_SURFACE",
+        "reason": "Direct one-paragraph answer with no reader-visible research workpack. Internal profile selection cannot be inferred from final output alone."
+      },
+      "candidate": {
+        "grade": "PASS_OUTPUT_SURFACE",
+        "reason": "Direct one-paragraph answer with no reader-visible research workpack. Internal profile selection cannot be inferred from final output alone."
+      },
+      "observed_delta": false,
+      "interpretation": "Only wording differed. This sample does not establish a behavioral improvement."
+    },
+    {
+      "id": "WQ-ATEMPORAL-EVENT-LEDGER",
+      "pre_fix": {
+        "grade": "PASS",
+        "reason": "Recorded that the event ledger was not applied because no time-axis evidence existed, invented no chronology, passed fact review, and selected the Korean editor."
+      },
+      "candidate": {
+        "grade": "PASS",
+        "reason": "Recorded the event ledger as not applicable with a reason, invented no chronology, passed fact review, and selected the Korean editor."
+      },
+      "observed_delta": false,
+      "interpretation": "The candidate used the literal phrase '해당 없음', but the pre-fix output was semantically equivalent."
+    },
+    {
+      "id": "WQ-ENGLISH-EDITOR-ROUTING",
+      "pre_fix": {
+        "grade": "FAIL",
+        "reason": "Corrected the English prose and did not apply the Korean editor, but reported that no dedicated English editor was available."
+      },
+      "candidate": {
+        "grade": "PASS",
+        "reason": "Selected english_research_editor.md, excluded the Korean editor, removed translation and tool-surface residue, and preserved the approved factual scope."
+      },
+      "observed_delta": true,
+      "interpretation": "A real routing difference was observed: the candidate selected the dedicated English editor."
+    }
+  ],
+  "summary": {
+    "pre_fix": "2 pass, 1 fail",
+    "candidate": "3 pass",
+    "measured_improvement": "English editor routing only",
+    "preventive_contract_changes_without_observed_delta": [
+      "Short source-backed Q&A boundary",
+      "Atemporal event-ledger boundary"
+    ]
+  },
+  "limitations": [
+    "One representative sample per case does not establish deterministic behavior.",
+    "The execution API did not expose a named reasoning level or build identifier.",
+    "Raw JSONL was not returned with the review comment; exact prompts and complete final outputs are preserved in boundary-evaluation.md."
+  ]
+}
