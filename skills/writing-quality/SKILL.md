@@ -62,7 +62,7 @@ description: Draft or revise user-facing Korean or English text when writing qua
 
 비즈니스 모델이나 행동 메커니즘을 설명할 때만 구체적 작동 장면, 선택의 변화, 반복 가능한 구조를 중심에 두라. 기술 설명, 투자 판단, 업무 메시지, 문학적 글에 이 순서를 억지로 이식하지 말라.
 
-근거 기반 조사 에세이, 반복 브리핑, 기업·정책·역사 사례를 하나의 인과적 줄기로 설명하는 장문에는 `references/evidence-backed-research-essay.md`를 적용하라. 과거 답변과 겹치지 않아야 하는 반복 작업에서는 그 프로필의 주제 원장과 중복 감사를 초안 전에 완료한다.
+장문 또는 반복 발행되는 근거 기반 조사 에세이·브리핑 중, 중복·연대기·주장별 근거·인과 강도를 별도 구조로 관리할 실익이 큰 작업에는 `references/evidence-backed-research-essay.md`를 적용하라. 짧은 출처 기반 질의응답에는 출처를 쓴다는 이유만으로 이 프로필을 적용하지 않는다. 과거 답변과 겹치지 않아야 하는 반복 작업에서는 그 프로필의 주제 원장과 중복 감사를 초안 전에 완료한다.
 
 단일 파일 HTML/CSS, CMS 붙여넣기용 코드, 미리보기 이미지까지 요구되는 분석 아티클에는 `references/publishable-html-article.md`의 주장·한국어·시각 의미·렌더링·산출물 일치 계약을 적용하라. 제목·카드·배지·도표 레이블처럼 짧게 압축한 화면 문구는 원문과 별도의 편집 산출물로 취급한다. 원문이 한국어여도 주체·행동·비교축이 사라지거나 명사만 이어 붙인 표현이 생기지 않았는지 다시 읽는다.
 
@@ -92,7 +92,7 @@ description: Draft or revise user-facing Korean or English text when writing qua
 4. 가장 강한 반대 근거, 경계 조건, 또는 독자의 다음 질문
 5. 글이 도달할 판단, 행동, 여운
 
-모든 칸을 기계적으로 본문 문단으로 바꾸지 말라. 낮은 중요도의 글에서는 불필요한 반론이나 경계 조건을 생략하라. 근거 기반 조사 에세이에서는 이 설계를 주제 원장·주장표·사건표를 대신하는 간이 절차로 사용하지 말라.
+모든 칸을 기계적으로 본문 문단으로 바꾸지 말라. 낮은 중요도의 글에서는 불필요한 반론이나 경계 조건을 생략하라. 근거 기반 조사 에세이에서는 이 설계를 주제 원장·주장표와, 시간축이 적용되는 경우 사건표를 대신하는 간이 절차로 사용하지 말라.
 
 ### 5. 완결된 초안을 쓰라
 
@@ -117,7 +117,7 @@ description: Draft or revise user-facing Korean or English text when writing qua
 - 수치가 집계하는 대상, 관측·추정 여부, 제안·결정·시행 단계, 출처의 성격이 문장에 정확히 반영됐는가
 - 비유가 실제 구조를 보존하는가
 
-시간축이 결론에 영향을 주는 글은 날짜, 대상 기간, 회계연도·분기, 수치, 실제값·전망·추정 구분, 비교 기준, 원자료를 사건표에 먼저 고정한다. `직전 분기`, `몇 달 뒤`, `그해` 같은 상대적 표현은 사건표의 인접 사건과 대조하고, 중간 사건을 생략해 독자가 잘못 연결하게 만들지 않는다.
+시간축이 결론에 영향을 주는 글은 날짜, 대상 기간, 회계연도·분기, 수치, 실제값·전망·추정 구분, 비교 기준, 원자료를 사건표에 먼저 고정한다. 시간축이 없는 글은 사건표를 `해당 없음`으로 기록하고 형식적인 표를 만들지 않는다. `직전 분기`, `몇 달 뒤`, `그해` 같은 상대적 표현은 사건표의 인접 사건과 대조하고, 중간 사건을 생략해 독자가 잘못 연결하게 만들지 않는다.
 
 사실을 확인할 수 없으면 중심 근거로 삼지 말고 불확실성을 표시하라. 글을 풍부하게 보이게 하려고 수치, 인용, 출처, 수신자, 약속을 만들지 말라.
 
@@ -127,7 +127,7 @@ description: Draft or revise user-facing Korean or English text when writing qua
 
 구조, 사실과 인과, 문장과 리듬 순서로 다시 읽으라. `references/review-rubric.md`를 긴 글, 중요한 판단, 또는 사용자가 높은 완성도를 요구한 작업에 적용하라.
 
-근거 기반 조사 에세이처럼 사실오류 비용이 크고 별도 검토의 가치가 있는 원고는 가능한 경우 `agents/research_fact_reviewer.md`와 `agents/korean_research_editor.md`를 서로 분리된 검수 문맥에서 순차 적용한다. 주 작성자는 실제 지적과 근거를 확인해 통합하고, 수정 과정에서 사실·숫자·인과가 바뀌면 사실 검수를 다시 통과시킨다. 분리된 검수 문맥을 사용할 수 없으면 같은 두 관점을 별도 패스로 적용하되 독립 검수를 수행했다고 표현하지 않는다.
+근거 기반 조사 에세이처럼 사실오류 비용이 크고 별도 검토의 가치가 있는 원고는 가능한 경우 `agents/research_fact_reviewer.md`를 먼저 적용하고, 사실 검수의 중대한 지적을 해결한 뒤 출력 언어에 맞는 편집기를 분리된 문맥에서 적용한다. 한국어 원고에는 `agents/korean_research_editor.md`, 영어 원고에는 `agents/english_research_editor.md`를 사용한다. 주 작성자는 실제 지적과 근거를 확인해 통합하고, 수정 과정에서 사실·숫자·인과가 바뀌면 사실 검수를 다시 통과시킨다. 분리된 검수 문맥을 사용할 수 없으면 같은 관점을 별도 패스로 적용하되 독립 검수를 수행했다고 표현하지 않는다.
 
 다음만 고치라.
 
@@ -192,7 +192,7 @@ description: Draft or revise user-facing Korean or English text when writing qua
 ## 참고 자료
 
 - `references/genre-playbooks.md`: 과제 유형별 전개 선택
-- `references/evidence-backed-research-essay.md`: 반복·근거 기반 조사 에세이의 중복 원장, 주장표, 사건표, 독립 검수 계약
+- `references/evidence-backed-research-essay.md`: 장문·반복 근거 기반 조사 에세이의 중복 원장, 주장표, 조건부 사건표, 언어별 검수 계약
 - `references/research-essay-evaluation.md`: 조사 에세이 프로필을 전향 평가할 대표 회귀 사례와 판정 기준
 - `references/review-rubric.md`: 블라인드 검수와 과최적화 감점
 - `references/recipient-centered-persuasion.md`: 호의 기반 수신자 관점 설득의 적용 조건, 구조, 경계 사례, 예시
@@ -201,3 +201,4 @@ description: Draft or revise user-facing Korean or English text when writing qua
 - `references/test-matrix.md`: 스킬 자체를 수정하거나 전향 테스트할 때 사용할 범용성 과제
 - `agents/research_fact_reviewer.md`: 조사 원고의 사실·연대기·수치·출처·인과 전용 검수 관점
 - `agents/korean_research_editor.md`: 사실 검수 뒤 한국어·구조·중복·표면 잔재를 검수하는 편집 관점
+- `agents/english_research_editor.md`: 사실 검수 뒤 영어·구조·중복·표면 잔재를 검수하는 편집 관점
