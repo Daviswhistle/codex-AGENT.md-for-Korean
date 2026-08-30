@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import ast
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 from typing import Any, Iterable
 from urllib.parse import urlparse
@@ -13,9 +13,22 @@ from urllib.parse import urlparse
 MIN_SHORT_DESCRIPTION = 25
 MAX_SHORT_DESCRIPTION = 64
 _REQUIRED_INTERFACE_FIELDS = ("display_name", "short_description", "default_prompt")
+_ALLOWED_INTERFACE_FIELDS = {
+    "display_name",
+    "short_description",
+    "icon_small",
+    "icon_large",
+    "brand_color",
+    "default_prompt",
+}
 _KEY_VALUE_RE = re.compile(
     r"^(?P<key>[A-Za-z_][A-Za-z0-9_-]*):(?: (?P<value>.*))?$"
 )
+_INTEGER_RE = re.compile(r"^[+-]?(?:0|[1-9][0-9]*)$")
+_FLOAT_RE = re.compile(
+    r"^[+-]?(?:(?:[0-9]+\.[0-9]*)|(?:\.[0-9]+)|(?:[0-9]+[eE][+-]?[0-9]+)|(?:[0-9]+\.[0-9]*[eE][+-]?[0-9]+))$"
+)
+_BRAND_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 _ALLOWED_MCP_FIELDS = {"type", "value", "description", "transport", "url"}
 _REQUIRED_MCP_FIELDS = ("type", "value")
 
@@ -59,6 +72,10 @@ def _decode_scalar(raw: str, *, path: Path, line_number: int) -> Any:
         return False
     if lowered in {"null", "~"}:
         return None
+    if _INTEGER_RE.fullmatch(value):
+        return int(value)
+    if _FLOAT_RE.fullmatch(value):
+        return float(value)
     return value
 
 
@@ -79,6 +96,51 @@ def _tokenize_yaml(text: str, *, path: Path) -> list[_YamlLine]:
             _YamlLine(line_number=line_number, indent=indent, text=raw_line[indent:])
         )
     return tokens
+
+
+def _raw_scalar_from_token(token: _YamlLine) -> str | None:
+    text = token.text
+    if text.startswith("- "):
+        item = text[2:].strip()
+        if not item:
+            return None
+        mapping_match = _KEY_VALUE_RE.fullmatch(item)
+        if mapping_match is None:
+            return item
+        raw_value = mapping_match.group("value")
+        return raw_value.strip() if raw_value and raw_value.strip() else None
+
+    mapping_match = _KEY_VALUE_RE.fullmatch(text)
+    if mapping_match is None:
+        return None
+    raw_value = mapping_match.group("value")
+    return raw_value.strip() if raw_value and raw_value.strip() else None
+
+
+def _is_non_string_scalar(raw: str) -> bool:
+    lowered = raw.lower()
+    return (
+        lowered in {"true", "false", "null", "~"}
+        or _INTEGER_RE.fullmatch(raw) is not None
+        or _FLOAT_RE.fullmatch(raw) is not None
+    )
+
+
+def _validate_string_quoting(
+    tokens: list[_YamlLine], *, path: Path
+) -> list[str]:
+    errors: list[str] = []
+    for token in tokens:
+        raw = _raw_scalar_from_token(token)
+        if raw is None or raw in {"|", ">", "|-", ">-", "|+", ">+"}:
+            continue
+        if raw[0] in {"'", '"'} or _is_non_string_scalar(raw):
+            continue
+        errors.append(
+            f"{path}:{token.line_number}: quote all string values "
+            f"(found unquoted {raw!r})"
+        )
+    return errors
 
 
 def _parse_mapping(
@@ -211,8 +273,7 @@ def _parse_block(
     return _parse_mapping(tokens, index, indent, path=path)
 
 
-def _parse_yaml_subset(text: str, *, path: Path) -> dict[str, Any]:
-    tokens = _tokenize_yaml(text, path=path)
+def _parse_yaml_subset(tokens: list[_YamlLine], *, path: Path) -> dict[str, Any]:
     if not tokens:
         raise OpenAIYamlContractError(f"{path}: metadata file is empty")
     if tokens[0].indent != 0 or tokens[0].text.startswith("- "):
@@ -233,12 +294,58 @@ def _skill_name_from_metadata_path(path: Path) -> str | None:
     return skill_name or None
 
 
+def _skill_root_from_metadata_path(path: Path) -> Path | None:
+    if path.name != "openai.yaml" or path.parent.name != "agents":
+        return None
+    return path.parent.parent
+
+
 def _default_prompt_mentions_skill(default_prompt: str, skill_name: str) -> bool:
     # Accept the exact invocation token followed by whitespace, common punctuation,
     # a quote/backtick, or the end of the string. Reject longer skill-name prefixes.
     terminators = r"\s,;:!?\)\]\}\"'`."
     pattern = re.compile(rf"\${re.escape(skill_name)}(?=$|[{terminators}])")
     return pattern.search(default_prompt) is not None
+
+
+def _validate_icon_path(
+    field: str, value: Any, *, path: Path, errors: list[str]
+) -> None:
+    prefix = f"{path}: interface.{field}"
+    if not isinstance(value, str) or not value.strip():
+        errors.append(f"{prefix} must be a non-empty string path")
+        return
+    if "\\" in value or not value.startswith("./"):
+        errors.append(f"{prefix} must be a ./-prefixed skill-relative path")
+        return
+
+    relative_text = value[2:]
+    relative_path = PurePosixPath(relative_text)
+    if (
+        not relative_text
+        or relative_path.is_absolute()
+        or ".." in relative_path.parts
+        or "." in relative_path.parts
+    ):
+        errors.append(f"{prefix} must be a safe skill-relative path")
+        return
+    if not relative_path.parts or relative_path.parts[0] != "assets":
+        errors.append(f"{prefix} must point inside ./assets/")
+        return
+
+    skill_root = _skill_root_from_metadata_path(path)
+    if skill_root is None:
+        errors.append(
+            f"{prefix} cannot be resolved outside skills/<skill-name>/agents/openai.yaml"
+        )
+        return
+    asset_path = (skill_root / Path(*relative_path.parts)).resolve()
+    skill_root_resolved = skill_root.resolve()
+    if not asset_path.is_relative_to(skill_root_resolved):
+        errors.append(f"{prefix} escapes the skill directory")
+        return
+    if not asset_path.is_file():
+        errors.append(f"{prefix} does not reference an existing file: {value}")
 
 
 def _validate_interface(
@@ -248,6 +355,10 @@ def _validate_interface(
     if not isinstance(interface, dict):
         errors.append(f"{path}: missing top-level interface mapping")
         return
+
+    unknown_fields = sorted(set(interface) - _ALLOWED_INTERFACE_FIELDS)
+    for field in unknown_fields:
+        errors.append(f"{path}: unsupported interface field {field!r}")
 
     for field in _REQUIRED_INTERFACE_FIELDS:
         value = interface.get(field)
@@ -276,6 +387,19 @@ def _validate_interface(
             errors.append(
                 f"{path}: interface.default_prompt must explicitly mention "
                 f"${skill_name}"
+            )
+
+    for field in ("icon_small", "icon_large"):
+        if field in interface:
+            _validate_icon_path(field, interface[field], path=path, errors=errors)
+
+    if "brand_color" in interface:
+        brand_color = interface["brand_color"]
+        if not isinstance(brand_color, str) or not _BRAND_COLOR_RE.fullmatch(
+            brand_color
+        ):
+            errors.append(
+                f"{path}: interface.brand_color must use #RRGGBB hex format"
             )
 
 
@@ -355,11 +479,12 @@ def validate_openai_yaml(path: Path) -> list[str]:
         return [f"{path}: cannot read UTF-8 metadata: {exc}"]
 
     try:
-        root = _parse_yaml_subset(text, path=path)
+        tokens = _tokenize_yaml(text, path=path)
+        root = _parse_yaml_subset(tokens, path=path)
     except OpenAIYamlContractError as exc:
         return [str(exc)]
 
-    errors: list[str] = []
+    errors = _validate_string_quoting(tokens, path=path)
     _validate_interface(root, path=path, errors=errors)
     _validate_mcp_dependencies(root, path=path, errors=errors)
     _validate_policy(root, path=path, errors=errors)
