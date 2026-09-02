@@ -16,19 +16,20 @@ For every software modification:
 3. Define the current task unit and its execution contract before delegating or editing.
 4. Before delegating, do separable deterministic preparation in the primary session: fix the scope and snapshot, collect the exact diff and required evidence, bound noisy tool output, and estimate the agent's dynamic evidence volume. Do not spend a higher-cost model on mechanical discovery that the primary session can supply without weakening independent judgment.
 5. Before any worker, explorer, or independent reviewer invocation, select and record resources in this order: role, model, reasoning effort, service tier, context window, then context propagation or fork mode. Base the choice on the role, consequence of error, scope, expected prompt and tool-output volume, analogous-run telemetry, latency, and usage cost before starting the agent; do not choose a fork first and rationalize the inherited model afterward.
-6. Treat model allocation and context propagation as separate decisions. In a runtime where an omitted `fork_turns` value or `fork_turns=all` means full-history inheritance of the parent model and reasoning effort and rejects overrides, always set the fork mode explicitly and use full history only when that inheritance is deliberate. Otherwise use a self-contained handoff with no history or the smallest sufficient recent-turn fork.
-7. Before invocation, verify that the chosen launcher or active named-agent profile can actually express every selected override. If it cannot set the chosen tier, context, model, or effort, use a compatible launcher or revise and update the record; never claim an unexpressed profile was active.
-8. For non-trivial implementation, delegate the bounded change and local validation to the `worker` agent by default when subagents are available and the handoff can be made precise.
-9. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
-10. The primary session must inspect the actual diff and repository state, then independently verify every validation result required for completion. A worker summary or completion claim is not sufficient.
-11. After local validation of the task unit, decide whether CRA is warranted.
-12. If neither TCA nor CRA is warranted, finish normally without creating a task queue, extra commits, or review ceremony.
+6. For a bounded implementation worker, apply that order with Luna as the first model candidate, Max as its default reasoning effort, and Fast as its default service tier. This preference assumes that the primary session has resolved product decisions and supplied a precise, bounded execution contract, so the worker can focus on execution. Select the resulting Luna Max + Fast profile whenever it is available and can meet the task's completion criteria. Escalate to a stronger model only for a concrete quality reason grounded in task difficulty, consequence of error, ambiguity, or required independence.
+7. Treat model allocation and context propagation as separate decisions. In a runtime where an omitted `fork_turns` value or `fork_turns=all` means full-history inheritance of the parent model and reasoning effort and rejects overrides, always set the fork mode explicitly and use full history only when that inheritance is deliberate. Otherwise use a self-contained handoff with no history or the smallest sufficient recent-turn fork.
+8. Before invocation, verify that the chosen launcher or active named-agent profile can actually express every selected override. If it cannot set the chosen tier, context, model, or effort, use a compatible launcher or revise and update the record; never claim an unexpressed profile was active.
+9. For non-trivial implementation, delegate the bounded change and local validation to the `worker` agent by default when subagents are available and the handoff can be made precise.
+10. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
+11. The primary session must inspect the actual diff and repository state, then independently verify every validation result required for completion. A worker summary or completion claim is not sufficient.
+12. After local validation of the task unit, decide whether CRA is warranted.
+13. If neither TCA nor CRA is warranted, finish normally without creating a task queue, extra commits, or review ceremony.
 
 Re-evaluate TCA before the first commit if the discovered scope materially changes. A user request for worker delegation, CRA, or TCA selects that path when its safety preconditions can be met. A later instruction to avoid subagents, commits, or reviews overrides the corresponding entry path. Do not ask for permission solely because the user did not name the workflow.
 
 ## Execution Delegation
 
-Before the first delegated execution task in a session, read `references/worker-delegation.md`. It contains the pre-dispatch resource-selection record, context and fork rules, and the optional Luna Max + Fast worker example.
+Before the first delegated execution task in a session, read `references/worker-delegation.md`. It contains the pre-dispatch resource-selection record, the preferred Luna Max + Fast worker candidate, context and fork rules, and its opt-in launcher example.
 
 The primary session owns:
 
@@ -109,6 +110,6 @@ When delegation, CRA, or TCA is skipped, do not add process narration solely to 
 ## References
 
 1. `references/worker-delegation.md` - primary/worker responsibilities, pre-dispatch role and resource selection, context and fork rules, execution contract, worktree concurrency boundary, independent validation evidence, optional-profile installation, and direct-execution fallbacks.
-2. `references/worker-luna-max-fast.toml` - optional model-specific custom `worker` example using GPT-5.6 Luna, Max reasoning, and Fast service tier; it is not an installed or normative default.
+2. `references/worker-luna-max-fast.toml` - opt-in launcher example for the preferred bounded implementation worker candidate using GPT-5.6 Luna, Max reasoning, and Fast service tier; it is not installed automatically or applied to other roles.
 3. `references/cra-loop.md` - Commit-Review-Amend mechanics, state model, blocking reviewer command, findings, amendments, stop conditions, and reporting.
 4. `references/tca-loop.md` - Task-Commit-Approve selection record, task queue, per-task worker execution and CRA gate, restart rules, stop conditions, and reporting.

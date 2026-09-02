@@ -50,11 +50,13 @@ Before choosing agent resources, the primary session should perform deterministi
 Before starting a worker, explorer, or reviewer, make the choice in this order:
 
 1. **Role:** decide whether the needed output is bounded implementation, read-only exploration, or independent review. Do not use a generic `worker` label for work whose authority or independence is materially different.
-2. **Model:** choose for the role, consequence of error, task difficulty, and required independence. A stronger reviewer may be justified for agent authority, money, security, recovery, deployment, or a broad public contract; that does not make the same model the default implementation worker.
-3. **Reasoning effort:** choose after the model from the complexity and ambiguity of the assigned task. Do not inherit the parent's effort merely because the conversation is convenient to copy.
-4. **Service tier:** choose from latency value, current usage cost, and runtime support. Fast is permitted for a Luna Max implementation worker when faster execution is worth its extra usage, but it is optional and does not become the reviewer default.
+2. **Model:** choose for the role, consequence of error, task difficulty, and required independence. Use Luna as the first candidate for a bounded implementation worker. A stronger reviewer may be justified for agent authority, money, security, recovery, deployment, or a broad public contract; that does not make the same model the default implementation worker.
+3. **Reasoning effort:** choose after the model. Use Max by default for a selected Luna implementation worker; for other selections, choose from the complexity and ambiguity of the assigned task. Do not inherit the parent's effort merely because the conversation is convenient to copy.
+4. **Service tier:** use Fast by default when a bounded implementation worker selects Luna Max, within the current account's existing usage. For other model and role combinations, choose from latency value, current usage cost, and runtime support. Do not carry the worker's Fast preference into an independent reviewer automatically.
 5. **Context window:** estimate the peak live context from the prompt, instructions, diff, evidence packet, likely reasoning, and expected tool output—not from diff size alone. Prefer peak-input and compaction telemetry from the closest analogous run when available. Use the smallest window with material headroom after first reducing avoidable output; request an expanded window when the estimate is uncertain or approaches the ordinary effective limit. Before launch, record the request plus its catalog-clamped nominal limit and leave the runtime-effective limit pending until launch metadata reports it.
 6. **Context propagation or fork:** only after the first five choices, decide how much prior conversation to pass. Model allocation and history propagation are independent axes.
+
+For a bounded implementation worker, apply the sequence above with Luna first, then Max and Fast as its defaults, and select the resulting profile whenever it is available and the execution contract and required validation can meet the completion criteria. This preference relies on the primary session resolving product intent, ambiguity, scope, and validation before handing the worker a precise, bounded contract. If that preparation is missing, fix the contract or run a read-only exploration first; do not compensate for a vague handoff by silently changing the worker model. If Luna Max + Fast is still insufficient, record the concrete reason in task difficulty, consequence of error, remaining ambiguity, or required independence. General preference for a stronger model is not enough. This changes the selection order for execution workers without changing the role boundaries for explorers or independent reviewers.
 
 Record the decision before invocation:
 
@@ -116,9 +118,9 @@ Require the worker to return:
 
 The primary session must independently verify every validation result needed for completion. Re-run the command or inspect independently accessible raw output, exit status, and artifacts. If only the worker's prose summary is available, re-run the validation. Lower-value checks may be sampled proportionate to risk, but required checks cannot be accepted solely on the worker's claim.
 
-## Optional Luna Max + Fast Example
+## Preferred Luna Max + Fast Profile
 
-`references/worker-luna-max-fast.toml` is an opt-in custom-agent example, not a normative model assignment and not an installer-managed file. It overrides the built-in `worker` with GPT-5.6 Luna, Max reasoning, workspace-write sandboxing, and the Fast service tier.
+`references/worker-luna-max-fast.toml` is an opt-in custom-agent launcher example for the preferred bounded implementation worker candidate. It is not an installer-managed file and does not assign that profile to explorers or independent reviewers. It overrides the built-in `worker` with GPT-5.6 Luna, Max reasoning, workspace-write sandboxing, and the Fast service tier.
 
 Use the example only after the pre-dispatch record selects that worker profile. Its presence affects named-worker discovery; it does not override a full-history invocation whose runtime contract explicitly inherits the parent model and effort.
 
@@ -179,4 +181,4 @@ Restart Codex or start a new session after changing custom-agent configuration.
 
 Before relying on the profile, inspect the active model catalog and confirm that `gpt-5.6-luna` advertises the requested reasoning effort and Fast tier. If the current catalog or account does not support either setting, choose an advertised effort or tier rather than claiming the example is active.
 
-Fast is a service tier, not a different model. It increases supported-model speed and consumes usage at a higher rate. The example enables it with both `service_tier = "fast"` and `[features].fast_mode = true`.
+Fast is a service tier, not a different model. It increases supported-model speed and consumes usage at a higher rate. The current worker-selection preference accepts that higher rate for Luna Max implementation workers within the existing account; it does not authorize purchases or account changes. The example enables Fast with both `service_tier = "fast"` and `[features].fast_mode = true`.

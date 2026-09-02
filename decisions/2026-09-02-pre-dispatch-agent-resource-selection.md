@@ -2,6 +2,8 @@
 
 날짜: 2026-09-02
 
+후속: [2026-09-03 실행 워커의 Luna Max + Fast 우선 선택](2026-09-03-prefer-luna-max-fast-workers.md)은 bounded implementation worker에서 이 조합을 단순 허용이 아닌 우선 후보로 갱신한다. 아래의 모델 중립 원칙은 전역과 다른 역할에 계속 적용된다.
+
 결정: worker, explorer, 독립 reviewer를 실행하기 전에 역할 → 모델 → reasoning effort → service tier → context window → context propagation/fork 순서로 선택하고 근거를 기록한다. 모델 배치와 대화 이력 전달은 서로 독립된 판단이다. 전역 지침은 모델 중립으로 유지하고, 특정 모델·effort·tier·context를 모든 역할의 기본값으로 승격하지 않는다.
 
 배경: 대화 전체를 넘기기 편하다는 이유로 `fork_turns=all`을 먼저 고르면, 현재 런타임에서는 부모 모델과 reasoning effort가 그대로 상속되고 override를 지정할 수 없다. 그러면 실제 역할과 위험을 보고 모델을 고르는 판단이 실행 뒤의 사후 설명으로 밀린다. 반대로 모델만 먼저 고정하고 모든 작업에 1M context나 Fast tier를 붙여도 범위·증거량·지연 가치·사용량을 구분하지 못한다.
