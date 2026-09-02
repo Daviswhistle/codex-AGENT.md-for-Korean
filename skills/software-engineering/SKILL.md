@@ -14,17 +14,21 @@ For every software modification:
 1. Before implementation, decide whether TCA is warranted.
 2. If TCA is selected, read `references/tca-loop.md` before creating the task queue or editing.
 3. Define the current task unit and its execution contract before delegating or editing.
-4. For non-trivial implementation, delegate the bounded change and local validation to the `worker` agent by default when subagents are available and the handoff can be made precise.
-5. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
-6. The primary session must inspect the actual diff and repository state, then independently verify every validation result required for completion. A worker summary or completion claim is not sufficient.
-7. After local validation of the task unit, decide whether CRA is warranted.
-8. If neither TCA nor CRA is warranted, finish normally without creating a task queue, extra commits, or review ceremony.
+4. Before delegating, do separable deterministic preparation in the primary session: fix the scope and snapshot, collect the exact diff and required evidence, bound noisy tool output, and estimate the agent's dynamic evidence volume. Do not spend a higher-cost model on mechanical discovery that the primary session can supply without weakening independent judgment.
+5. Before any worker, explorer, or independent reviewer invocation, select and record resources in this order: role, model, reasoning effort, service tier, context window, then context propagation or fork mode. Base the choice on the role, consequence of error, scope, expected prompt and tool-output volume, analogous-run telemetry, latency, and usage cost before starting the agent; do not choose a fork first and rationalize the inherited model afterward.
+6. Treat model allocation and context propagation as separate decisions. In a runtime where an omitted `fork_turns` value or `fork_turns=all` means full-history inheritance of the parent model and reasoning effort and rejects overrides, always set the fork mode explicitly and use full history only when that inheritance is deliberate. Otherwise use a self-contained handoff with no history or the smallest sufficient recent-turn fork.
+7. Before invocation, verify that the chosen launcher or active named-agent profile can actually express every selected override. If it cannot set the chosen tier, context, model, or effort, use a compatible launcher or revise and update the record; never claim an unexpressed profile was active.
+8. For non-trivial implementation, delegate the bounded change and local validation to the `worker` agent by default when subagents are available and the handoff can be made precise.
+9. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
+10. The primary session must inspect the actual diff and repository state, then independently verify every validation result required for completion. A worker summary or completion claim is not sufficient.
+11. After local validation of the task unit, decide whether CRA is warranted.
+12. If neither TCA nor CRA is warranted, finish normally without creating a task queue, extra commits, or review ceremony.
 
 Re-evaluate TCA before the first commit if the discovered scope materially changes. A user request for worker delegation, CRA, or TCA selects that path when its safety preconditions can be met. A later instruction to avoid subagents, commits, or reviews overrides the corresponding entry path. Do not ask for permission solely because the user did not name the workflow.
 
 ## Execution Delegation
 
-Before the first delegated write task in a session, read `references/worker-delegation.md`.
+Before the first delegated execution task in a session, read `references/worker-delegation.md`. It contains the pre-dispatch resource-selection record, context and fork rules, and the optional Luna Max + Fast worker example.
 
 The primary session owns:
 
@@ -98,13 +102,13 @@ When CRA is selected, read `references/cra-loop.md` and follow it without duplic
 
 ## Reporting
 
-When worker delegation is used, report the delegated task boundary, returned validation evidence, the primary session's independent diff inspection and validation verification, and any remaining risk. When CRA or TCA is used, also report the entry source and rationale, task or commit boundaries, validation, review terminal state, accepted and rejected findings, skipped checks, and remaining risk.
+When worker delegation is used, report the delegated task boundary, the pre-dispatch role/model/effort/tier/context/fork choice and rationale, returned validation evidence, the primary session's independent diff inspection and validation verification, and any remaining risk. When CRA or TCA is used, also report the entry source and rationale, task or commit boundaries, reviewer resource choice, validation, review terminal state, accepted and rejected findings, skipped checks, and remaining risk.
 
 When delegation, CRA, or TCA is skipped, do not add process narration solely to announce that it was skipped unless the missing capability or direct-execution fallback materially affects confidence.
 
 ## References
 
-1. `references/worker-delegation.md` - primary/worker responsibilities, execution contract, worktree concurrency boundary, independent validation evidence, optional-profile installation, and direct-execution fallbacks.
+1. `references/worker-delegation.md` - primary/worker responsibilities, pre-dispatch role and resource selection, context and fork rules, execution contract, worktree concurrency boundary, independent validation evidence, optional-profile installation, and direct-execution fallbacks.
 2. `references/worker-luna-max-fast.toml` - optional model-specific custom `worker` example using GPT-5.6 Luna, Max reasoning, and Fast service tier; it is not an installed or normative default.
 3. `references/cra-loop.md` - Commit-Review-Amend mechanics, state model, blocking reviewer command, findings, amendments, stop conditions, and reporting.
 4. `references/tca-loop.md` - Task-Commit-Approve selection record, task queue, per-task worker execution and CRA gate, restart rules, stop conditions, and reporting.

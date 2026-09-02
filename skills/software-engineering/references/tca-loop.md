@@ -54,6 +54,7 @@ Selection rationale: <concrete reason>
     - Dependency:
     - Expected validation:
     - Execution owner: <worker|primary>
+    - Agent resources: <role, model, effort, tier, context, propagation/fork, compatible launcher/profile, rationale; or direct execution>
     - Commit boundary:
     - CRA state: pending
     - Status notes:
@@ -76,7 +77,7 @@ Choose the next task by this priority:
 For each task unit:
 
 1. Select the task and restate its goal, scope, dependency, validation, and completion condition.
-2. Create the execution contract from `references/worker-delegation.md`. Delegate implementation and local validation to `worker` by default when the contract is precise and subagents are available; otherwise record the direct-execution fallback.
+2. Create the execution contract and pre-dispatch resource-selection record from `references/worker-delegation.md`. Delegate implementation and local validation to `worker` by default when the contract is precise and subagents are available; otherwise record the direct-execution fallback.
 3. Wait for the active writer to return before starting any repository-state-dependent agent in the same worktree. Parallel readers require a separate worktree or fixed commit snapshot.
 4. Inspect the actual changes, worker evidence, and repository state; do not accept a completion summary as proof.
 5. Independently verify every validation result required for completion by re-running it or inspecting independently accessible raw output, exit status, and artifacts. If only the worker's prose summary exists, re-run the validation.
@@ -136,7 +137,7 @@ Report:
 
 1. TCA entry source and autonomous selection rationale when applicable
 2. completed, merged, removed, and deferred task units
-3. execution owner and worker evidence for each completed task
+3. execution owner, pre-dispatch resource choice, and worker evidence for each completed task
 4. final commit hash for each completed task
 5. independently verified validation and skipped checks for each task
 6. CRA terminal state, accepted findings, and rejected findings for each task

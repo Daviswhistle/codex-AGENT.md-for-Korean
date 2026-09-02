@@ -18,7 +18,7 @@
 - `software-engineering`: 비사소한 구현과 로컬 검증을 작업 에이전트에 위임하고, CRA 또는 TCA의 필요성을 자율적으로 판단해 선택한 workflow를 실행하기 위한 스킬
 - `writing-quality`: 모든 사용자 답변에 적용되는 전역 최소 글쓰기 기준 위에서, 글쓰기 자체가 주요 품질 병목일 때 구조 설계·퇴고·검수를 제공하는 범용 스킬. 원고·장문·반복 발행·오독 비용이 큰 근거 기반 답변이나 명시적 완성도 요청에 사용한다. 문장 형식, 출처 사용, 기술·투자 주제라는 이유만으로 호출하지 않으며, 짧고 원자적인 출처 기반 질의응답에는 전역 최소 글쓰기 기준만 적용한다. 일반 질의응답 형식 자체는 배제 사유가 아니다.
 
-`software-engineering`의 위임 계약은 모델 중립적입니다. `software-engineering/references/worker-luna-max-fast.toml`은 GPT-5.6 Luna, Max reasoning, Fast service tier를 사용하는 선택적 custom `worker` 예시이며 설치 시 자동 적용되지 않습니다.
+`software-engineering`의 위임 계약은 모델 중립적입니다. 에이전트를 실행하기 전에 역할 → 모델 → reasoning effort → service tier → context window → context propagation/fork 순서로 선택하며, 모델 배치와 대화 이력 전달을 별도 판단으로 취급합니다. `software-engineering/references/worker-luna-max-fast.toml`은 GPT-5.6 Luna, Max reasoning, Fast service tier를 사용하는 선택적 custom `worker` 예시이며 설치 시 자동 적용되지 않습니다.
 
 ## 설치 단위
 

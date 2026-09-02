@@ -43,6 +43,43 @@ Return: <changed files, behavioral effect, raw validation evidence, skipped chec
 
 Do not delegate an ambiguous outcome and expect the worker to infer the missing product decision. Resolve the decision in the primary session or assign a read-only exploration task first.
 
+Before choosing agent resources, the primary session should perform deterministic preparation that does not require the delegate's independent judgment: resolve the exact snapshot and diff, identify known files and required callers, collect validation and runtime metadata, and constrain commands that could emit large recursive, binary, generated, cache, or session-log output. Give an expensive reviewer a bounded evidence packet and unresolved claims to challenge. The reviewer must still verify completion-critical claims and may widen inspection when it finds a concrete reason; independence does not require paying it to rediscover every path mechanically.
+
+## Pre-Dispatch Resource Selection
+
+Before starting a worker, explorer, or reviewer, make the choice in this order:
+
+1. **Role:** decide whether the needed output is bounded implementation, read-only exploration, or independent review. Do not use a generic `worker` label for work whose authority or independence is materially different.
+2. **Model:** choose for the role, consequence of error, task difficulty, and required independence. A stronger reviewer may be justified for agent authority, money, security, recovery, deployment, or a broad public contract; that does not make the same model the default implementation worker.
+3. **Reasoning effort:** choose after the model from the complexity and ambiguity of the assigned task. Do not inherit the parent's effort merely because the conversation is convenient to copy.
+4. **Service tier:** choose from latency value, current usage cost, and runtime support. Fast is permitted for a Luna Max implementation worker when faster execution is worth its extra usage, but it is optional and does not become the reviewer default.
+5. **Context window:** estimate the peak live context from the prompt, instructions, diff, evidence packet, likely reasoning, and expected tool output—not from diff size alone. Prefer peak-input and compaction telemetry from the closest analogous run when available. Use the smallest window with material headroom after first reducing avoidable output; request an expanded window when the estimate is uncertain or approaches the ordinary effective limit. Before launch, record the request plus its catalog-clamped nominal limit and leave the runtime-effective limit pending until launch metadata reports it.
+6. **Context propagation or fork:** only after the first five choices, decide how much prior conversation to pass. Model allocation and history propagation are independent axes.
+
+Record the decision before invocation:
+
+```text
+Role: <worker|explorer|independent reviewer>
+Model: <selected model>
+Reasoning effort: <selected effort>
+Service tier: <standard|Fast/priority|deliberately inherited supported tier>
+Context window: <requested value; catalog-clamped nominal limit; runtime-effective limit>
+Context propagation: explicit <none|recent N turns|full history|independent prompt>
+Launcher/profile: <invocation path that expresses the selected resources>
+Evidence budget: <packet scope; expected dynamic output; analogous peak/compaction evidence or none; remaining headroom>
+Rationale: <role, risk, scope, evidence volume, latency, and cost that changed the choice>
+```
+
+In runtimes whose full-history fork inherits the parent model and reasoning effort and does not accept overrides, omitting `fork_turns` is the same as selecting `fork_turns=all`. Always pass the field explicitly. Use `all` only when that exact inheritance is intentional. A custom `worker.toml` does not retroactively change the model of such an invocation. When the selected model or effort differs from the parent, use `fork_turns=none` or the smallest sufficient positive turn count and provide a self-contained execution contract. Never select full history merely to avoid writing the handoff.
+
+After making the record, inspect the chosen launcher's actual fields, inherited user/project configuration, and active named-agent configuration. A selection is not active merely because the user allowed it or a repository example contains it. If the launcher cannot express the selected service tier or context override, either use a compatible launcher or revise the record to the deliberately inherited profile before starting. In particular, a full-history fork does not by itself prove that an expanded context window was requested, and an explicit model override does not prove that Fast was enabled.
+
+Treat the current catalog's `fast` request and `priority` runtime ID as the same accelerated Fast tier and apply the same cost and authorization decision to both. To select the standard tier despite inherited configuration, use a launcher that can explicitly set `service_tier=default` and disable `features.fast_mode`; omission means inheritance, not standard. Likewise, distinguish the requested context, the catalog-clamped nominal limit, and the smaller runtime-effective limit reported by `task_started.model_context_window`. Do not call a nominal catalog limit effective. Record the final model, effort, normalized tier, and runtime-effective context from launch metadata or other direct evidence.
+
+If the runtime exposes different fork or custom-agent semantics, inspect that active contract before invoking and preserve the same decision order. The same model may still receive different context choices for different tasks; a small bounded high-risk review can deliberately use a strong model with its ordinary context, while a broad lower-risk repository analysis may need more context.
+
+After completion, record the runtime-effective window, peak per-request input, whether compaction occurred, and any unexpected high-volume command. Use this telemetry for the next analogous selection; cumulative cached input across requests is cost evidence, not the peak live-context measure.
+
 ## Execution Rules
 
 1. For a non-trivial coherent software change, use one write-capable `worker` by default when the execution contract is precise and subagents are available.
@@ -82,6 +119,10 @@ The primary session must independently verify every validation result needed for
 ## Optional Luna Max + Fast Example
 
 `references/worker-luna-max-fast.toml` is an opt-in custom-agent example, not a normative model assignment and not an installer-managed file. It overrides the built-in `worker` with GPT-5.6 Luna, Max reasoning, workspace-write sandboxing, and the Fast service tier.
+
+Use the example only after the pre-dispatch record selects that worker profile. Its presence affects named-worker discovery; it does not override a full-history invocation whose runtime contract explicitly inherits the parent model and effort.
+
+If the active spawn API does not expose service-tier controls, a bare explicit Luna model override is not evidence of Fast. Use this named profile only when it is actually installed and selected, or use another authorized launcher that exposes and reports the tier. Otherwise inspect the inherited user, project, named-agent, and parent settings before launch, record the tier as deliberately inherited, and confirm it from launch metadata; never infer either Fast or standard merely from the missing control.
 
 Current Codex releases discover standalone custom-agent files under `~/.codex/agents/` for personal agents and `.codex/agents/` for project agents. No `[agents.worker]` or `config_file` registration is required. The `name = "worker"` field is the source of truth and makes the custom agent take precedence over the built-in role.
 

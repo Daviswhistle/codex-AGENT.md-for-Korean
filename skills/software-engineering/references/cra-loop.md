@@ -86,8 +86,17 @@ Ledger version: 1
 Entry source:
 Task parent:
 Current task commit:
-Reviewer command and profile:
-Effective context window:
+Reviewer role:
+Reviewer model and reasoning effort:
+Reviewer service tier: <standard|Fast/priority|deliberately inherited>
+Reviewer nominal context request:
+Catalog-clamped nominal context window:
+Runtime-effective context window:
+Reviewer auto-compaction setting: <numeric|deliberately inherited inspected value>
+Reviewer context propagation or invocation mode:
+Reviewer launcher/profile compatibility:
+Reviewer resource-selection rationale:
+Reviewer command:
 
 Review units:
 - ID:
@@ -131,15 +140,19 @@ Ledger rules:
 9. Never reuse a unit across a different task parent, a different task boundary, or a ledger whose provenance is uncertain.
 10. The ledger is navigation and review evidence, not a substitute for inspecting the actual diff.
 
-## Long-Context Compatibility
+## Reviewer Resource Selection and Context Compatibility
 
-The review commands below request GPT-5.6 Sol's long-context profile. Codex resolves these values against the active model catalog rather than treating them as unconditional limits.
+Before starting the first pass, the primary session prepares a bounded evidence packet with the fixed SHAs, complete diff, applicable instructions, required callers or contracts, validation artifacts, verified runtime metadata, and unresolved claims. Then record the independent reviewer role and choose model, reasoning effort, service tier, context window, and invocation mode in that order. Make the choice from the consequence of a missed defect, task scope, dependency breadth, expected prompt and tool-output volume, analogous-run telemetry, latency value, current usage cost, and active runtime support.
 
-1. Before relying on the expanded budget, run `codex debug models` and inspect `gpt-5.6-sol`.
-2. A long-context-capable catalog accepts `model_context_window=1000000` but clamps it to the advertised `max_context_window`; current upstream GPT-5.6 metadata caps this override at `872000`.
-3. Older clients or catalogs may advertise `272000` or `372000`. They clamp the context request to that smaller ceiling, so CRA remains bounded but does not receive the intended long-context budget.
-4. Codex also clamps the effective automatic-compaction threshold to at most 90% of the resolved context window, even when raw config output still shows `900000`.
-5. If `max_context_window` is below `872000`, update and restart Codex and start a new CRA session. Report the effective runtime window instead of claiming that the long-context profile is active.
+1. Model strength and context size answer different questions. Agent authority, money, security, recovery, deployment, or broad public-contract work may justify a stronger reviewer, while a bounded diff with a self-contained prompt can still use that model's ordinary context window.
+2. Use the ordinary context window only when the evidence packet plus expected independent inspection and tool output have material headroom. Diff size alone is insufficient. Prefer peak per-request input and compaction evidence from an analogous completed review; reduce avoidable output first, then expand context when the estimate is uncertain or near the effective limit.
+3. Request expanded context when repository-wide dependencies, a large complete diff, long traces, substantial history, or measured analogous peak usage makes the ordinary margin unsafe. Before relying on it, run `codex debug models`, inspect the selected model, and separately record the requested value, catalog-clamped nominal limit, and runtime-effective limit.
+4. Codex clamps context and automatic-compaction overrides to the active catalog and reserves part of the nominal window. For example, the current 95% effective-window ratio turns nominal `272000` and `872000` limits into runtime-effective `258400` and `828400`; obtain the actual value from `task_started.model_context_window` rather than calling the advertised maximum effective.
+5. Select the service tier separately from model quality. In the current catalog, user-facing Fast and the `priority` runtime ID are aliases for the same accelerated tier. Apply the same latency, cost, and authorization decision to both; do not carry a worker's Fast allowance into an independent reviewer automatically.
+6. `codex review` uses an independent review prompt rather than a conversation fork. If another reviewer launcher is used, apply the software-engineering selection contract and choose history propagation only after the reviewer profile is fixed.
+7. Verify that the chosen command can express every selected override and inspect launch metadata. Omit an override only when the record deliberately selects an inherited setting after inspecting the active user/project profile. Omission alone does not mean standard tier, ordinary context, or runtime-default compaction.
+8. Keep the selected reviewer profile stable through incremental passes. If discovered scope or evidence volume makes it insufficient, record a new selection and run a full-review reset rather than quietly changing profiles mid-loop.
+9. Spend the reviewer's capacity on independent defect judgment. The primary session performs mechanical path discovery and packages exact evidence first. In the prompt, limit routine inspection to tracked text and named artifacts; exclude recursive scans of `.git`, model binaries, caches, generated archives, and session histories unless a stated unresolved claim requires one. A reviewer may widen scope for a concrete defect hypothesis and must report when the packet is insufficient.
 
 ## Initial Full Review
 
@@ -182,11 +195,57 @@ PROMPT_PATH="$CRA_DIR/review-prompt.md"
 REVIEW_LOG="$CRA_DIR/review.log"
 mkdir -p "$CRA_DIR"
 
-if codex review - \
-  -c model="gpt-5.6-sol" \
-  -c model_reasoning_effort="max" \
-  -c model_context_window=1000000 \
-  -c model_auto_compact_token_limit=900000 \
+: "${CRA_REVIEW_MODEL:?set from the reviewer resource-selection record}"
+: "${CRA_REVIEW_EFFORT:?set from the reviewer resource-selection record}"
+: "${CRA_REVIEW_SERVICE_TIER:?set to standard, fast/priority, or inherit}"
+: "${CRA_REVIEW_CONTEXT_WINDOW:?set to inherit or a numeric nominal request}"
+: "${CRA_REVIEW_AUTO_COMPACT_LIMIT:?set to inherit or a numeric limit}"
+
+CRA_REVIEW_ARGS=(
+  -c "model=$CRA_REVIEW_MODEL"
+  -c "model_reasoning_effort=$CRA_REVIEW_EFFORT"
+)
+case "$CRA_REVIEW_SERVICE_TIER" in
+  standard)
+    CRA_REVIEW_ARGS+=(
+      -c service_tier=default
+      -c features.fast_mode=false
+    )
+    ;;
+  fast | priority)
+    CRA_REVIEW_ARGS+=(
+      -c service_tier=fast
+      -c features.fast_mode=true
+    )
+    ;;
+  inherit) ;;
+  *)
+    echo "invalid CRA_REVIEW_SERVICE_TIER: $CRA_REVIEW_SERVICE_TIER" >&2
+    exit 2
+    ;;
+esac
+case "$CRA_REVIEW_CONTEXT_WINDOW" in
+  inherit) ;;
+  *[!0-9]* | "")
+    echo "invalid CRA_REVIEW_CONTEXT_WINDOW: $CRA_REVIEW_CONTEXT_WINDOW" >&2
+    exit 2
+    ;;
+  *) CRA_REVIEW_ARGS+=(-c "model_context_window=$CRA_REVIEW_CONTEXT_WINDOW") ;;
+esac
+case "$CRA_REVIEW_AUTO_COMPACT_LIMIT" in
+  inherit) ;;
+  *[!0-9]* | "")
+    echo "invalid CRA_REVIEW_AUTO_COMPACT_LIMIT: $CRA_REVIEW_AUTO_COMPACT_LIMIT" >&2
+    exit 2
+    ;;
+  *)
+    CRA_REVIEW_ARGS+=(
+      -c "model_auto_compact_token_limit=$CRA_REVIEW_AUTO_COMPACT_LIMIT"
+    )
+    ;;
+esac
+
+if codex review - "${CRA_REVIEW_ARGS[@]}" \
   < "$PROMPT_PATH" >| "$REVIEW_LOG" 2>&1
 then
   REVIEW_EXIT=0
@@ -212,16 +271,12 @@ After completion:
 3. parse the final `Coverage:` sentence into the ledger
 4. mark a missing, duplicated, malformed, or incomplete unit status as `unknown`
 5. require every initial unit to become `clean` or `finding` before incremental reuse is allowed
-6. record the pass, reviewer profile, effective context, output location, and current validation evidence
+6. record the pass, reviewer profile, requested and catalog-clamped nominal context, runtime-effective context, peak per-request input, compaction occurrence, unexpected high-volume commands, output location, and current validation evidence
 
 If the installed CLI does not support a custom review prompt through `codex review -`, preserve the same blocking discipline and reviewer profile while switching only the review target:
 
 ```bash
-if codex review --commit "$CURRENT_SHA" \
-  -c model="gpt-5.6-sol" \
-  -c model_reasoning_effort="max" \
-  -c model_context_window=1000000 \
-  -c model_auto_compact_token_limit=900000 \
+if codex review --commit "$CURRENT_SHA" "${CRA_REVIEW_ARGS[@]}" \
   >| "$REVIEW_LOG" 2>&1
 then
   REVIEW_EXIT=0
@@ -338,7 +393,7 @@ Discard incremental reuse and run a new full pass when any of these is true:
 2. the task boundary expanded or unrelated work entered the commit
 3. the ledger is missing, corrupt, internally inconsistent, or has uncertain provenance
 4. the initial pass did not explicitly cover every unit
-5. the reviewer prompt, applicable repository instructions, or review contract changed materially
+5. the reviewer prompt, applicable repository instructions, review contract, or selected reviewer resource profile changed materially
 6. a broad rename, move, refactor, dependency update, schema change, public contract change, migration, auth boundary, persisted-data path, concurrency model, recovery path, or runtime configuration change defeats reliable local invalidation
 7. amendment impact cannot be bounded confidently
 8. most useful units would need revalidation and a full pass is simpler or safer
@@ -402,7 +457,7 @@ Report:
 3. changed files and behavioral effect
 4. validation commands run
 5. skipped validation with reasons
-6. reviewer command, profile, and effective context
+6. reviewer role, model, effort, normalized service tier, requested and catalog-clamped nominal context, runtime-effective context, peak per-request input, compaction occurrence, auto-compaction setting, evidence-packet scope, invocation or fork mode, launcher compatibility, selection rationale, and command
 7. full and incremental pass count
 8. last review process state and delta status
 9. review units newly reviewed, revalidated, carried forward, invalidated, or reset

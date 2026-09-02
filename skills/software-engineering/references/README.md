@@ -6,7 +6,7 @@ Use a reference when the software-engineering skill selects that execution path 
 
 ## Current References
 
-- `worker-delegation.md`: primary/worker responsibilities, execution contract, worktree concurrency, independent validation evidence, direct-execution fallbacks, and optional profile installation.
+- `worker-delegation.md`: primary/worker responsibilities, pre-dispatch role/model/effort/tier/context/fork selection, execution contract, worktree concurrency, independent validation evidence, direct-execution fallbacks, and optional profile installation.
 - `worker-luna-max-fast.toml`: opt-in custom `worker` example using GPT-5.6 Luna, Max reasoning, Fast service tier, and workspace-write sandboxing.
-- `cra-loop.md`: Commit-Review-Amend first-pass review, claim-based review ledger, conservative invalidation, amendment-delta review, full-review reset, stop, and reporting mechanics.
+- `cra-loop.md`: Commit-Review-Amend reviewer resource selection, first-pass review, claim-based review ledger, conservative invalidation, amendment-delta review, full-review reset, stop, and reporting mechanics.
 - `tca-loop.md`: Task-Commit-Approve entry records, task boundaries, per-task worker execution and CRA gates, restart rules, stop conditions, and reporting.
