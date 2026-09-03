@@ -1,29 +1,32 @@
 ---
 name: software-engineering
-description: Use for software implementation, modification, debugging, refactoring, or review tasks to delegate bounded implementation and local validation to an execution worker when useful, and to decide autonomously whether Commit-Review-Amend (CRA) or Task-Commit-Approve (TCA) would materially improve correctness, reviewability, recovery, or completion confidence. Explicit worker, CRA, or TCA requests also trigger this skill.
+description: Use for repository discovery, architecture or data-flow and control-flow tracing, cross-file synthesis, software implementation, modification, debugging, refactoring, or review. For software changes, delegate bounded implementation and local validation to an execution worker when useful and decide autonomously whether Commit-Review-Amend (CRA) or Task-Commit-Approve (TCA) would materially improve correctness, reviewability, recovery, or completion confidence. Explicit worker, CRA, or TCA requests also trigger this skill.
 ---
 
 # Software Engineering Workflows
 
-Use this skill to choose execution ownership and, when useful, run CRA or TCA. It does not replace root or project instructions, ordinary engineering judgment, implementation, or local validation.
+Use this skill to choose repository retrieval and, for software changes, execution ownership and optional CRA or TCA. It does not replace root or project instructions, ordinary engineering judgment, source verification, implementation, or local validation.
 
 ## Selection Contract
 
-For every software modification:
+For broad repository discovery or software modification:
 
-1. Before implementation, decide whether TCA is warranted.
-2. If TCA is selected, read `references/tca-loop.md` before creating the task queue or editing.
-3. Define the current task unit and its execution contract before delegating or editing.
-4. Before delegating, do separable deterministic preparation in the primary session: fix the scope and snapshot, collect the exact diff and required evidence, bound noisy tool output, and estimate the agent's dynamic evidence volume. Do not spend a higher-cost model on mechanical discovery that the primary session can supply without weakening independent judgment.
-5. Before any worker, explorer, or independent reviewer invocation, select and record resources in this order: role, model, reasoning effort, service tier, context window, then context propagation or fork mode. Base the choice on the role, consequence of error, scope, expected prompt and tool-output volume, analogous-run telemetry, latency, and usage cost before starting the agent; do not choose a fork first and rationalize the inherited model afterward.
-6. For a bounded implementation worker, apply that order with Luna as the first model candidate, Max as its default reasoning effort, and Fast as its default service tier. This preference assumes that the primary session has resolved product decisions and supplied a precise, bounded execution contract, so the worker can focus on execution. Select the resulting Luna Max + Fast profile whenever it is available and can meet the task's completion criteria. Escalate to a stronger model only for a concrete quality reason grounded in task difficulty, consequence of error, ambiguity, or required independence.
-7. Treat model allocation and context propagation as separate decisions. In a runtime where an omitted `fork_turns` value or `fork_turns=all` means full-history inheritance of the parent model and reasoning effort and rejects overrides, always set the fork mode explicitly and use full history only when that inheritance is deliberate. Otherwise use a self-contained handoff with no history or the smallest sufficient recent-turn fork.
-8. Before invocation, verify that the chosen launcher or active named-agent profile can actually express every selected override. If it cannot set the chosen tier, context, model, or effort, use a compatible launcher or revise and update the record; never claim an unexpressed profile was active.
-9. For non-trivial implementation, delegate the bounded change and local validation to the `worker` agent by default when subagents are available and the handoff can be made precise.
-10. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
-11. The primary session must inspect the actual diff and repository state, then independently verify every validation result required for completion. A worker summary or completion claim is not sufficient.
-12. After local validation of the task unit, decide whether CRA is warranted.
-13. If neither TCA nor CRA is warranted, finish normally without creating a task queue, extra commits, or review ceremony.
+1. Define the evidence need and whether the task is discovery-only or includes a software change.
+2. Before broad repository discovery or delegating an explorer, read `references/repository-retrieval.md` and choose direct read, exact search, optional indexed semantic search, or an external source from the evidence need. zvec-grep is optional: its absence or a missing index must not block localized work that native tools can establish.
+3. For discovery-only work, follow the retrieval contract, inspect the decisive source regions, report the evidence and material limitations, and stop. Do not create an implementation workflow unless the requested outcome changes.
+4. For every software modification, decide before implementation whether TCA is warranted.
+5. If TCA is selected, read `references/tca-loop.md` before creating the task queue or editing.
+6. Define the current task unit and its execution contract before delegating or editing.
+7. Before delegating, do separable deterministic preparation in the primary session: fix the scope and snapshot, collect the exact diff and required evidence, bound noisy tool output, and estimate the agent's dynamic evidence volume. Do not spend a higher-cost model on mechanical discovery that the primary session can supply without weakening independent judgment.
+8. Before any worker, explorer, or independent reviewer invocation, select and record resources in this order: role, model, reasoning effort, service tier, context window, then context propagation or fork mode. Base the choice on the role, consequence of error, scope, expected prompt and tool-output volume, analogous-run telemetry, latency, and usage cost before starting the agent; do not choose a fork first and rationalize the inherited model afterward.
+9. For a bounded implementation worker, apply that order with Luna as the first model candidate, Max as its default reasoning effort, and Fast as its default service tier. This preference assumes that the primary session has resolved product decisions and supplied a precise, bounded execution contract, so the worker can focus on execution. Select the resulting Luna Max + Fast profile whenever it is available and can meet the task's completion criteria. Escalate to a stronger model only for a concrete quality reason grounded in task difficulty, consequence of error, ambiguity, or required independence.
+10. Treat model allocation and context propagation as separate decisions. In a runtime where an omitted `fork_turns` value or `fork_turns=all` means full-history inheritance of the parent model and reasoning effort and rejects overrides, always set the fork mode explicitly and use full history only when that inheritance is deliberate. Otherwise use a self-contained handoff with no history or the smallest sufficient recent-turn fork.
+11. Before invocation, verify that the chosen launcher or active named-agent profile can actually express every selected override. If it cannot set the chosen tier, context, model, or effort, use a compatible launcher or revise and update the record; never claim an unexpressed profile was active.
+12. For non-trivial implementation, delegate the bounded change and local validation to the `worker` agent by default when subagents are available and the handoff can be made precise.
+13. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
+14. The primary session must inspect the actual diff and repository state, then independently verify every validation result required for completion. A worker summary or completion claim is not sufficient.
+15. After local validation of the task unit, decide whether CRA is warranted.
+16. If neither TCA nor CRA is warranted, finish normally without creating a task queue, extra commits, or review ceremony.
 
 Re-evaluate TCA before the first commit if the discovered scope materially changes. A user request for worker delegation, CRA, or TCA selects that path when its safety preconditions can be met. A later instruction to avoid subagents, commits, or reviews overrides the corresponding entry path. Do not ask for permission solely because the user did not name the workflow.
 
@@ -103,6 +106,8 @@ When CRA is selected, read `references/cra-loop.md` and follow it without duplic
 
 ## Reporting
 
+For discovery-only work, report the selected retrieval route, decisive paths and source regions, exact verification performed, and any material index freshness, authorization, or tool-availability limitation.
+
 When worker delegation is used, report the delegated task boundary, the pre-dispatch role/model/effort/tier/context/fork choice and rationale, returned validation evidence, the primary session's independent diff inspection and validation verification, and any remaining risk. When CRA or TCA is used, also report the entry source and rationale, task or commit boundaries, reviewer resource choice, validation, review terminal state, accepted and rejected findings, skipped checks, and remaining risk.
 
 When delegation, CRA, or TCA is skipped, do not add process narration solely to announce that it was skipped unless the missing capability or direct-execution fallback materially affects confidence.
@@ -113,3 +118,5 @@ When delegation, CRA, or TCA is skipped, do not add process narration solely to 
 2. `references/worker-luna-max-fast.toml` - opt-in launcher example for the preferred bounded implementation worker candidate using GPT-5.6 Luna, Max reasoning, and Fast service tier; it is not installed automatically or applied to other roles.
 3. `references/cra-loop.md` - Commit-Review-Amend mechanics, state model, blocking reviewer command, findings, amendments, stop conditions, and reporting.
 4. `references/tca-loop.md` - Task-Commit-Approve selection record, task queue, per-task worker execution and CRA gate, restart rules, stop conditions, and reporting.
+5. `references/repository-retrieval.md` - direct-read, exact-search, indexed semantic-search, source-verification, index lifecycle, privacy, and fallback rules, including safe Codex setup with Davis Agent Kit.
+6. `scripts/configure_zvec_grep_codex.py` - opt-in config-only Codex MCP installer, checker, and uninstaller that preserves the kit-owned global `AGENTS.md`.

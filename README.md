@@ -159,7 +159,7 @@ Doctor는 다음을 함께 확인합니다.
 - [`translation-quality`](skills/translation-quality/) - 실적발표 컨퍼런스콜과 긴 비즈니스 문서를 자연스러운 한국어로 번역하고 개념 검수와 HTML QA까지 수행하기 위한 스킬
 - [`handoff-agent-builder`](skills/handoff-agent-builder/) - 프로젝트별 인수인계 에이전트를 설계하고 멀티턴 검증까지 수행하기 위한 스킬
 - [`outcome-owner`](skills/outcome-owner/) - 비사소하거나 장기적인 목표의 목적·제약·성공 기준·진행 근거·소유권 lease를 보존하고, 권한 안에서 주도적으로 실행한 뒤 검증된 완료까지 책임지기 위한 스킬
-- [`software-engineering`](skills/software-engineering/) - 비사소한 구현과 로컬 검증을 작업 에이전트에 위임하고, CRA 또는 TCA의 필요성을 자율적으로 판단해 선택한 workflow를 실행하기 위한 스킬
+- [`software-engineering`](skills/software-engineering/) - 저장소 탐색·아키텍처·데이터 흐름·여러 파일 합성에 필요한 근거 검색을 라우팅하고, 소프트웨어 변경에서는 비사소한 구현과 로컬 검증을 작업 에이전트에 위임하며 CRA 또는 TCA의 필요성을 자율적으로 판단하기 위한 스킬
 - [`writing-quality`](skills/writing-quality/) - 독자가 그대로 읽거나 보내거나 게시할 원고를 과제에 맞는 구조와 확인된 글쓰기 원칙으로 작성·편집하기 위한 범용 스킬
 
 전역 위임 원칙은 모델 중립적으로 유지합니다. `software-engineering`에서는 경계가 명확한 실행 워커가 완료 기준을 충족할 수 있는지 Luna Max + Fast를 먼저 검토하고, 가능하면 이를 사용합니다. 더 강한 모델은 작업 난도, 오류 비용, 모호성, 독립성에 관한 구체적인 품질 근거가 있을 때 선택합니다. [`worker-luna-max-fast.toml`](skills/software-engineering/references/worker-luna-max-fast.toml)은 이 우선 후보를 실행하기 위한 opt-in custom `worker` 예시이며 설치 시 자동 적용되지 않습니다.
