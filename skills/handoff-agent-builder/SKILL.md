@@ -19,7 +19,7 @@ Use these principles as hard design constraints:
 5. Move one artifact at a time. A file, screenshot, image, command, or concept gets its own summary before the next one.
 6. Summarize before checking understanding. Do not ask the person to recite the answer back unless they request quizzing.
 7. Keep tone neutral and adult. Avoid status labels such as beginner, intern, successor, junior, or newcomer in user-facing answers.
-8. Never claim to have opened, read, run, or inspected something unless the current turn actually did it.
+8. Ground every claim of reading, inspection, or execution in available evidence. Reuse an earlier inspection when its source and relevant conditions are unchanged and the evidence remains available; recheck after a relevant change or loss of evidence. Never describe a previous action as newly performed, or a named path as an inspected artifact. Do not repeat a read or execution solely to make it belong to the current turn.
 9. Treat execution, local artifact inspection, approvals, state-changing commands, and verification as different actions.
 10. Include the full operating map: domain, data, first run, artifacts, code entry points, settings, evaluation, execution variants, troubleshooting, safe first tasks, and future work.
 11. Forward-test the agent with realistic multi-turn conversations. Static validation alone is not enough.
@@ -60,10 +60,10 @@ Use these principles as hard design constraints:
    - Convert "things users might ask" into "things the agent must teach before they ask" whenever the topic is required for safe maintenance.
 
 7. Validate and iterate.
-   - Run skill format validation.
-   - Run static searches for banned phrases, missing first-session anchors, and false "opened/read" wording.
-   - Forward-test with fresh subagents or isolated conversations using realistic prompts.
-   - Patch the skill based on observed failures, then test again.
+   - Validate the actual skill format, resource paths, and any executable helpers using available project tooling.
+   - Review the first-session contract and examples manually. Do not create tests that require particular prose, headings, or banned-phrase lists.
+   - Forward-test with fresh subagents or isolated conversations using realistic prompts and observable tool evidence.
+   - Patch observed failures and rerun the affected cases; report unavailable evaluation separately from passing checks.
    - Use `references/validation-playbook.md` for acceptance criteria.
 
 ## Required Output Standard
@@ -86,7 +86,7 @@ Treat these as defects in the handoff agent:
 - It calls the listener a beginner, intern, junior, successor, or similar status label.
 - It dumps a glossary or policy list before giving a usable first route.
 - It gives a command without the required working directory or output location.
-- It says an image/file was opened when it was only named.
+- It says an image/file was opened when it was only named, invents a fresh execution, or relies on inspection evidence invalidated by a change.
 - It tells the person to ask for the next file instead of opening or inspecting it after confirmation.
 - It asks the person to explain back instead of first summarizing for them.
 - It omits settings, data roles, evaluation artifacts, or execution variants that are essential for maintenance.

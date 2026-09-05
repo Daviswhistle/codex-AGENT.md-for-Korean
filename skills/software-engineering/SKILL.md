@@ -5,111 +5,87 @@ description: Use for software implementation, modification, debugging, refactori
 
 # Software Engineering Workflows
 
-Use this skill to choose execution ownership and, when useful, run CRA or TCA. It does not replace root or project instructions, ordinary engineering judgment, implementation, or local validation.
+Choose execution ownership and, when useful, CRA or TCA. This skill does not replace root or project instructions, ordinary engineering judgment, implementation, or local validation.
 
 ## Selection Contract
 
 For every software modification:
 
-1. Before implementation, decide whether TCA is warranted.
-2. If TCA is selected, read `references/tca-loop.md` before creating the task queue or editing.
-3. Define the current task unit and its execution contract before delegating or editing.
-4. Before delegating, do separable deterministic preparation in the primary session: fix the scope and snapshot, collect the exact diff and required evidence, bound noisy tool output, and estimate the agent's dynamic evidence volume. Do not spend a higher-cost model on mechanical discovery that the primary session can supply without weakening independent judgment.
-5. Before any worker, explorer, or independent reviewer invocation, select and record resources in this order: role, model, reasoning effort, service tier, context window, then context propagation or fork mode. Base the choice on the role, consequence of error, scope, expected prompt and tool-output volume, analogous-run telemetry, latency, and usage cost before starting the agent; do not choose a fork first and rationalize the inherited model afterward.
-6. For a bounded implementation worker, apply that order with Luna as the first model candidate, Max as its default reasoning effort, and Fast as its default service tier. This preference assumes that the primary session has resolved product decisions and supplied a precise, bounded execution contract, so the worker can focus on execution. Select the resulting Luna Max + Fast profile whenever it is available and can meet the task's completion criteria. Escalate to a stronger model only for a concrete quality reason grounded in task difficulty, consequence of error, ambiguity, or required independence; do not assign top-tier frontier models (e.g. GPT-6 Astra) to bounded execution workers merely by default.
-7. Treat model allocation and context propagation as separate decisions. In a runtime where an omitted `fork_turns` value or `fork_turns=all` means full-history inheritance of the parent model and reasoning effort and rejects overrides, always set the fork mode explicitly and use full history only when that inheritance is deliberate. Otherwise use a self-contained handoff with no history or the smallest sufficient recent-turn fork.
-8. Before invocation, verify that the chosen launcher or active named-agent profile can actually express every selected override. If it cannot set the chosen tier, context, model, or effort, use a compatible launcher or revise and update the record; never claim an unexpressed profile was active.
-9. For non-trivial implementation, delegate the bounded change and local validation to the `worker` agent by default when subagents are available and the handoff can be made precise.
-10. Under TCA, delegate and finish one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
-11. The primary session must inspect the actual diff and repository state, then independently verify every validation result required for completion. A worker summary or completion claim is not sufficient.
-12. After local validation of the task unit, decide whether CRA is warranted.
-13. If neither TCA nor CRA is warranted, finish normally without creating a task queue, extra commits, or review ceremony.
+1. Decide whether TCA is warranted before implementation. If selected, read `references/tca-loop.md` before creating the queue or editing.
+2. Define one coherent task unit, its authority, and checkable completion criteria. Prepare the known snapshot, exact scope, required evidence, and bounded tool output before delegation.
+3. Before any worker, explorer, or independent reviewer invocation, read `references/worker-delegation.md` and use its resource-selection contract: role, model, reasoning effort, service tier, context window, then history propagation. Record the selection and verify that the launcher can express it; confirm actual settings from runtime evidence. Do not silently inherit an unintended model or full-history fork.
+4. Preserve Luna Max + Fast as the first bounded implementation-worker candidate when available and sufficient. Escalate for a concrete quality reason, not merely because the primary session uses Astra. The detailed selection, fork, telemetry, and compatibility rules live in the worker reference rather than being repeated here.
+5. For non-trivial implementation, use a bounded worker by default when subagents are available and the contract is precise. Do not delegate when coordination exceeds the expected benefit; use the direct-execution fallbacks below.
+6. Under TCA, complete one task unit at a time. While a writer is active, serialize every repository-state-dependent reader in that worktree or give it a separate worktree or fixed commit snapshot.
+7. Inspect the actual diff and repository state, then independently verify completion-critical validation evidence. A worker's summary is not proof.
+8. After local validation, decide whether CRA is warranted. If neither TCA nor CRA is warranted, finish without a task queue, extra commits, or review ceremony.
 
-Re-evaluate TCA before the first commit if the discovered scope materially changes. A user request for worker delegation, CRA, or TCA selects that path when its safety preconditions can be met. A later instruction to avoid subagents, commits, or reviews overrides the corresponding entry path. Do not ask for permission solely because the user did not name the workflow.
+Re-evaluate TCA before the first commit if scope materially changes. Explicit worker, CRA, or TCA requests select that path when its safety preconditions can be met; a later instruction to avoid subagents, commits, or reviews overrides it. Do not ask for permission solely because the user did not name a workflow.
 
 ## Execution Delegation
 
-Before the first delegated execution task in a session, read `references/worker-delegation.md`. It contains the pre-dispatch resource-selection record, the preferred Luna Max + Fast worker candidate, context and fork rules, and its opt-in launcher example.
+The primary session retains user intent, desired state, completion criteria, workflow and task boundaries, integration, commit boundaries, independent review, final diff inspection, validation verification, and the final response.
 
-The primary session owns:
+Give the worker a bounded goal and scope, constraints and applicable instructions, authority including whether it may commit, required validation, and an exact return contract. It owns only the assigned implementation and local validation. It must return changed files, behavioral effect, validation commands, exit status, relevant raw output or stable artifacts, skipped checks, uncertainty, and blockers or contradictions.
 
-1. user intent, desired final state, and completion criteria
-2. TCA and CRA selection
-3. task boundaries, dependencies, and execution contracts
-4. commit boundaries and independent review
-5. inspection of the final diff and repository state
-6. independent verification of completion-critical validation
-7. the final completion decision and response
+A worker may not broaden product intent, hide unrelated changes, change the selected workflow, push, deploy, migrate, purchase, or mutate remote state. The primary session may implement directly when the change is trivial, an active interactive decision cannot be separated, subagents are unavailable, or a failed handoff makes direct recovery safer. Detailed responsibilities and safe launcher examples remain in `references/worker-delegation.md`.
 
-The worker owns only the bounded implementation and local validation described in its contract. Give it:
+## Local Validation
 
-1. goal and scope
-2. constraints and applicable project instructions
-3. required validation and independently checkable completion evidence
-4. permitted authority, including whether it may commit
-5. the exact return contract
+Start with checks closest to the changed behavior and connected contracts. Expand for shared dependencies, broad changes, material uncertainty, or safety risk; always run checks required by applicable project instructions. Small tasks do not justify repeated whole-repository suites merely to demonstrate effort, and large models do not justify skipping necessary tests.
 
-The worker must return changed files, behavioral effect, validation commands, exit status, relevant raw output or stable artifact locations, skipped checks, remaining uncertainty, and blockers or contradictions. It may not broaden product intent, hide unrelated changes, select a different workflow, push, deploy, migrate, purchase, or mutate remote state.
+Prior results may be reused only when their exact target, relevant dependencies, test configuration, environment, and acceptance criteria remain applicable and their evidence is available. Recheck affected results after amendments; rerun when applicability is uncertain. Inspect current artifacts and raw results rather than accepting an old success label. This does not weaken CRA's complete initial review, full amendment-delta review, or conservative invalidation rules.
 
-The primary session may implement directly when the change is trivial, the work cannot be separated from an active interactive decision, subagents are unavailable, or a failed handoff makes direct recovery safer than another delegation. Do not delegate merely to add ceremony when coordination cost is greater than the expected benefit.
+Report commands actually run, results, reused evidence when material, and missing checks. Self-inspection is not independent review, and a passing static check does not establish model behavior or deployment readiness.
 
 ## TCA Decision
 
-Select TCA when the user explicitly requests it or when task-by-task commit and CRA gates would materially improve correctness, recovery, or reviewability.
+Select TCA when explicitly requested or when task-by-task commit and CRA gates materially improve correctness, recovery, or reviewability.
 
 Autonomous TCA is warranted when several of these are true:
 
-1. The request contains two or more independently explainable and verifiable task units.
-2. Later work depends on an earlier unit being committed and independently reviewed first.
-3. Combining the work would obscure why a commit exists, which validation belongs to it, or how to roll it back.
-4. The work is likely to be interrupted or compacted, so stable reviewed checkpoints materially reduce recovery risk.
-5. A migration, broad refactor, or behavior change has safe intermediate boundaries that should not be crossed while unreviewed.
-6. Each task unit is important enough that its own CRA result would change whether the next unit should proceed.
+1. There are two or more independently explainable and verifiable task units.
+2. Later work needs an earlier unit committed and independently reviewed first.
+3. Combining units would obscure rationale, validation ownership, or rollback.
+4. Interruption or compaction makes reviewed checkpoints valuable.
+5. A migration, broad refactor, or behavior change has safe intermediate boundaries.
+6. Each unit's CRA result can change whether the next unit should proceed.
 
-Usually skip autonomous TCA when:
+Usually skip autonomous TCA for one coherent outcome, an unsafe or incomplete intermediate state, a mechanical batch with one validation contract, units too small to justify separate reviews, or work that cannot be isolated from unrelated changes.
 
-1. The work has one coherent outcome even if it has many steps or touches many files.
-2. Splitting would leave an intermediate commit broken, misleading, or materially incomplete.
-3. The change is a mechanical batch edit, generated update, or rename with one validation contract.
-4. The candidate task units are too small for separate commit and review overhead to improve the result.
-5. A clean series of task commits cannot be isolated from unrelated work.
-
-When TCA is selected, every task unit uses CRA after local validation. Do not make a second CRA decision inside TCA. If an explicit TCA request has only one defensible task unit, do not invent boundaries; run it as one TCA task with CRA and report that the queue collapsed to one unit.
+Under TCA, every task unit uses CRA after local validation; do not make a second CRA decision. An explicit TCA request with one defensible unit stays one unit rather than inventing boundaries. Report that the queue collapsed to one task.
 
 ## CRA Decision
 
-After local validation, select CRA when independent commit-level review would materially improve confidence. The user does not need to name CRA.
+Select CRA after local validation when independent commit-level review materially improves confidence. The user need not name it.
 
 Run CRA when:
 
-1. The user explicitly requests it or an active TCA task requires it.
-2. The change affects authentication, authorization, secrets, billing, money, persisted data, migrations, concurrency, recovery, deployment, runtime configuration, agent authority, or an external or public contract.
-3. The change spans multiple callers, states, or failure paths; performs a broad refactor; addresses a repeated regression; cannot be exercised adequately through local validation; or retains material uncertainty.
-4. The user asks for production readiness, unusually high confidence, or independent review.
+1. Explicitly requested or required by an active TCA task.
+2. The change affects authentication, authorization, secrets, billing, money, persisted data, migrations, concurrency, recovery, deployment, runtime configuration, agent authority, or an external/public contract.
+3. Multiple callers, states, or failure paths, a broad refactor, repeated regression, inadequate local coverage, or material uncertainty justify it.
+4. Production readiness, unusually high confidence, or independent review is requested.
 
-Usually skip autonomous CRA for typo, formatting-only, comments-only, or narrowly mechanical changes whose contract is fully established by focused validation.
+Usually skip autonomous CRA for typos, formatting, comments, or narrow mechanical changes fully established by focused validation. Do not run it against instructions to avoid commits/reviews, for review-only work, without a safely isolated task commit, or in place of missing local validation.
 
-Do not run CRA when the user asks to avoid commits or reviews, the task is review-only, a clean task-unit commit cannot be isolated, or local validation is missing. CRA is not a substitute for local validation.
-
-When CRA is selected, read `references/cra-loop.md` and follow it without duplicating or partially reconstructing the loop from this front page.
+When selected, read `references/cra-loop.md`; do not reconstruct a partial loop from this entrypoint.
 
 ## Shared Boundaries
 
-1. Keep each commit limited to one coherent task unit and exclude unrelated user or coworker changes, secrets, logs, caches, review output, and temporary artifacts.
-2. Treat local commits as reviewable checkpoints, not permission to push, deploy, migrate, approve snapshots, update production data, or otherwise mutate remote state.
-3. Autonomous delegation, CRA, or TCA may use already-configured agents, reviewers, models, service tiers, and the current account's existing usage. It may not purchase credits, change billing, plan, quota, provider, or account settings without explicit approval.
-4. A workflow failure does not authorize masking the problem, weakening validation, or silently finishing as though the workflow passed.
-5. If the workflow cannot proceed safely, report the blocked state, missing prerequisite, and remaining risk.
+1. Each commit contains one coherent unit, excluding unrelated changes, secrets, logs, caches, review output, and temporary artifacts.
+2. Local commits are checkpoints, not permission to push, deploy, migrate, approve snapshots, update production data, or mutate remote state.
+3. Autonomous workflows may use already-configured agents, models, tiers, and existing account usage. They may not purchase credits or change billing, plan, quota, provider, or account settings without explicit approval.
+4. A workflow failure does not authorize hiding it, weakening validation, or claiming the workflow passed. Report the blocked state, missing prerequisite, and remaining risk.
 
 ## Reporting
 
-When worker delegation is used, report the delegated task boundary, the pre-dispatch role/model/effort/tier/context/fork choice and rationale, returned validation evidence, the primary session's independent diff inspection and validation verification, and any remaining risk. When CRA or TCA is used, also report the entry source and rationale, task or commit boundaries, reviewer resource choice, validation, review terminal state, accepted and rejected findings, skipped checks, and remaining risk.
+When delegating, report the task boundary, selected role/model/effort/tier/context/fork and rationale, returned evidence, primary inspection and verification, and remaining risk. For CRA/TCA also report entry source, task/commit boundaries, reviewer selection, validation, review terminal state, accepted/rejected findings, and skipped checks.
 
-When delegation, CRA, or TCA is skipped, do not add process narration solely to announce that it was skipped unless the missing capability or direct-execution fallback materially affects confidence.
+Do not narrate skipped workflows solely to announce that they were skipped. Explain a missing capability or direct-execution fallback when it materially affects confidence.
 
 ## References
 
-1. `references/worker-delegation.md` - primary/worker responsibilities, pre-dispatch role and resource selection, context and fork rules, execution contract, worktree concurrency boundary, independent validation evidence, optional-profile installation, and direct-execution fallbacks.
-2. `references/worker-luna-max-fast.toml` - opt-in launcher example for the preferred bounded implementation worker candidate using GPT-5.6 Luna, Max reasoning, and Fast service tier; it is not installed automatically or applied to other roles.
-3. `references/cra-loop.md` - Commit-Review-Amend mechanics, state model, blocking reviewer command, findings, amendments, stop conditions, and reporting.
-4. `references/tca-loop.md` - Task-Commit-Approve selection record, task queue, per-task worker execution and CRA gate, restart rules, stop conditions, and reporting.
+- `references/worker-delegation.md`: responsibilities, resource selection, context/fork rules, worktree safety, evidence, optional-profile installation, and fallbacks.
+- `references/worker-luna-max-fast.toml`: opt-in Luna Max + Fast implementation-worker example; not automatically installed or applied to other roles.
+- `references/cra-loop.md`: complete CRA mechanics, coverage ledger, blocking review, amendments, and stop conditions.
+- `references/tca-loop.md`: TCA selection, task queue, per-task execution and CRA, and restart rules.

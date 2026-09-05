@@ -5,7 +5,7 @@ Use this profile for earnings calls, interviews, Q&A, interpreted calls, and oth
 ## Profile Contract
 
 1. Preserve speaker order, Q&A mechanics, communicative roles, and the distinction among operator, company host, executive, analyst, and interpreter.
-2. Build a speaker map before translation and split any source unit that contains multiple speakers.
+2. Build a speaker map before translation and split any source unit that contains multiple speakers. Source units support coverage and numeric QA in both generation modes; they do not require chunked generation.
 3. Attribute interpreted speech to the original speaker whenever source flow supports it; keep extraction-only labels out of reader-facing output.
 4. Preserve every material occurrence of financial guidance, including repeated ranges and fiscal-period references.
 5. Use `agents/korean_translation_reviewer.md` for conceptual review.
@@ -66,7 +66,7 @@ For earnings-call transcripts, perform these additional checks:
 Before final delivery:
 
 1. Compare the final transcript against source units for omissions, duplicated turns, speaker-order errors, and mistranslated numeric guidance.
-2. When source units have `unit` IDs and HTML paragraphs have `data-unit`, compare each numeric source unit against the matching final HTML paragraph.
+2. For HTML numeric QA, retain source `unit` IDs and matching paragraph `data-unit` IDs in either generation mode. Compare each numeric source unit against its matching final paragraph; chunking is not a prerequisite for this evidence.
 3. Repeated numeric guidance is not covered by checking one representative occurrence. If `mid-to-high teens`, `high single digits`, bp guidance, EPS, margin, inventory growth, store count, or a currency amount recurs, inspect every occurrence and final rendering.
 4. Verify transcript mechanics:
    - speaker labels appear only on changes
@@ -75,26 +75,29 @@ Before final delivery:
    - paragraphs are readable and not one-sentence-per-line
    - copied blank lines survive as real elements
 5. Verify `[Non-English content]`, `[비영어 발언]`, raw `Speaker <number>` labels, anonymous visible interpreter labels, raw `[[em:` markers, and incorrect RMB scale do not remain.
-6. Record source unit count, translated chunk count, speaker-transition sanity check, title/date, link count, emphasis inventory, note count, mechanical-search dispositions, manually reread sections, and numeric QA in `work/qa_report.md`.
-7. For earnings calls, create a numeric QA table with source unit, source number and unit, matching final `data-unit`, Korean rendering, pass/fail, and correction made. A row is not acceptable if the exact final paragraph was not read.
+6. Record source unit count, generation mode, translated chunk count when used (otherwise not applicable), speaker-transition sanity check, title/date, link count, emphasis inventory, note count, mechanical-search dispositions, manually reread sections, and numeric QA in `work/qa_report.md`.
+7. For earnings calls, create a numeric QA table with source unit, source number and unit, matching final `data-unit` for HTML or passage location for another requested format, Korean rendering, pass/fail, and correction made. A row is not acceptable if the exact final passage was not read.
 
-Use a contextual mechanical search when applicable:
+Use a contextual mechanical search on the final HTML when applicable:
 
 ```bash
-rg -n "높은 수준에서 말씀드리겠습니다|에게서 나옵니다|파급 효과를 만들어내지 못|새로운 .{1,20}원단|것으로 현재|현재 예상|관문 요인|제품을 이동|업데이트해 주실 수|행운을 빕니다|위임장 변경|준비한 말씀|이상으로 준비한|추가 말씀|에게 넘겨|매장 위반 처리 시간|\\[Non-English content\\]|\\[비영어 발언\\]|\\[\\[em:|RMB|100억(\\(위안\\))?\\s*(규모|지원|투자|프로그램|계획|펀드)" outputs/*.html work/translation_chunks
+rg -n "높은 수준에서 말씀드리겠습니다|에게서 나옵니다|파급 효과를 만들어내지 못|새로운 .{1,20}원단|것으로 현재|현재 예상|관문 요인|제품을 이동|업데이트해 주실 수|행운을 빕니다|위임장 변경|준비한 말씀|이상으로 준비한|추가 말씀|에게 넘겨|매장 위반 처리 시간|\\[Non-English content\\]|\\[비영어 발언\\]|\\[\\[em:|RMB|100억(\\(위안\\))?\\s*(규모|지원|투자|프로그램|계획|펀드)" outputs/*.html
 ```
 
-Run the bundled transcript QA helper:
+Inspect matches in context; this search is not a semantic quality score. Search chunk files additionally only when they exist and an affected check needs them.
+
+Run the bundled transcript QA helper on the final HTML in either generation mode:
 
 ```bash
 python3 "${CODEX_HOME:-$HOME/.codex}/skills/translation-quality/scripts/qa_html_translation.py" \
   --output outputs/<clear_document_name>_ko.html \
-  --chunks work/translation_chunks \
   --source-units work/source_units.tsv \
   --expect-title "<exact Korean title>" \
   --expect-date "YYYY.MM.DD." \
   --strict-style
 ```
+
+For chunked work, add `--chunks work/translation_chunks` using the actual chunk location. For single-pass work, omit this optional argument; do not create an empty directory or bypass source-unit checks. Use the helper's source-unit format rather than inventing a new schema. Non-HTML output still requires source, speaker, and numeric comparison; disclose that this HTML-specific helper is not applicable.
 
 If a style match is acceptable, waive it only after recording the context and disposition. Structural failures, source artifacts, raw emphasis markers, and incorrect visible interpreter labels must be fixed. Use `--allow-visible-interpreter-label` only when the visible speaker genuinely is an interpreter and the QA report records why attribution to an original speaker was impossible.
 

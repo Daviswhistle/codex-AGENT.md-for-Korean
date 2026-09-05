@@ -25,24 +25,25 @@ Do not claim knowledge of unavailable prior work. Record which benchmark items w
 ## Work Discipline
 
 1. State the task objective and completion conditions in one sentence before substantial work.
-2. Trace the source-to-output flow before editing: extraction, source units, terminology ledger when applicable, speaker or page map, chunks, assembly, final artifact, QA helper, and local evaluators.
+2. Trace the source-to-output flow before editing: extraction, source coverage map, terminology ledger when applicable, speaker or page map, chosen generation mode, final artifact, QA helper, and local evaluators. Include chunks and assembly only when used.
 3. Identify affected resources before changing the skill itself. Keep `SKILL.md`, references, reviewer prompts, examples, README, and directly relevant executable checks consistent. Do not add a phrase-presence test merely to mirror prose.
-4. Before translating, scan the current task directory for explicit local evaluation files such as rubrics, `evaluate_*.py`, `check_*.py`, and `test_*.py`.
+4. Before translating, inspect the current task directory for explicit local evaluation files such as rubrics, `evaluate_*.py`, `check_*.py`, and `test_*.py`.
 5. Do not report "mechanical QA pass" while a relevant local evaluator is failing or has not run without a concrete reason.
 6. Separate verification from approval or publication. A passing helper alone is not enough when source coverage, conceptual review, or the selected loading-path contract remains unchecked.
 7. Check naming and visible labels as part of quality: title, date, speaker labels, entity names, file names, `data-unit` IDs, note fields, and helper option names must describe their current role.
 8. Keep scope tight, but fix directly connected contract drift and regression coverage.
 
-## Intake And Chunking
+## Intake, Generation Mode, and Evidence
 
 1. Identify the source format, document type, loading path, optional primary profile, whether terminology review applies, output format, title, date, fiscal period, and reader-visible metadata.
-2. Preserve structural extraction evidence until QA is complete.
+2. Preserve structural extraction evidence and a source-to-output coverage map until QA is complete. Coverage units are not generation chunks: both modes need identifiable source passages and final output locations. Use the selected profile's speaker/page map and source-unit format where applicable.
 3. When terminology review applies, scan the full source before substantive translation and prepare the terminology ledger. Save it for long documents; use a separate alias map only when relationships are complex.
-4. Choose single-pass or chunked execution based on source length and model capability:
-   - When the active model (such as a frontier large-context model) can reliably translate the full document in a single pass without omission or drift, translate directly to `outputs/`.
-   - For sources exceeding the active model's reliable single-pass output limit, or when omission risk warrants segmented verification (historically ~3,000 words for earlier models), create reviewable source units, chunk files, a progress ledger, and `work/qa_report.md`.
-5. When chunking is used, do not fake chunking by writing one giant translation dictionary and splitting it afterward. Translate and save independent reviewable chunks, then assemble deterministically.
-6. Keep the original order, material repetition, links, footnotes, and emphasis semantics unless a documented reader-facing reason justifies compression.
+4. Select the simplest generation mode that can finish and be verified. Check the active runtime's usable context, maximum output or tool-payload limit, remaining budget, expected Korean and markup expansion, and reasoning headroom where applicable. Use a representative sample or analogous artifact when the output estimate is uncertain. A model name, advertised input window, or fixed source-word threshold is not a capacity measurement.
+   - Use single-pass generation when the complete source and necessary instructions fit and the full deliverable has material output headroom with a credible coverage check. Generate directly under `outputs/`; do not create dummy chunks or run a merge merely to satisfy a template.
+   - Use semantic chunks when output capacity is uncertain or insufficient, the document's structure or omission risk requires segmented checking, or recoverable checkpoints are needed. Translate and save reviewable units, maintain progress under `work/`, and assemble deterministically. Do not write one giant translation dictionary and split it afterward.
+5. In both modes, keep one compact `work/qa_report.md` containing the loading path, profiles, terminology applicability, generation-mode rationale, source coverage, actual review/check results, and limitations. Only chunked work needs chunk files and a chunk-progress ledger. Single-pass means one generation pass, not permission to skip revision or full-document QA.
+6. Keep the original order, material repetition, links, footnotes, and emphasis semantics. Do not compress the requested translation to fit an output limit; change generation mode instead. Any source cleanup must preserve substantive content and be recorded.
+7. Check the final source unit and all intervening units against the artifact. Truncation, missing output, unexplained omissions, or an incomplete closing structure blocks completion. Recover from the last verified source boundary and recheck the joined output rather than silently delivering a partial translation.
 
 ## Natural Korean And Meaning
 
@@ -69,7 +70,7 @@ Use a concise first-occurrence note. Do not let a note repeat the adjacent sente
 
 Prefer deterministic, copy-paste-safe HTML when rich formatting matters. Verify a Korean UTF-8 shell, balanced structural tags, live links, semantic emphasis, and explicit blank-line elements where pasted spacing must survive. Tables require exact column parity and table alignment classes that reflect meaning: descriptive text left, numeric values right, short codes centered.
 
-Use bundled helpers where applicable:
+For chunked Markdown, use the bundled assembly and conversion helpers:
 
 ```bash
 python3 "${CODEX_HOME:-$HOME/.codex}/skills/translation-quality/scripts/merge_chunks.py" \
@@ -83,6 +84,8 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/translation-quality/scripts/md_to_ht
   --title "<exact Korean title>" \
   --date "YYYY.MM.DD."
 ```
+
+For single-pass output, skip merging. Convert a single Markdown file only if needed, using its actual path. Run applicable QA on the final artifact in either mode; pass `--chunks` to the HTML QA helper only when actual chunk files were used.
 
 ## Review Fanout For Long Documents
 
@@ -104,8 +107,8 @@ The reviewer must inspect every material occurrence of repeated guidance, unit c
 
 Before delivery:
 
-1. Compare the assembled output against source units for omissions, duplication, order, structure, and material repetition.
-2. For numeric content, compare each numeric source unit against the matching final HTML paragraph. Verify currency, scale, range, percentage, bp, fiscal period, and repeated occurrence.
+1. Compare the final output against source units for omissions, duplication, order, structure, and material repetition, including the final source unit. This applies equally to direct and assembled output.
+2. For numeric content, compare each numeric source unit against the matching final output passage. For HTML using unit IDs, inspect the matching final HTML paragraph. Verify currency, scale, range, percentage, bp, fiscal period, and repeated occurrence.
 3. When terminology review applies, compare the final output against the terminology ledger occurrence by occurrence and verify aliases or former names appear at the earliest relevant occurrence.
 4. Check title, date, fiscal wording, links, emphasis semantics, notes, source corrections, and visible labels.
 5. Run the selected loading path's final-file checks and all applicable task-local evaluators. For `core-only`, run shared checks without loading a transcript or report profile.
