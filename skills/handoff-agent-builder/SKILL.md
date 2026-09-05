@@ -1,97 +1,61 @@
 ---
 name: handoff-agent-builder
 description: |
-  Use this skill when creating or improving a project-specific handoff/onboarding agent for a repository, especially when the goal is to help a new maintainer understand what the project does, where things live, how to run it, how to inspect artifacts, how to make changes safely, and how to verify understanding through realistic multi-turn handoff conversations.
+  Use when creating or improving a repository-specific handoff/onboarding skill that should teach a maintainer what the project does, where important parts live, how to run or inspect it, how to make changes safely, and how to verify understanding through realistic multi-turn handoff conversations.
 ---
 
 # Handoff Agent Builder
 
-Build a repo-local handoff agent that actively teaches a person through a project. The output is not a passive overview document. The agent should lead from first contact to practical maintenance readiness with concrete files, commands, artifacts, summaries, and understanding checks.
+Create a repo-local handoff skill that actively teaches a person through the project. The output is not a passive overview.
 
-## Core Philosophy
+## Design constraints
 
-Use these principles as hard design constraints:
-
-1. Own the disclosure order. The central rule is that the handoff agent must explain important things before the person knows to ask about them.
-2. Lead the handoff. Do not wait for the person to know which questions, terms, files, settings, artifacts, or future workflows matter.
-3. Start compactly. The first answer should orient, give a first route, and make the next action unmistakable.
-4. Ground concepts in concrete evidence. Teach terms by opening the relevant file, image, log, UI, dataset, command, or code path.
-5. Move one artifact at a time. A file, screenshot, image, command, or concept gets its own summary before the next one.
-6. Summarize before checking understanding. Do not ask the person to recite the answer back unless they request quizzing.
-7. Keep tone neutral and adult. Avoid status labels such as beginner, intern, successor, junior, or newcomer in user-facing answers.
-8. Ground every claim of reading, inspection, or execution in available evidence. Reuse an earlier inspection when its source and relevant conditions are unchanged and the evidence remains available; recheck after a relevant change or loss of evidence. Never describe a previous action as newly performed, or a named path as an inspected artifact. Do not repeat a read or execution solely to make it belong to the current turn.
-9. Treat execution, local artifact inspection, approvals, state-changing commands, and verification as different actions.
-10. Include the full operating map: domain, data, first run, artifacts, code entry points, settings, evaluation, execution variants, troubleshooting, safe first tasks, and future work.
-11. Forward-test the agent with realistic multi-turn conversations. Static validation alone is not enough.
+1. Lead the disclosure order. Explain important things before the maintainer knows to ask.
+2. Start compactly with project purpose, the first route and one unmistakable next action.
+3. Ground concepts in concrete files, commands, artifacts, logs, UI or code paths.
+4. Teach one artifact or concept at a time and summarize before checking understanding.
+5. Keep tone neutral and adult.
+6. Reuse still-valid inspection evidence; recheck when the source or relevant conditions changed. Never describe a prior read or execution as newly performed.
+7. Separate inspection, execution, approval, state-changing actions and verification.
+8. Cover the operating map: domain, first run, artifacts, entry points, settings, data, evaluation, execution variants, troubleshooting, safe first tasks and future work.
+9. Forward-test realistic multi-turn behavior. Static validation alone is not enough.
 
 ## Workflow
 
-1. Inspect the target repository before designing the agent.
-   - Read local instructions such as `AGENTS.md`, `README.md`, docs indexes, test docs, package files, CLI entry points, and sample data directories.
-   - Identify the actual first run, output location, expected artifacts, settings files, data roles, and nearest verification commands.
-   - Use `references/discovery-checklist.md` for the source-of-truth pass.
+1. Inspect the target repository and its local instructions, README/docs, package/CLI entry points, settings, tests, sample data and representative artifacts. Use `references/discovery-checklist.md`.
+2. Define what a maintainer should understand when handoff is complete and schedule topics they cannot be expected to ask about yet. Use `references/handoff-curriculum-template.md`.
+3. Create the repo-local skill under:
 
-2. Define the handoff contract.
-   - State what the person should understand when the handoff is complete.
-   - List the important topics the person cannot be expected to ask about yet, then schedule them into the roadmap.
-   - Define the first-session path, the roadmap, stage summaries, and completion criteria.
-   - Use `references/handoff-curriculum-template.md` for the stage structure.
+```text
+.agents/skills/<project>-handoff/
+  SKILL.md
+  references/
+  agents/openai.yaml   # optional
+```
 
-3. Create the repo-local handoff agent package.
-   - Prefer a folder such as `agents/<project>-handoff/`.
-   - Include a concise `SKILL.md` with routing and behavior rules.
-   - Put detailed curriculum, first-session script, completion loop, and project-specific roadmaps under `references/`.
-   - Connect the agent from the repo's README/docs so future maintainers can find it.
-   - Use `references/agent-package-template.md` for the expected files and content.
+Codex automatically discovers repo-local skills under `.agents/skills`. Do not put the primary package under a generic `agents/` directory and then require a second copy step.
 
-4. Write the first-session behavior as a script-like contract.
-   - Include project purpose, route choices, the exact first command or first inspection action, expected output directory or artifact, and the next action checkpoint.
-   - Explain unknown terms before relying on abbreviations.
-   - Avoid long source-of-truth lists, invariant dumps, broad test lists, and "what do you want to do?" as the opening move.
+4. Keep `SKILL.md` concise. Put project-specific first-session flow, maintenance roadmap and source map under `references/`. Use `references/agent-package-template.md`.
+5. Connect human-facing README/docs to the handoff route when that materially helps maintainers find it; do not duplicate the skill.
+6. Validate frontmatter, resource paths and executable helpers with the target repository's actual tooling.
+7. Forward-test with fresh subagents or isolated conversations and observable tool evidence. Use `references/validation-playbook.md`.
+8. Patch observed failures and rerun affected cases. Record unavailable behavior tests as not run, not passed.
 
-5. Add artifact teaching loops.
-   - For each important output or source file, define: why it matters, what to inspect, what concept it teaches, what the stage summary says, and what follows next.
-   - For visual artifacts, inspect one image per turn. A single image may contain many panels; teach that one image before opening another.
+## Required behavior
 
-6. Add code and data routing.
-   - Map common questions to owning modules, docs, tests, settings, and safe verification commands.
-   - Include data trust rules where datasets differ by source, purpose, freshness, or reliability.
-   - Include execution variants that a new maintainer would not know to ask about, such as deterministic vs random runs, continued runs, batch/multi-run workflows, evaluation reports, and optimization prerequisites.
-   - Convert "things users might ask" into "things the agent must teach before they ask" whenever the topic is required for safe maintenance.
+A useful handoff skill should:
 
-7. Validate and iterate.
-   - Validate the actual skill format, resource paths, and any executable helpers using available project tooling.
-   - Review the first-session contract and examples manually. Do not create tests that require particular prose, headings, or banned-phrase lists.
-   - Forward-test with fresh subagents or isolated conversations using realistic prompts and observable tool evidence.
-   - Patch observed failures and rerun the affected cases; report unavailable evaluation separately from passing checks.
-   - Use `references/validation-playbook.md` for acceptance criteria.
+- respond to “start handoff” with project purpose and an exact first action;
+- make working directory, command, output/artifact and run status unambiguous;
+- explain vocabulary from actual project evidence;
+- continue to the next planned topic after confirmation instead of asking what to do next;
+- proactively cover settings, data roles, evaluation and execution variants;
+- finish with a practical maintenance map and remaining risks.
 
-## Required Output Standard
+## Boundaries
 
-A completed handoff agent should be able to:
-
-1. Answer "start handoff" with a compact, proactive first route and exact next action.
-2. Guide the first run or first inspection without ambiguity about the working directory, command, output path, or run status.
-3. Open or inspect the first artifact and explain project vocabulary from that artifact.
-4. Continue after "I understand" by opening the next planned artifact or file, not by asking what to do next.
-5. Explain source files, settings, data roles, evaluation reports, and execution variants before the maintainer has to ask.
-6. Summarize each stage in enough detail that context is preserved.
-7. Finish with a detailed maintenance map, not a one-sentence conclusion.
-
-## Failure Patterns To Block
-
-Treat these as defects in the handoff agent:
-
-- It starts with "what do you want to know?" or only lists files.
-- It calls the listener a beginner, intern, junior, successor, or similar status label.
-- It dumps a glossary or policy list before giving a usable first route.
-- It gives a command without the required working directory or output location.
-- It says an image/file was opened when it was only named, invents a fresh execution, or relies on inspection evidence invalidated by a change.
-- It tells the person to ask for the next file instead of opening or inspecting it after confirmation.
-- It asks the person to explain back instead of first summarizing for them.
-- It omits settings, data roles, evaluation artifacts, or execution variants that are essential for maintenance.
-- It declares the handoff complete without stage-by-stage confirmation and a detailed final recap.
-
-## Installation Note
-
-If the generated handoff agent uses `references/`, copy the whole skill folder into the user's Codex skills directory, not only `SKILL.md`.
+- Do not claim to have opened, run or inspected something without available evidence.
+- Do not mutate the repository when the user asked only for review or design.
+- Do not broaden authority for execution, push, deployment, migration or external writes.
+- Do not add prose-presence or banned-phrase tests.
+- Do not use handoff ceremony to duplicate ordinary project documentation.

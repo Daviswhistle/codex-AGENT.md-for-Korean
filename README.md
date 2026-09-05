@@ -1,71 +1,59 @@
 # Davis Agent Kit
 
-한국어로 작업하는 에이전트가 사용자의 판단 기준과 작업 습관을 일관되게 적용하도록 만드는 철학·지침·스킬 키트입니다.
+한국어로 작업하는 Codex가 사용자의 목적과 판단 기준을 일관되게 적용하도록 만드는 작은 전역 지침 + skill 묶음입니다.
 
 ## 구조
 
 ```text
 davis-agent-kit/
-  AGENTS.md           # 전역 철학·원칙·행동 계약
-  AGENTS.override.md  # 이 저장소를 수정할 때만 적용되는 규칙
-  kit.toml            # 버전·설치 manifest
-  guidelines/         # 공통 원칙의 적용 지침
-  checklists/         # 실제 완료 전에 필요한 짧은 검수 기준
-  templates/          # 재사용 출력 형식
-  skills/             # 독립 설치 가능한 Codex skills
-  examples/           # 실제 품질 기준에 필요한 예시
-  user-model/         # 아직 다른 규범 원본으로 흡수되지 않은 사용자 기준의 관리 원칙
-  scripts/            # 설치·doctor·기계 검증
-  .github/            # CI
+├── AGENTS.md
+├── AGENTS.override.md
+├── skills/
+│   ├── translation-quality/
+│   ├── handoff-agent-builder/
+│   ├── software-engineering/
+│   └── writing-quality/
+├── scripts/
+├── tests/
+└── .github/
 ```
 
-현재 동작을 설명하지 않는 과거 의사결정 기록, 일회성 행동 평가 raw trace, grader 출력, 실행 로그는 저장소에 장기 보존하지 않습니다. Git history와 PR이 변경 이유를 남기며, 필요한 평가 결과는 해당 PR/CI/artifact에 요약합니다.
+- `AGENTS.md`: 모든 작업의 기본 자세, 권한, 완료 기준과 skill routing
+- `AGENTS.override.md`: 이 저장소 자체를 수정할 때의 관리 규칙
+- `skills/`: 반복 workflow와 그 workflow에만 필요한 references, agents, scripts, tests
+- `scripts/install_codex.py`: 전역 AGENTS와 user skills를 심링크
+- `scripts/validate_kit.py`: active skill 계약과 실행 가능한 tests/helpers 검증
 
-## 지침 구조
+과거 의사결정 기록, raw model trace, 수동 평가 archive, 빈 template/inbox/user-model 디렉터리는 제품 트리에 유지하지 않습니다. 변경 이유는 Git history와 PR이 보존합니다.
 
-`AGENTS.md`는 모든 저장소에서 적용할 전역 철학, 핵심 원칙, 기본 동작, 행동 권한, 중단 조건, 스킬 라우팅의 규범 원본입니다. `AGENTS.override.md`는 이 저장소를 수정할 때만 적용됩니다. 세부 절차는 해당 `guidelines/`, `checklists/`, `skills/`, `templates/`에 둡니다.
+## 기본 자세
 
-한 계약을 여러 파일에 반복하지 않습니다. 스킬은 독립 설치 가능해야 하므로 실행에 꼭 필요한 계약은 스킬 내부에 남기되, 상세 절차의 원본은 하나만 둡니다.
+목적 소유와 주인·파트너 관점은 별도 skill이 아니라 `AGENTS.md`의 상시 기본값입니다. 모델은 표면 과업보다 실제 결과를 보고, 잘못된 전제를 고치며, 근본 원인과 높은 레버리지의 개선을 찾습니다. 동시에 새로운 가치 선택, 비용, 외부 write, 비가역적 위험과 실질적인 범위 확대는 사용자 권한으로 남깁니다.
 
-목적 소유와 주인·파트너 관점은 별도 스킬이 아니라 `AGENTS.md`의 전역 기본 자세입니다. 긴 작업에서 맥락 유실 위험이 있을 때만 작은 checkpoint를 남기고, 재개할 때 현재 저장소·산출물·검증과 다시 대조합니다.
+긴 작업에서 continuity가 실제 문제일 때만 작은 checkpoint를 남기고, 재개할 때 현재 저장소·산출물·검증과 다시 대조합니다. 별도 mission database나 ownership runtime은 두지 않습니다.
 
-## 현재 스킬
+## Skills
 
-- [`translation-quality`](skills/translation-quality/) — 긴 비즈니스 문서·실적발표 번역과 원문/수치/HTML QA
-- [`handoff-agent-builder`](skills/handoff-agent-builder/) — 프로젝트별 인수인계 에이전트 설계와 멀티턴 검증
-- [`software-engineering`](skills/software-engineering/) — 구현 위임, 로컬 검증, CRA/TCA
-- [`writing-quality`](skills/writing-quality/) — 장문 분석·원고 작성·편집과 필요 시 분리 검수
+- `translation-quality`: 비단순 한국어 번역, transcript·재무보고서 번역, source/numeric/format QA
+- `handoff-agent-builder`: Codex가 자동 발견하는 repo-local handoff skill 설계와 멀티턴 검증
+- `software-engineering`: 구현 위임, 로컬 검증, 필요할 때 CRA/TCA
+- `writing-quality`: 글쓰기 자체가 품질 병목인 원고·장문 분석·게시용 문서 작성과 편집
+
+Codex는 skill을 먼저 metadata로 발견하고 선택된 skill의 `SKILL.md`와 필요한 reference만 읽습니다. 따라서 전역 원칙은 AGENTS에, 조건부 절차는 skill 내부에만 둡니다.
 
 ## 모델 운용
 
-프론티어 모델 전환은 [`guidelines/prompt-migration.md`](guidelines/prompt-migration.md)를 따릅니다. 키트는 비용 효율을 위해 런타임 기본 컨텍스트를 사용하며 확장 컨텍스트 override를 만들지 않습니다.
-
-소프트웨어 작업의 기본 역할 배치는 다음과 같습니다.
-
-- bounded implementation worker: Luna Max + Fast 우선 후보
-- CRA reviewer: Astra Medium + standard tier
-
-역할 기본값은 전역 모델 강제가 아닙니다. 실제 launcher와 가용성을 확인하고, 품질이 부족할 때만 구체적 근거로 변경합니다.
-
-## 검증
-
-기계적으로 검증 가능한 계약만 자동화합니다.
-
-```bash
-python3 scripts/validate_kit.py
-```
-
-CI도 같은 진입점을 사용합니다. 자동 검증 대상은 manifest/frontmatter/resource 경로, installer·doctor의 충돌·롤백·credential 경계, 실제 helper 코드와 그 공개 동작입니다.
-
-Markdown의 특정 문구·제목·섹션·예시나 모델의 판단 품질을 자동 테스트로 고정하지 않습니다. 실행 코드의 테스트도 공개 계약, 안전 경계, 재발 가능한 회귀를 보호할 때만 유지합니다. 모델 행동 평가는 중요한 변경에서만 대표 과제로 수행하고 결과를 PR에 남깁니다.
-
-저장소와 manifest만 확인하려면:
-
-```bash
-python3 scripts/doctor.py --repo-only
-```
+- 모든 역할은 런타임 기본 컨텍스트를 사용합니다. 이 kit는 context window나 auto-compaction limit을 늘리지 않습니다.
+- bounded implementation worker의 첫 후보는 `gpt-5.6-luna` + Max + Fast입니다.
+- CRA reviewer의 기본은 `gpt-6-astra` + Medium + default/non-Fast service tier입니다.
+- 더 비싼 자원은 오류 비용·모호성·실제 품질 실패 같은 구체적 이유가 있을 때만 사용합니다.
 
 ## 설치
+
+현재 Codex의 전역 위치를 따릅니다.
+
+- global instructions: `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`
+- user skills: `$HOME/.agents/skills/<skill-name>`
 
 저장소 루트에서:
 
@@ -73,28 +61,38 @@ python3 scripts/doctor.py --repo-only
 ./scripts/install_codex.sh
 ```
 
-다른 `CODEX_HOME`을 쓰면:
+다른 위치를 시험하거나 격리하려면:
 
 ```bash
-CODEX_HOME=/path/to/codex-home ./scripts/install_codex.sh
+./scripts/install_codex.sh \
+  --codex-home /tmp/codex-home \
+  --skills-home /tmp/agents/skills
 ```
 
-설치 스크립트는 `kit.toml`의 전역 `AGENTS.md`와 스킬을 Codex 경로에 심링크하고 doctor를 실행합니다. 기존 파일·다른 링크·retired/unlisted skill을 임의로 덮거나 삭제하지 않으며 충돌 시 변경 전에 중단합니다.
+설치기는 기존 파일이나 다른 skill을 덮어쓰지 않습니다. 이미 정확한 심링크면 유지하고 충돌하면 변경 전에 중단합니다.
 
-`${CODEX_HOME:-$HOME/.codex}/davis-agent-kit` 자체를 checkout으로 사용하거나 checkout을 `CODEX_HOME` 밖에 둡니다. 설치 뒤 새 Codex 세션을 시작해 지침과 스킬 목록을 다시 로드합니다.
+이 kit의 과거 버전이 사용하던 `${CODEX_HOME:-$HOME/.codex}/skills`는 Codex가 호환 목적으로 아직 읽을 수 있으므로, 그 위치에 `translation-quality`, `handoff-agent-builder`, `software-engineering`, `writing-quality` 또는 retired kit skill이 남아 있으면 migration을 중단합니다. 중복 로딩을 피하기 위해 해당 과거 링크를 직접 확인해 제거한 뒤 다시 실행합니다.
 
-연결 상태는 다음으로 확인합니다.
+설치 상태 확인:
 
 ```bash
-python3 scripts/doctor.py
+./scripts/install_codex.sh --check
 ```
 
-`--strict`를 붙이면 경고도 실패로 처리합니다.
+설치 또는 skill 변경 뒤에는 새 Codex 세션을 시작합니다.
+
+## 검증
+
+```bash
+python3 scripts/validate_kit.py
+```
+
+CI도 같은 진입점을 사용합니다. 검증 대상은 skill frontmatter/resource 경로, installer 계약, 실제 helper와 실행 코드의 tests입니다. 특정 Markdown 문구나 모델 판단 품질을 정적 테스트로 고정하지 않습니다.
 
 ## 수정 원칙
 
-1. 원격과 현재 작업 상태를 확인하고 다른 변경을 덮지 않습니다.
-2. 현재 행동을 바꾸는 최소한의 규범 원본과 직접 연결된 실행물만 수정합니다.
-3. 실제 코드가 있는 helper는 필요한 테스트를 함께 유지합니다. 문서 문구를 테스트하지 않습니다.
-4. 실패 원인이나 사용자 기준이 현재 지침에 흡수되면 별도 역사 기록을 또 남기지 않습니다.
-5. push, merge, 배포, 마이그레이션, 외부 상태 변경은 명시적 권한을 따릅니다.
+1. 현재 행동을 바꾸는 최소 규범 원본과 직접 연결된 실행물만 수정합니다.
+2. 실제 실패보다 큰 방어 시스템을 만들지 않습니다.
+3. helper가 필요 없어진다면 helper를 지키기 위한 테스트도 함께 없앱니다.
+4. 행동 품질 변화는 필요할 때 대표 작업으로 비교하고 결과는 PR에 요약합니다.
+5. merge, 배포, 외부 상태 변경은 명시적 권한을 따릅니다.
