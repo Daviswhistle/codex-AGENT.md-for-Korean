@@ -7,7 +7,7 @@ normative_source = "AGENTS.md"
 kit_link = "davis-agent-kit"
 agents_link = "AGENTS.md"
 skills_dir = "skills"
-retired_skills = ["davis-operating-system", "coding-workflow"]
+retired_skills = ["davis-operating-system", "coding-workflow", "outcome-owner"]
 
 [[skills]]
 name = "translation-quality"
@@ -17,11 +17,6 @@ entrypoint = "SKILL.md"
 [[skills]]
 name = "handoff-agent-builder"
 path = "skills/handoff-agent-builder"
-entrypoint = "SKILL.md"
-
-[[skills]]
-name = "outcome-owner"
-path = "skills/outcome-owner"
 entrypoint = "SKILL.md"
 
 [[skills]]

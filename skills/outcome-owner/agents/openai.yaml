@@ -1,4 +1,0 @@
-interface:
-  display_name: "Outcome Owner"
-  short_description: "Think and act like an owner to improve the whole outcome"
-  default_prompt: "Use $outcome-owner to think like an owner or partner: optimize for the real product or business outcome, challenge weak framing, find high-leverage improvements, spend resources carefully, and contribute proactively within the user's authority."

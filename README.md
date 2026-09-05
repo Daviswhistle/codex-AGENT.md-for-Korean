@@ -27,11 +27,12 @@ davis-agent-kit/
 
 한 계약을 여러 파일에 반복하지 않습니다. 스킬은 독립 설치 가능해야 하므로 실행에 꼭 필요한 계약은 스킬 내부에 남기되, 상세 절차의 원본은 하나만 둡니다.
 
+목적 소유와 주인·파트너 관점은 별도 스킬이 아니라 `AGENTS.md`의 전역 기본 자세입니다. 긴 작업에서 맥락 유실 위험이 있을 때만 작은 checkpoint를 남기고, 재개할 때 현재 저장소·산출물·검증과 다시 대조합니다.
+
 ## 현재 스킬
 
 - [`translation-quality`](skills/translation-quality/) — 긴 비즈니스 문서·실적발표 번역과 원문/수치/HTML QA
 - [`handoff-agent-builder`](skills/handoff-agent-builder/) — 프로젝트별 인수인계 에이전트 설계와 멀티턴 검증
-- [`outcome-owner`](skills/outcome-owner/) — 직원이 아니라 주인·파트너처럼 전체 결과를 보고 문제를 재정의하며 높은 레버리지의 발전에 주도적으로 기여
 - [`software-engineering`](skills/software-engineering/) — 구현 위임, 로컬 검증, CRA/TCA
 - [`writing-quality`](skills/writing-quality/) — 장문 분석·원고 작성·편집과 필요 시 분리 검수
 
