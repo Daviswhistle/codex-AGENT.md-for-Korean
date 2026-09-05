@@ -14,11 +14,11 @@
 
 - `translation-quality`: 긴 비즈니스 문서와 실적발표 transcript를 자연스러운 한국어로 번역하고 개념 검수와 HTML QA까지 수행하기 위한 스킬
 - `handoff-agent-builder`: 프로젝트별 인수인계 에이전트를 설계하고 멀티턴 검증까지 수행하기 위한 스킬
-- `outcome-owner`: 비사소하거나 장기적인 목표의 목적·제약·성공 기준·근거·소유권을 보존하고, 권한 안에서 주도적으로 실행해 검증된 완료까지 책임지기 위한 스킬
+- `outcome-owner`: 표면 과업을 수행하는 직원이 아니라 주인·파트너처럼 실제 제품·사업 결과를 보고, 잘못된 전제를 고치고 높은 레버리지의 개선에 권한 안에서 주도적으로 기여하기 위한 스킬
 - `software-engineering`: 비사소한 구현과 로컬 검증을 작업 에이전트에 위임하고, CRA 또는 TCA의 필요성을 자율적으로 판단해 선택한 workflow를 실행하기 위한 스킬
 - `writing-quality`: 모든 사용자 답변에 적용되는 전역 최소 글쓰기 기준 위에서, 글쓰기 자체가 주요 품질 병목일 때 구조 설계·퇴고·검수를 제공하는 범용 스킬. 원고·장문·반복 발행·오독 비용이 큰 근거 기반 답변이나 명시적 완성도 요청에 사용한다. 문장 형식, 출처 사용, 기술·투자 주제라는 이유만으로 호출하지 않으며, 짧고 원자적인 출처 기반 질의응답에는 전역 최소 글쓰기 기준만 적용한다. 일반 질의응답 형식 자체는 배제 사유가 아니다.
 
-전역 위임 원칙은 모델 중립적으로 유지합니다. `software-engineering`은 에이전트를 실행하기 전에 역할 → 모델 → reasoning effort → service tier → context window → context propagation/fork 순서로 선택하며, 경계가 명확한 실행 워커에는 Luna Max + Fast를 먼저 검토하고 완료 기준을 충족할 수 있으면 사용합니다. 더 강한 모델은 작업 난도, 오류 비용, 모호성, 독립성에 관한 구체적인 품질 근거가 있을 때 선택합니다. `software-engineering/references/worker-luna-max-fast.toml`은 이 우선 후보를 실행하기 위한 opt-in custom `worker` 예시이며 설치 시 자동 적용되지 않습니다.
+전역 위임 원칙은 모델 중립적으로 유지합니다. `software-engineering`은 에이전트를 실행하기 전에 역할, 모델, reasoning effort, service tier, 기본 context 사용 여부, context propagation을 분리해 판단하며, 경계가 명확한 실행 워커에는 Luna Max + Fast를 먼저 검토합니다. 더 강한 모델은 작업 난도, 오류 비용, 모호성, 독립성에 관한 구체적인 품질 근거가 있을 때 선택합니다.
 
 ## 설치 단위
 

@@ -31,7 +31,7 @@ davis-agent-kit/
 
 - [`translation-quality`](skills/translation-quality/) — 긴 비즈니스 문서·실적발표 번역과 원문/수치/HTML QA
 - [`handoff-agent-builder`](skills/handoff-agent-builder/) — 프로젝트별 인수인계 에이전트 설계와 멀티턴 검증
-- [`outcome-owner`](skills/outcome-owner/) — 명시적으로 장기 목표를 맡겼을 때 목적·권한·완료 근거를 durable local state로 보존
+- [`outcome-owner`](skills/outcome-owner/) — 직원이 아니라 주인·파트너처럼 전체 결과를 보고 문제를 재정의하며 높은 레버리지의 발전에 주도적으로 기여
 - [`software-engineering`](skills/software-engineering/) — 구현 위임, 로컬 검증, CRA/TCA
 - [`writing-quality`](skills/writing-quality/) — 장문 분석·원고 작성·편집과 필요 시 분리 검수
 
