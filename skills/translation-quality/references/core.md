@@ -38,8 +38,10 @@ Do not claim knowledge of unavailable prior work. Record which benchmark items w
 1. Identify the source format, document type, loading path, optional primary profile, whether terminology review applies, output format, title, date, fiscal period, and reader-visible metadata.
 2. Preserve structural extraction evidence until QA is complete.
 3. When terminology review applies, scan the full source before substantive translation and prepare the terminology ledger. Save it for long documents; use a separate alias map only when relationships are complex.
-4. For sources longer than roughly 3,000 words, create reviewable source units, chunk files, a progress ledger, and `work/qa_report.md`.
-5. Do not fake chunking by writing one giant translation dictionary and splitting it afterward. Translate and save independent reviewable chunks, then assemble deterministically.
+4. Choose single-pass or chunked execution based on source length and model capability:
+   - When the active model (such as a frontier large-context model) can reliably translate the full document in a single pass without omission or drift, translate directly to `outputs/`.
+   - For sources exceeding the active model's reliable single-pass output limit, or when omission risk warrants segmented verification (historically ~3,000 words for earlier models), create reviewable source units, chunk files, a progress ledger, and `work/qa_report.md`.
+5. When chunking is used, do not fake chunking by writing one giant translation dictionary and splitting it afterward. Translate and save independent reviewable chunks, then assemble deterministically.
 6. Keep the original order, material repetition, links, footnotes, and emphasis semantics unless a documented reader-facing reason justifies compression.
 
 ## Natural Korean And Meaning

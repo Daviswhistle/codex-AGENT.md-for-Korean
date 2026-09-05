@@ -41,10 +41,12 @@ Use progressive disclosure. Do not load every rule for every document.
 1. State the task objective and completion conditions in one sentence.
 2. Identify the source, document type, loading path, optional profile, output format, and reader-visible metadata.
 3. Trace the source-to-output flow and discover task-local evaluators before editing.
-4. If the terminology reference applies, scan the entire source before translating chunks and prepare the terminology ledger. Save it under `work/` for long documents; create a separate alias map only when the relationships are complex.
-5. For sources longer than roughly 3,000 words, create source units, chunk files, a progress ledger, and a QA report under `work/`.
-6. Translate and save reviewable chunks; do not simulate chunking by generating one monolithic translation and splitting it afterward.
-7. Assemble the final deliverable deterministically under `outputs/`.
+4. If the terminology reference applies, scan the entire source before substantive translation and prepare the terminology ledger. Save it under `work/` for long documents; create a separate alias map only when the relationships are complex.
+5. Determine execution mode based on source length and model capability:
+   - When the active model (e.g. a frontier large-context model) can reliably translate the full document in a single pass without omission or drift, translate directly to `outputs/`.
+   - When the source exceeds the active model's reliable single-pass output limit, or when omission risk warrants segmented verification (historically ~3,000 words for earlier models), create source units, chunk files, a progress ledger, and a QA report under `work/`.
+6. When chunking is used, translate and save reviewable chunks; do not simulate chunking by generating one monolithic translation and splitting it afterward. Assemble deterministically under `outputs/`.
+7. Assemble or deliver the final deliverable under `outputs/`.
 8. Run conceptual review with the applicable profile reviewer; for `core-only`, use `agents/korean_translation_reviewer.md`. When terminology review applies, include naming-class consistency, alias identity, and first-occurrence placement in that pass. Then run mechanical and source-fidelity QA.
 9. Fix accepted findings, rerun the closest affected checks, and verify the final file itself before delivery.
 
