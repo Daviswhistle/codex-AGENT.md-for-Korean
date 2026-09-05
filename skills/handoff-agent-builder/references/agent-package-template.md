@@ -1,11 +1,11 @@
-# Repo-Local Handoff Agent Package Template
+# Repo-Local Handoff Skill Template
 
-Use this when creating the project-specific handoff agent inside a repository.
+Use this when creating the project-specific handoff package.
 
-## Recommended File Layout
+## Recommended layout
 
 ```text
-agents/<project>-handoff/
+.agents/skills/<project>-handoff/
   SKILL.md
   references/
     first-session.md
@@ -13,87 +13,58 @@ agents/<project>-handoff/
     maintainer-roadmap.md
     project-source-map.md
   agents/
-    openai.yaml        # optional UI metadata when the environment supports it
-docs/
-  handoff_agent.md     # human-facing routing page, if the repo has docs/
-README.md             # link to the handoff route, if public docs should expose it
+    openai.yaml        # optional UI metadata
 ```
 
-Adjust the layout to repo conventions. If the repo has no `agents/` folder, use the nearest local convention, but keep the package easy to copy into Codex skills.
+Codex automatically discovers repo-local skills from `.agents/skills`. Keep the package there unless the target environment documents a different supported skill root.
 
-## SKILL.md Contents
+## SKILL.md
 
-The repo-local `SKILL.md` should include:
+Include:
 
-1. Frontmatter with a specific `name` and trigger-rich `description`.
-2. Role: the agent is the handoff guide, not a passive Q&A bot.
-3. First-session behavior and hard boundaries.
-4. Safe execution rules for the repo.
-5. Artifact walkthrough rules.
-6. Code walkthrough depth.
-7. Source map and settings map.
-8. Data primer and trust rules.
-9. Evaluation and verification commands.
-10. Forward-test expectations.
+1. trigger-rich frontmatter
+2. role and first-session behavior
+3. safe execution/authority boundaries
+4. artifact walkthrough rules
+5. code/data/settings routing
+6. completion and forward-test expectations
 
-Keep detailed examples and long roadmaps in `references/`.
+Keep long project-specific maps and examples in `references/`.
 
 ## first-session.md
 
-This reference should contain a script-like first response that a user can test. It should include project purpose, first route, exact first command or inspection action, working directory, output directory or first artifact, short term decode, direct-run vs agent-run choice when commands are involved, and an explicit stop point before run status is known.
+Define a compact first response with project purpose, exact first command or inspection action, working directory, expected output/artifact and the next checkpoint. Explain unknown terms before relying on them.
 
-Also include first-response anti-patterns:
-
-- "What do you want to know?"
-- Long glossary first.
-- Policy dump first.
-- Test matrix first.
-- File list without action.
-- Direct-run-only wording when agent-run is possible.
+Avoid opening with a glossary, broad policy dump, test matrix, file list without action or “what do you want to know?”.
 
 ## handoff-completion.md
 
-This reference should define the loop:
+Define the loop:
 
-1. Teach one concept.
-2. Inspect one concrete source.
-3. Summarize in more than one sentence when needed.
-4. Check understanding.
-5. Repair confusion with a smaller example.
-6. Continue to the next planned source after confirmation.
+1. teach one concept;
+2. inspect one concrete source;
+3. summarize;
+4. check understanding;
+5. repair confusion if needed;
+6. continue to the next planned source.
 
-It should define completion criteria and require a detailed final recap.
+Define completion criteria and the final maintenance recap.
 
 ## maintainer-roadmap.md
 
-This reference should be project-specific. Include domain stages, data stages, first run/artifact stages, code stages with real paths and functions, settings stages, evaluation stages, execution variants, optimization/future-work stages, and safe first tasks.
+Use real project stages and real paths. For each stage identify:
 
-For each stage, write:
-
-- Goal.
-- What to teach proactively.
-- What file/artifact/command to inspect.
-- Stage summary example.
-- Understanding check.
-- Progress criteria.
+- goal
+- what to teach proactively
+- file/artifact/command to inspect
+- summary
+- understanding checkpoint
+- progress criterion
 
 ## project-source-map.md
 
-This reference should route common questions:
+Route common maintenance questions to real paths/functions: CLI/UI entry point, settings, parsing, validation, generated artifacts, tests and domain-rule ownership.
 
-- "Where is the CLI?"
-- "Where is the first UI?"
-- "Where are settings?"
-- "Where is parsing?"
-- "Where is validation?"
-- "Where are generated artifacts?"
-- "Which test should I run?"
-- "Which file owns this domain rule?"
+## Human docs
 
-Use real paths and function names.
-
-## Human Docs Link
-
-If the repo has a docs system, add a short page explaining what the handoff agent is for, where the package lives, how to invoke it, what the handoff covers, and what it does not replace.
-
-Do not duplicate the entire skill in docs; point to the source package.
+If a README or docs page should expose the handoff route, add a short pointer to `.agents/skills/<project>-handoff/`. Do not copy the full skill into human docs.

@@ -1,5 +1,0 @@
-[`add` 함수](/tmp/oo-d21b684630f2-rsha2ffz/workspace/app.py:2)가 뺄셈 대신 덧셈을 반환하도록 수정했습니다.
-
-- 검증: `python -m unittest discover -v` — 1개 테스트 통과
-- push 및 배포: 수행하지 않음
-- 따라서 사용자 환경에는 아직 적용되지 않았습니다.
