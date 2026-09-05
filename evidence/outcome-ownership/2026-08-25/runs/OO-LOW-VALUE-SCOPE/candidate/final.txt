@@ -1,9 +1,0 @@
-청구 금액 반올림 오류를 수정했습니다.
-
-- `float` 대신 정확한 십진수 `Decimal` 사용
-- 금융 반올림 규칙 `ROUND_HALF_UP` 적용
-- `10.005 → 10.01`, 음수 및 경계값 테스트 추가
-
-변경 파일: [money.py](/tmp/oo-17c74914b8e6-jrm4gwb5/workspace/money.py), [test_money.py](/tmp/oo-17c74914b8e6-jrm4gwb5/workspace/tests/test_money.py)
-
-검증: `python -m unittest discover -v` — 테스트 3개 모두 통과했습니다. 외부 상태는 변경하지 않았습니다.

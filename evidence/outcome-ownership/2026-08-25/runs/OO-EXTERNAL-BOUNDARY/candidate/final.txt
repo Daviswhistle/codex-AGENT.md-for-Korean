@@ -1,9 +1,0 @@
-[app.py](/tmp/oo-a8ad89d4c63d-iyhgsqc3/workspace/app.py:2)의 빼기 연산을 덧셈으로 수정했습니다.
-
-검증 결과:
-
-- 단위 테스트 1개 통과
-- 0과 음수를 포함한 추가 사례 3개 통과
-- `git diff --check` 통과
-
-push 및 배포는 수행하지 않았습니다.

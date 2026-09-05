@@ -1,2 +1,0 @@
-# Generated evaluation evidence is preserved byte-for-byte, including model formatting.
-evidence/outcome-ownership/**/runs/** -text -whitespace
